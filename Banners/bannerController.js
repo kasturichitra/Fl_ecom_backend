@@ -1,4 +1,4 @@
-import { createBannersServices, deleteBannerServices, getAllBannersServices, updatebannersServices } from "./bannersServices.js";
+import { createBannersServices, deleteBannerServices, getAllBannersServices, updatebannersServices } from "./bannersService.js";
 
 export const createBannersController = async (req, res) => {
     try {

@@ -1,5 +1,5 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
-import { createIndustryTypeServices, deleteIndustryTypeServices, getIndustrySearchServices, getIndustryTypeServices, updateIndustrytypeServices } from "./industryTypeServices.js";
+import { createIndustryTypeServices, deleteIndustryTypeServices, getIndustrySearchServices, getIndustryTypeServices, updateIndustrytypeServices } from "./industryTypeService.js";
 
 export const createIndustryTypeController = async (req, res) => {
   try {

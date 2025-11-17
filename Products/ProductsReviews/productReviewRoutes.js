@@ -6,7 +6,7 @@ import {
   getReviewsByIdController,
   // getReviewsBySearchController,
   updateReviewsByIdController,
-} from "./productsReviewsController.js";
+} from "./productReviewController.js";
 import getUploadMiddleware from "../../utils/multerConfig.js";
 
 const route = express.Router();

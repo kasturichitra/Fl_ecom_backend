@@ -1,7 +1,7 @@
 import fs from "fs";
 
 import throwIfTrue from "../utils/throwIfTrue.js";
-import ProductsModel from "./productModels.js";
+import ProductsModel from "./productModel.js";
 import { validateProductData } from "./validations/validateProductCreate.js";
 import { validateProductUpdateData } from "./validations/validateProductUpdate.js";
 import parseFormData from "../utils/parseFormDataIntoJsonData.js";

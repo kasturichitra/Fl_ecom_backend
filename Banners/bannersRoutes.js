@@ -1,7 +1,7 @@
 
 
 import express from 'express'
-import { createBannersController, deleteBannerController, getBannersController, updateBannerController } from './bannersControllers.js'
+import { createBannersController, deleteBannerController, getBannersController, updateBannerController } from './bannerController.js'
 import getUploadMiddleware from '../utils/multerConfig.js'
 
 

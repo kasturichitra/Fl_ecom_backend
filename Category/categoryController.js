@@ -6,7 +6,7 @@ import {
   getAllCategorySearchServices,
   getCategoryByIdServices,
   updateCategoryServices,
-} from "./categoryServices.js";
+} from "./categoryService.js";
 import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 

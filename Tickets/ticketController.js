@@ -1,4 +1,4 @@
-import { createTicketServices, getTicketServices, updateTicketServices } from "./ticketServices.js";
+import { createTicketServices, getTicketServices, updateTicketServices } from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
     try {

@@ -7,7 +7,7 @@ import {
   getAllProductsService,
   getProductByUniqueIdService,
   updateProductService,
-} from "./productServices.js";
+} from "./productService.js";
 
 export const createProductController = async (req, res) => {
   try {

@@ -1,5 +1,5 @@
 import express from "express";
-import { createIndustryTypeController, deleteIndustrytypeController, getIndustrySearchController, getIndustrytypesController, updateIndustryTypeController } from "./industryTypeControllers.js";
+import { createIndustryTypeController, deleteIndustrytypeController, getIndustrySearchController, getIndustrytypesController, updateIndustryTypeController } from "./industryTypeController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
 // import { safeUpload } from "../utils/safeUpload.js";
 

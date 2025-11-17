@@ -12,7 +12,7 @@ import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
 import categoryRoute from "./Category/categoryRoute.js";
 import productRoute from "./Products/productRoutes.js";
-import productsReviewsRoute from "./Products/ProductsReviews/productsReviewsRoutes.js";
+import productsReviewsRoute from "./Products/ProductsReviews/productReviewRoutes.js";
 import orderRoute from "./Orders/orderRoutes.js";
 import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";

@@ -1,7 +1,7 @@
 import OrdersModel from "../../Orders/orderModel.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
-import ProductsModel from "../productModels.js";
-import ProductsReviewsModel from "./productsReviewsModel.js";
+import ProductsModel from "../productModel.js";
+import ProductsReviewsModel from "./productReviewModel.js";
 import { validateReviewCreate } from "./validations/validateReviewCreate.js";
 import { validateReviewUpdate } from "./validations/validateReviewUpdate.js";
 

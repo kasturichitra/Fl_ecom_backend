@@ -1,4 +1,4 @@
-import { createOrderServices, getAllUserOrdersServices, orderSearchService, updateOrderService } from "./ordersServices.js";
+import { createOrderServices, getAllUserOrdersServices, orderSearchService, updateOrderService } from "./orderService.js";
 export const createOrderController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];

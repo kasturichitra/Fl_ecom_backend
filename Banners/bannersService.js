@@ -1,5 +1,5 @@
 import { log } from "console";
-import OfferBannerModel from "./bannersModel.js";
+import OfferBannerModel from "./bannerModel.js";
 import fs from "fs";
 import path from "path";
 

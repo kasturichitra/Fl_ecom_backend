@@ -1,4 +1,4 @@
-import ProductsModel from "../Products/productModels.js";
+import ProductsModel from "../Products/productModel.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";

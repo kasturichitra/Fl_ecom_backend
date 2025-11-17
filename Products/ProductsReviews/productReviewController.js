@@ -4,7 +4,7 @@ import {
   getReviewsByIdServices,
   // getReviewsBySearchServices,
   updateReviewsByIdServices,
-} from "./productsReviewsServices.js";
+} from "./productReviewService.js";
 
 export const createReviewsController = async (req, res) => {
   try {

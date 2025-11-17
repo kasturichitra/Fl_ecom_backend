@@ -1,4 +1,4 @@
-import ProductsModel from "../Products/productModels.js";
+import ProductsModel from "../Products/productModel.js";
 import WishlistModel from "./wishlistModel.js";
 
 export const wishlistCreateServices = async (tenantID, user_ID, product_ID) => {
