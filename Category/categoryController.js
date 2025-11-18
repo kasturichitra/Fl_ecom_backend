@@ -152,6 +152,30 @@ export const getAllCategoriesController = async (req, res) => {
   }
 };
 
+export const getCategoriesByIndustryIdController = async (req, res) => {
+  try {
+    const { id: industry_unique_id } = req.params;
+    const tenantId = req.headers["x-tenant-id"];
+
+    const categoryData = await getAllCategoriesService(tenantId, {
+      industry_unique_id,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Category get by Industry ID data fetched successfully",
+      data: categoryData,
+    });
+  } catch (error) {
+    console.error("Get Categories By Industry ID Error", error.message);
+    res.status(500).json({
+      status: "Failed",
+      message: "Get Categories By Industry ID Error",
+      error: error.message,
+    });
+  }
+};
+
 export const getCategoryByIdController = async (req, res) => {
   try {
     const { id } = req.params;

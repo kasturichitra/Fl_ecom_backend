@@ -3,7 +3,7 @@ import { CategoryModel } from "./categoryModel.js";
 
 //this function is to create category
 export const createCategoryService = async (
-  tenantID,
+  tenantId,
   industry_unique_id,
   category_unique_id,
   category_name,
@@ -13,14 +13,14 @@ export const createCategoryService = async (
   // updated_by,
   attributes = []
 ) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!tenantId, "Tenant ID is required");
   if (!industry_unique_id || !category_name || !category_unique_id || !category_image || !created_by) {
     throw new Error(
       "All industry_unique_id,category_name,category_unique_id,category_image,created_by fields are required"
     );
   }
 
-  const CategoryModelDB = await CategoryModel(tenantID);
+  const CategoryModelDB = await CategoryModel(tenantId);
 
   const newCategory = await CategoryModelDB.create({
     industry_unique_id,
@@ -37,13 +37,13 @@ export const createCategoryService = async (
 };
 
 //this function is to search category with pagination
-export const getAllCategoriesService = async (tenantID, filters, search, page = 1, limit = 10) => {
-  // if (!tenantID) throw new Error("Tenant ID is required");
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const getAllCategoriesService = async (tenantId, filters, search, page = 1, limit = 10) => {
+  // if (!tenantId) throw new Error("Tenant ID is required");
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   const skip = (page - 1) * limit;
 
-  const categoryModelDB = await CategoryModel(tenantID);
+  const categoryModelDB = await CategoryModel(tenantId);
 
   const query = {};
 
@@ -88,12 +88,21 @@ export const getAllCategoriesService = async (tenantID, filters, search, page = 
   return { categoryData, totalCount };
 };
 
+export const getCategoriesByIndustryIdService = async (tenantId, industry_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!industry_unique_id, "industry_unique_id is required");
+
+  const categoryModelDB = await CategoryModel(tenantId);
+  const categoryData = await categoryModelDB.find({ industry_unique_id }).sort({ createdAt: -1 });
+  return categoryData;
+};
+
 //this functon is to get category unique by ID
-export const getCategoryByIdService = async (tenantID, targetId) => {
-  throwIfTrue(!tenantID, "Tenate ID is required");
+export const getCategoryByIdService = async (tenantId, targetId) => {
+  throwIfTrue(!tenantId, "Tenate ID is required");
   throwIfTrue(!targetId, "Id is required to pass category ID");
 
-  const categoryModelDB = await CategoryModel(tenantID);
+  const categoryModelDB = await CategoryModel(tenantId);
   const getByIdData = await categoryModelDB.find({
     category_unique_id: targetId,
   });
@@ -101,11 +110,11 @@ export const getCategoryByIdService = async (tenantID, targetId) => {
 };
 
 //this function is to update category
-export const updateCategoryService = async (tenantID, category_unique_id, updates) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const updateCategoryService = async (tenantId, category_unique_id, updates) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
 
-  const Category = await CategoryModel(tenantID);
+  const Category = await CategoryModel(tenantId);
 
   const existing = await Category.findOne({ category_unique_id });
 
@@ -136,11 +145,11 @@ export const updateCategoryService = async (tenantID, category_unique_id, update
 };
 
 //this function is to delete catogory
-export const deleteCategoryService = async (tenantID, category_unique_id) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const deleteCategoryService = async (tenantId, category_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
 
-  const categoryModelDB = await CategoryModel(tenantID);
+  const categoryModelDB = await CategoryModel(tenantId);
 
   const deletedCategory = await categoryModelDB.findOneAndDelete({
     category_unique_id: category_unique_id,

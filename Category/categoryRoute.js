@@ -4,6 +4,7 @@ import {
   createCategoryController,
   deleteCategoryController,
   getAllCategoriesController,
+  getCategoriesByIndustryIdController,
   getCategoryByIdController,
   updateCategoryController
 } from "./categoryController.js";
@@ -14,6 +15,7 @@ const upload = getUploadMiddleware("category");
 
 route.post("/", upload.single("image"), createCategoryController);
 route.get("/", getAllCategoriesController);
+route.get("/industry/:id", getCategoriesByIndustryIdController);
 route.get("/:id", getCategoryByIdController);
 route.put("/:id", upload.single("image"), updateCategoryController);
 route.delete("/:id", deleteCategoryController);
