@@ -277,7 +277,6 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
   const invalid = [];
 
   for (const row of extracted) {
-    console.log("Table row", row);
     const errors = validateRow(row.raw);
     if (errors.length) {
       invalid.push({ rowNumber: row.rowNumber, errors, data: row.raw });
@@ -291,7 +290,6 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
 
     for (let i = 0; i < valid.length; i++) {
 
-      console.log("valid", valid[i]);
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
       if (existingProduct) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
 
