@@ -43,7 +43,6 @@ export const io = new Server(server, {
   },
 });
 
-
 //  Socket.IO Connection Handling
 export const connectedUsers = new Map();
 io.on("connection", (socket) => {
@@ -66,37 +65,56 @@ io.on("connection", (socket) => {
   });
 });
 
-
 // REST API Routes
 // app.use("/categoryType", categoryTypeRoute);
 // app.use("/subCategory", subCategoryRoute);
 
 app.use("/users", userRoutes);
-app.use("/industryType", verifyToken, industryType);
-app.use("/category", verifyToken, categoryRoute);
-app.use("/products", verifyToken, productRoute);
-app.use("/reviews", productsReviewsRoute);
-app.use("/orders", verifyToken, orderRoute);
-app.use("/ticket", verifyToken, ticketRoute);
-app.use("/wishlists", verifyToken, wishlistRoute);
-app.use("/banners", verifyToken, bannerRoutes);
+app.use(
+  "/industryType",
+  //  verifyToken,
+  industryType
+);
+app.use(
+  "/category",
+  //  verifyToken,
+  categoryRoute
+);
+app.use(
+  "/products",
+  // verifyToken,
+  productRoute
+);
+app.use(
+  "/reviews",
+  // verifyToken,
+  productsReviewsRoute
+);
+app.use(
+  "/orders",
+  // verifyToken,
+  orderRoute
+);
+app.use(
+  "/ticket",
+  //  verifyToken,
+  ticketRoute
+);
+app.use(
+  "/wishlists",
+  //  verifyToken,
+  wishlistRoute
+);
+app.use(
+  "/banners",
+  //  verifyToken,
+  bannerRoutes
+);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");
 });
 
-
-
 server.listen(port_number, "0.0.0.0", () => {
   console.log(`Server running on port ${port_number}`);
 });
-
-
-
-
-
-
-
-
-
-
