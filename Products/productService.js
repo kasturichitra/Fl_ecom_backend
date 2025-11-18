@@ -1,7 +1,7 @@
 import fs from "fs";
 
 import throwIfTrue from "../utils/throwIfTrue.js";
-import ProductsModel from "./productModel.js";
+import ProductModel from "./productModel.js";
 import { validateProductData } from "./validations/validateProductCreate.js";
 import { validateProductUpdateData } from "./validations/validateProductUpdate.js";
 import parseFormData from "../utils/parseFormDataIntoJsonData.js";
@@ -11,8 +11,8 @@ import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
 import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
 import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 
-export const createProductService = async (tenantID, productData) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const createProductService = async (tenantId, productData) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   // Parse the attributes which come as text field in form data into true JSON Data
   productData = parseFormData(productData, "product_attributes");
@@ -20,10 +20,10 @@ export const createProductService = async (tenantID, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
-    products_unique_ID: productData.products_unique_ID,
+    product_unique_id: productData.product_unique_id,
   });
 
   throwIfTrue(existingProduct, "Product with unique id already exists");
@@ -32,10 +32,10 @@ export const createProductService = async (tenantID, productData) => {
   return newProduct;
 };
 
-//This function get the data based on products_unique_ID
+//This function get the data based on product_unique_id
 // Return all products when no search filters are applied
-export const getAllProductsService = async (tenantID, filters = {}) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const getAllProductsService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   const {
     product_name,
@@ -45,7 +45,7 @@ export const getAllProductsService = async (tenantID, filters = {}) => {
     product_type,
     product_color,
     product_size,
-    category_unique_Id,
+    category_unique_id,
     barcode,
     stock_availability,
     cash_on_delivery,
@@ -73,7 +73,7 @@ export const getAllProductsService = async (tenantID, filters = {}) => {
   if (product_type) query.product_type = product_type;
   if (product_color) query.product_color = product_color;
   if (product_size) query.product_size = product_size;
-  if (category_unique_Id) query.category_unique_Id = category_unique_Id;
+  if (category_unique_id) query.category_unique_id = category_unique_id;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
@@ -128,7 +128,7 @@ export const getAllProductsService = async (tenantID, filters = {}) => {
     }
   }
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
 
   const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
 
@@ -144,28 +144,28 @@ export const getAllProductsService = async (tenantID, filters = {}) => {
 };
 
 // Get product by products unique id
-export const getProductByUniqueIdService = async (tenantID, productUniqueID) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const getProductByUniqueIdService = async (tenantId, product_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
 
   const response = await productModelDB.findOne({
-    products_unique_ID: productUniqueID,
+    product_unique_id,
   });
 
   return response;
 };
 
-export const updateProductService = async (tenantID, productUniqueID, updateData) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const updateProductService = async (tenantId, product_unique_id, updateData) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { isValid, message } = validateProductUpdateData(updateData);
   throwIfTrue(!isValid, message);
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
-    products_unique_ID: productUniqueID,
+    product_unique_id,
   });
 
   throwIfTrue(!existingProduct, "Product not found");
@@ -195,7 +195,7 @@ export const updateProductService = async (tenantID, productUniqueID, updateData
     });
   }
 
-  const response = await productModelDB.findOneAndUpdate({ products_unique_ID: productUniqueID }, updateData, {
+  const response = await productModelDB.findOneAndUpdate({ product_unique_id }, updateData, {
     new: true,
     runValidators: true,
   });
@@ -204,13 +204,13 @@ export const updateProductService = async (tenantID, productUniqueID, updateData
 };
 
 //This function will delete products based on products uniqe ID
-export const deleteProductService = async (tenantID, productUniqueID) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const deleteProductService = async (tenantId, product_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
-    products_unique_ID: productUniqueID,
+    product_unique_id, 
   });
 
   throwIfTrue(!existingProduct, "Product not found");
@@ -229,20 +229,20 @@ export const deleteProductService = async (tenantID, productUniqueID) => {
 
   // 🔹 Finally, remove the product document
   const response = await productModelDB.findOneAndDelete({
-    products_unique_ID: productUniqueID,
+    product_unique_id,
   });
 
   return response;
 };
 
 // This is to download excel template
-export const downloadExcelTemplateService = async (tenantID, category_unique_Id) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const downloadExcelTemplateService = async (tenantId, category_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const CategoryModelDB = await CategoryModel(tenantID);
+  const CategoryModelDB = await CategoryModel(tenantId);
 
-  const categoryData = await CategoryModelDB.findOne({ category_unique_Id });
-  throwIfTrue(!categoryData, `Category not found with id: ${category_unique_Id}`);
+  const categoryData = await CategoryModelDB.findOne({ category_unique_id });
+  throwIfTrue(!categoryData, `Category not found with id: ${category_unique_id}`);
 
   const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : undefined;
 
@@ -257,17 +257,17 @@ export const downloadExcelTemplateService = async (tenantID, category_unique_Id)
 };
 
 // Get Product By Mongo Db Id
-export const getProductByIdService = async (tenantID, id) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const getProductByIdService = async (tenantId, id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
   const response = await productModelDB.findOne({ _id: id });
 
   return response;
 };
 
-export const createBulkProducts = async (tenantID, filePath) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const createBulkProductsService = async (tenantId, filePath) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath || !fs.existsSync(filePath), "File not found");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
 
@@ -286,7 +286,7 @@ export const createBulkProducts = async (tenantID, filePath) => {
   }
 
   if (valid.length) {
-    const ProductModelDB = await ProductsModel(tenantID);
+    const ProductModelDB = await ProductModel(tenantId);
 
     const BATCH = 300;
 
@@ -306,12 +306,12 @@ export const createBulkProducts = async (tenantID, filePath) => {
 };
 
 //This function is get by products based on subCategory_unique_ID
-export const getProductsBySubUniqueIDService = async (tenantID, category_unique_Id) => {
-  if (!tenantID) throw new Error("Tenent ID is required");
-  const productModelDB = await ProductsModel(tenantID);
+export const getProductsBySubUniqueIDService = async (tenantId, category_unique_id) => {
+  if (!tenantId) throw new Error("Tenent ID is required");
+  const productModelDB = await ProductModel(tenantId);
 
   const response = await productModelDB.find({
-    category_unique_Id: category_unique_Id,
+    category_unique_id,
   });
 
   return response;

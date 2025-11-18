@@ -1,12 +1,12 @@
 import Joi from "joi";
 
 const productValidationSchema = Joi.object({
-  category_unique_Id: Joi.string().required().messages({
+  category_unique_id: Joi.string().required().messages({
     "any.required": "Category unique ID is required.",
     "string.empty": "Category unique ID cannot be empty.",
   }),
 
-  products_unique_ID: Joi.string().required().messages({
+  product_unique_id: Joi.string().required().messages({
     "any.required": "Product unique ID is required.",
     "string.empty": "Product unique ID cannot be empty.",
     "string.base": "Product Unique Id must be a string",
@@ -50,7 +50,7 @@ const productValidationSchema = Joi.object({
     "number.min": "Maximum order limit must be at least 1.",
   }),
 
-  product_brand_Id: Joi.string()
+  product_brand_id: Joi.string()
     .pattern(/^[a-fA-F0-9]{24}$/)
     .messages({
       "string.pattern.base": "Invalid Brand ObjectId format.",
@@ -65,9 +65,9 @@ const productValidationSchema = Joi.object({
   model_number: Joi.string().optional(),
   sku: Joi.string().optional(),
 
-  basePrice: Joi.number().min(0).optional(),
-  salePrice: Joi.number().min(0).optional(),
-  costPrice: Joi.number().min(0).optional(),
+  base_price: Joi.number().min(0).optional(),
+  sale_price: Joi.number().min(0).optional(),
+  cost_price: Joi.number().min(0).optional(),
   discount_percentage: Joi.number().min(0).max(100).optional(),
   discount_price: Joi.number().min(0).optional(),
 
@@ -75,8 +75,8 @@ const productValidationSchema = Joi.object({
   discount_type: Joi.string().optional(),
   discount_coupon: Joi.string().optional(),
 
-  product_GST: Joi.number().min(0).optional(),
-  GST_number: Joi.string().optional(),
+  product_gst: Joi.number().min(0).optional(),
+  gst_number: Joi.string().optional(),
   cgst: Joi.number().min(0).optional(),
   sgst: Joi.number().min(0).optional(),
   igst: Joi.number().min(0).optional(),

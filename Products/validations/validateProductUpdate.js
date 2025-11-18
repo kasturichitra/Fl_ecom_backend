@@ -1,11 +1,11 @@
 import Joi from "joi";
 
 const productUpdateValidationSchema = Joi.object({
-  category_unique_Id: Joi.string().messages({
+  category_unique_id: Joi.string().messages({
     "string.base": "Category unique ID must be a string.",
   }),
 
-  products_unique_ID: Joi.string().messages({
+  product_unique_id: Joi.string().messages({
     "string.base": "Product unique ID must be a string.",
   }),
 
@@ -38,7 +38,7 @@ const productUpdateValidationSchema = Joi.object({
   }),
 
   // Brand ID only needs to be a string now
-  product_brand_Id: Joi.string().messages({
+  product_brand_id: Joi.string().messages({
     "string.base": "Brand ID must be a string.",
   }),
 
@@ -53,17 +53,17 @@ const productUpdateValidationSchema = Joi.object({
   model_number: Joi.string(),
   sku: Joi.string(),
 
-  basePrice: Joi.number().min(0).messages({
+  base_price: Joi.number().min(0).messages({
     "number.base": "Base price must be a number.",
     "number.min": "Base price must be 0 or greater.",
   }),
 
-  salePrice: Joi.number().min(0).messages({
+  sale_price: Joi.number().min(0).messages({
     "number.base": "Sale price must be a number.",
     "number.min": "Sale price must be 0 or greater.",
   }),
 
-  costPrice: Joi.number().min(0).messages({
+  cost_price: Joi.number().min(0).messages({
     "number.base": "Cost price must be a number.",
     "number.min": "Cost price must be 0 or greater.",
   }),
@@ -83,12 +83,12 @@ const productUpdateValidationSchema = Joi.object({
   discount_type: Joi.string(),
   discount_coupon: Joi.string(),
 
-  product_GST: Joi.number().min(0).messages({
+  product_gst: Joi.number().min(0).messages({
     "number.base": "GST must be a number.",
     "number.min": "GST must be 0 or greater.",
   }),
 
-  GST_number: Joi.string(),
+  gst_number: Joi.string(),
 
   cgst: Joi.number().min(0).messages({
     "number.base": "CGST must be a number.",
@@ -160,9 +160,7 @@ const productUpdateValidationSchema = Joi.object({
       Joi.array().items(
         Joi.object({
           attribute_code: Joi.string().required(),
-          value: Joi.alternatives()
-            .try(Joi.string(), Joi.number(), Joi.boolean())
-            .required(),
+          value: Joi.alternatives().try(Joi.string(), Joi.number(), Joi.boolean()).required(),
         })
       ),
       Joi.string().custom((value, helpers) => {

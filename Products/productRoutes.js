@@ -1,17 +1,16 @@
 import express from "express";
-import verifyToken from "../utils/verifyToken.js";
 
+import getUploadMiddleware from "../utils/multerConfig.js";
 import {
   createProductController,
   deleteProductController,
-  getProductByIdController,
+  downloadExcelTemplateController,
   // getProductByIdController,
   // getProductsBysubUniqeIDController,
   getAllProductsController,
+  getProductByIdController,
   updateProductController,
-  downloadExcelTemplateController,
 } from "./productController.js";
-import getUploadMiddleware from "../utils/multerConfig.js";
 
 const router = express.Router();
 const upload = getUploadMiddleware("Product");
@@ -25,14 +24,9 @@ router.post(
   createProductController
 );
 router.get("/:id", getProductByIdController);
-router.get(
-  "/",
-  // verifyToken,
-  getAllProductsController
-);
+router.get("/", getAllProductsController);
 router.put(
   "/:id",
-  // verifyToken,
   upload.fields([
     { name: "product_image", maxCount: 1 },
     { name: "product_images", maxCount: 5 },
@@ -41,10 +35,10 @@ router.put(
 );
 router.delete("/:id", deleteProductController);
 
-// Get excel template 
+// Get excel template
 router.get("/excel-template/:id", downloadExcelTemplateController);
 
-// router.get("/sub-category/:id", verifyToken, getProductsBysubUniqeIDController);
+// router.get("/sub-category/:id", getProductsBysubUniqeIDController);
 // Bottom to ensure express routing error doesn't happen
 // router.get("/:id", getProductByIdController);
 
