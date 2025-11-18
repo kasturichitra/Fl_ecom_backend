@@ -1,11 +1,9 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-
-
 const orderSchema = new mongoose.Schema(
   {
-    user_ID: {
+    user_id: {
       type: String,
       required: true,
       trim: true,
@@ -24,44 +22,46 @@ const orderSchema = new mongoose.Schema(
     },
     transaction_id: {
       type: String,
-      trim: true
+      trim: true,
     },
     order_create_date: {
       type: Date,
-      required: true
+      required: true,
     },
     order_cancel_date: { type: Date },
 
     order_Products: [
       {
-        product_unique_ID: {
+        product_unique_id: {
           type: String,
-          required: true
+          required: true,
         },
         product_name: {
           type: String,
-          required: true
+          required: true,
         },
         quantity: {
           type: Number,
-          required: true, min: 1
+          required: true,
+          min: 1,
         },
         price: {
           type: Number,
-          required: true, min: 0
+          required: true,
+          min: 0,
         },
         discount_price: {
           type: Number,
-          default: 0
+          default: 0,
         },
         total_price: {
           type: Number,
           required: true,
-          min: 0
+          min: 0,
         },
         tax_amount: {
           type: Number,
-          default: 0
+          default: 0,
         },
         status: {
           type: String,
@@ -89,108 +89,3 @@ const OrdersModel = async (tenantID) => {
 };
 
 export default OrdersModel;
-
-
-
-// const orderSchema = new mongoose.Schema(
-//   {
-//     // order_unique_ID: {
-//     //   type: String,
-//     //   required: true,
-//     //   unique: true,
-//     // },
-//     user_ID: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-//     order_Products: [
-//       {
-//         product_unique_ID: {
-//           type: String,
-//           required: true
-//         },
-//         product_name: {
-//           type: String,
-//           required: true
-//         },
-//         quantity: {
-//           type: Number,
-//           required: true,
-//           min: 1
-//         },
-//         price: {
-//           type: Number,
-//           required: true,
-//           min: 0
-//         },
-//         discount_price: {
-//           type: Number,
-//           default: 0
-//         },
-//         total_price: {
-//           type: Number,
-//           required: true,
-//           min: 0
-//         },
-//         tax_amount: {
-//           type: Number,
-//           default: 0
-//         },
-//         status: {
-//           type: String,
-//           enum: [
-//             "Pending",
-//             "Processing",
-//             "Shipped",
-//             "Delivered",
-//             "Cancelled",
-//             "Returned",
-//           ],
-//           default: "Pending",
-//         },
-//         payment_status: {
-//           type: String,
-//           enum: ["Pending", "Paid", "Failed", "Refunded"],
-//           default: "Pending",
-//         },
-//         payment_method: {
-//           type: String,
-//           enum: ["COD", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
-//           required: true,
-//         },
-//         transaction_id: { type: String, trim: true },
-
-//         order_create_date: {
-//           type: Date,
-//           required: true
-//         },
-//         order_cancel_date: {
-//           type: Date,
-//         }
-//       },
-//     ],
-//     subtotal: {
-//       type: Number,
-//       required: true,
-//       min: 0
-//     },
-
-//     shipping_charges: {
-//       type: Number,
-//       default: 0
-//     },
-//     total_amount: {
-//       type: Number,
-//       required: true,
-//       min: 0
-//     },
-//     currency: {
-//       type: String,
-//       default: "INR"
-//     },
-//     delivered_at: { type: Date },
-//     cancelled_at: { type: Date },
-//   },
-//   { timestamps: true }
-// );
