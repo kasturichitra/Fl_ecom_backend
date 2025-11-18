@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
-import ProductModel from "../models/product.model.js"; 
-import { staticExcelHeaders } from "../config/headersConfig.js";
+import { staticExcelHeaders } from "../Products/config/staticExcelHeaders.js";
 
 /* ----------------------------------------------------------
    Build header map: Excel column → DB key
@@ -93,16 +92,4 @@ export function transformRow(rawRow) {
 
   transformed.createdAt = new Date();
   return transformed;
-}
-
-/* ----------------------------------------------------------
-   4. LOAD — Insert into DB (batch)
----------------------------------------------------------- */
-export async function loadToDB(rows) {
-  const BATCH = 300;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    await ProductModel.insertMany(rows.slice(i, i + BATCH), {
-      ordered: false,
-    });
-  }
 }

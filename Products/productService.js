@@ -9,6 +9,7 @@ import { mergeExistingWithIncomingLists } from "../utils/mergeExistingWithIncomi
 import { CategoryModel } from "../Category/categoryModel.js";
 import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
 import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
+import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 
 export const createProductService = async (tenantID, productData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
@@ -263,6 +264,45 @@ export const getProductByIdService = async (tenantID, id) => {
   const response = await productModelDB.findOne({ _id: id });
 
   return response;
+};
+
+export const createBulkProducts = async (tenantID, filePath) => {
+  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!filePath || !fs.existsSync(filePath), "File not found");
+  throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
+
+  const extracted = await extractExcel(filePath);
+
+  const valid = [];
+  const invalid = [];
+
+  for (const row of extracted) {
+    const errors = validateRow(row.raw);
+    if (errors.length) {
+      invalid.push({ rowNumber: row.rowNumber, errors, data: row.raw });
+    } else {
+      valid.push(transformRow(row.raw));
+    }
+  }
+
+  if (valid.length) {
+    const ProductModelDB = await ProductsModel(tenantID);
+
+    const BATCH = 300;
+
+    for (let i = 0; i < rows.length; i += BATCH) {
+      await ProductModelDB.insertMany(rows.slice(i, i + BATCH), {
+        ordered: false,
+      });
+    }
+  }
+
+  return {
+    totalRows: extracted.length,
+    success: valid.length,
+    failed: invalid.length,
+    errors: invalid,
+  };
 };
 
 //This function is get by products based on subCategory_unique_ID
