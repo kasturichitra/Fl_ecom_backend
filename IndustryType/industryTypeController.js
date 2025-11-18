@@ -1,34 +1,29 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
-import { createIndustryTypeServices, deleteIndustryTypeServices, getIndustrySearchServices, getIndustryTypeServices, updateIndustrytypeServices } from "./industryTypeService.js";
+import {
+  createIndustryTypeServices,
+  deleteIndustryTypeServices,
+  getIndustrysSearchServices,
+  updateIndustrytypeServices,
+} from "./industryTypeService.js";
 
 export const createIndustryTypeController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const {
-      industry_unique_ID,
-      industry_name,
-      description,
-      is_active,
-      created_by,
-      updated_by,
-    } = req.body;
+    const { industry_unique_id, industry_name, description, is_active, created_by, updated_by } = req.body;
 
     throwIfTrue(!industry_name, "Industry Name is required");
 
     const image_url = req.file ? req.file.path : null;
 
-    const response = await createIndustryTypeServices(
-      tenantID,
-      {
-        industry_unique_ID,
-        industry_name,
-        description,
-        is_active,
-        created_by,
-        updated_by,
-        image_url,
-      }
-    );
+    const response = await createIndustryTypeServices(tenantID, {
+      industry_unique_id,
+      industry_name,
+      description,
+      is_active,
+      created_by,
+      updated_by,
+      image_url,
+    });
 
     res.status(201).json({
       status: "Success",
@@ -44,14 +39,12 @@ export const createIndustryTypeController = async (req, res) => {
   }
 };
 
-
-
-export const getIndustrySearchController = async (req, res) => {
+export const getIndustrysSearchController = async (req, res) => {
   try {
     const {
       search,
       industry_name,
-      industry_unique_ID,
+      industry_unique_id,
       is_active,
       created_by,
       startDate,
@@ -62,11 +55,11 @@ export const getIndustrySearchController = async (req, res) => {
 
     const tenantID = req.headers["x-tenant-id"];
 
-    const result = await getIndustrySearchServices(
+    const result = await getIndustrysSearchServices(
       tenantID,
       search,
       industry_name,
-      industry_unique_ID,
+      industry_unique_id,
       is_active,
       created_by,
       startDate,
@@ -83,7 +76,6 @@ export const getIndustrySearchController = async (req, res) => {
       currentPage: result.currentPage,
       totalPages: result.totalPages,
     });
-
   } catch (error) {
     console.log("Industry Search Error ====>", error.message);
 
@@ -95,52 +87,39 @@ export const getIndustrySearchController = async (req, res) => {
   }
 };
 
+// export const getIndustrytypesController = async (req, res) => {
+//     try {
+//         const tenateID = req.headers["x-tenant-id"];
 
+//         const response = await getIndustryTypeServices(tenateID)
 
-export const getIndustrytypesController = async (req, res) => {
-    try {
-        const tenateID = req.headers["x-tenant-id"];
-
-        const response = await getIndustryTypeServices(tenateID)
-
-        res.status(201).json({
-            status: "Success",
-            message: "Industry Type fetch successfully",
-            data: response,
-        });
-    } catch (error) {
-        console.error("createIndustryTypeController fetch  error ===>", error.message);
-        res.status(500).json({
-            status: "Failed",
-            message: error.message || "Internal Server Error",
-        });
-    }
-}
+//         res.status(201).json({
+//             status: "Success",
+//             message: "Industry Type fetch successfully",
+//             data: response,
+//         });
+//     } catch (error) {
+//         console.error("createIndustryTypeController fetch  error ===>", error.message);
+//         res.status(500).json({
+//             status: "Failed",
+//             message: error.message || "Internal Server Error",
+//         });
+//     }
+// }
 
 export const updateIndustryTypeController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const { id } = req.params;
 
-    
-    // if (!tenantID) throw new Error("Tenant ID is required");
-    // if (!id) throw new Error("Industry Unique ID is required");
-
-    const {
-      industry_name,
-      description,
-      is_active,
-      created_by,
-      updated_by,
-    } = req.body;
+    const { industry_name, description, is_active, created_by, updated_by } = req.body;
 
     const image_url = req.file ? req.file.path : undefined;
 
     const updates = {};
     if (industry_name) updates.industry_name = industry_name;
     if (description) updates.description = description;
-    if (is_active !== undefined)
-      updates.is_active = is_active === "true" || is_active === true;
+    if (is_active !== undefined) updates.is_active = is_active === "true" || is_active === true;
     if (created_by) updates.created_by = created_by;
     if (updated_by) updates.updated_by = updated_by;
     if (image_url) updates.image_url = image_url;
@@ -161,27 +140,22 @@ export const updateIndustryTypeController = async (req, res) => {
   }
 };
 
-
-
-
-
 export const deleteIndustrytypeController = async (req, res) => {
-    try {
+  try {
+    const tenateID = req.headers["x-tenant-id"];
+    const { id } = req.params;
 
-        const tenateID = req.headers["x-tenant-id"];
-        const { id } = req.params
-
-        const response = await deleteIndustryTypeServices(tenateID, id)
-        res.status(200).json({
-            status: "Success",
-            message: "Industry Type deleted successfully",
-            data: response,
-        });
-    } catch (error) {
-        console.error("delete IndustryTypeController  error ===>", error.message);
-        res.status(500).json({
-            status: "Failed",
-            message: error.message || "Internal Server Error",
-        });
-    }
-}
+    const response = await deleteIndustryTypeServices(tenateID, id);
+    res.status(200).json({
+      status: "Success",
+      message: "Industry Type deleted successfully",
+      data: response,
+    });
+  } catch (error) {
+    console.error("delete IndustryTypeController  error ===>", error.message);
+    res.status(500).json({
+      status: "Failed",
+      message: error.message || "Internal Server Error",
+    });
+  }
+};

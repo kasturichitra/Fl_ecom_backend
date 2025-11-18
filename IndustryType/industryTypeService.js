@@ -1,45 +1,36 @@
 import IndustryTypeModel from "./industryTypeModel.js";
-import fs from "fs"
+import fs from "fs";
 import path from "path";
 import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const createIndustryTypeServices = async (tenantID, data) => {
-  // try {
-  // if (!tenantID) throw new Error("Tenant ID is required");
   throwIfTrue(!tenantID, "Tenant ID is required");
 
   const industryModelDB = await IndustryTypeModel(tenantID);
 
   const existing = await industryModelDB.findOne({
-    industry_unique_ID: data.industry_unique_ID,
+    industry_unique_id: data.industry_unique_id,
   });
-  // if (existing) throw new Error("Industry Type with this ID already exists");
   throwIfTrue(existing, "Industry Type with this ID already exists");
 
   const newIndustry = await industryModelDB.create({
-    industry_unique_ID: data.industry_unique_ID,
+    industry_unique_id: data.industry_unique_id,
     industry_name: data.industry_name,
     description: data.description || "",
-    is_active:
-      typeof data.is_active === "boolean" ? data.is_active : true,
+    is_active: typeof data.is_active === "boolean" ? data.is_active : true,
     created_by: data.created_by || "System",
     updated_by: data.updated_by || null,
     image_url: data.image_url || null,
   });
 
   return newIndustry;
-  // } catch (error) {
-  //     console.error("createIndustryTypeServices error ===>", error.message);
-  //     throw new Error(error.message);
-  // }
 };
 
-
-export const getIndustrySearchServices = async (
+export const getIndustrysSearchServices = async (
   tenantID,
   search = "",
   industry_name,
-  industry_unique_ID,
+  industry_unique_id,
   is_active,
   created_by,
   startDate,
@@ -47,7 +38,6 @@ export const getIndustrySearchServices = async (
   page = 1,
   limit = 10
 ) => {
-  // if (!tenantID) throw new Error("Tenant ID is required");
   throwIfTrue(!tenantID, "Tenant ID is required");
 
   const IndustryModel = await IndustryTypeModel(tenantID);
@@ -56,13 +46,13 @@ export const getIndustrySearchServices = async (
 
   const globalSearch = search
     ? {
-      $or: [
-        { industry_name: { $regex: search, $options: "i" } },
-        { industry_unique_ID: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { created_by: { $regex: search, $options: "i" } },
-      ],
-    }
+        $or: [
+          { industry_name: { $regex: search, $options: "i" } },
+          { industry_unique_id: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+          { created_by: { $regex: search, $options: "i" } },
+        ],
+      }
     : {};
 
   const filterSearch = {};
@@ -71,9 +61,9 @@ export const getIndustrySearchServices = async (
     filterSearch.industry_name = { $regex: industry_name, $options: "i" };
   }
 
-  if (industry_unique_ID) {
-    filterSearch.industry_unique_ID = {
-      $regex: industry_unique_ID,
+  if (industry_unique_id) {
+    filterSearch.industry_unique_id = {
+      $regex: industry_unique_id,
       $options: "i",
     };
   }
@@ -92,16 +82,9 @@ export const getIndustrySearchServices = async (
     if (endDate) filterSearch.createdAt.$lte = new Date(endDate);
   }
 
-  const finalQuery =
-    search
-      ? { $and: [globalSearch, filterSearch] }
-      : { ...filterSearch };
+  const finalQuery = search ? { $and: [globalSearch, filterSearch] } : { ...filterSearch };
 
-
-  const industryData = await IndustryModel.find(finalQuery)
-    .skip(skip)
-    .limit(Number(limit))
-    .sort({ createdAt: -1 });
+  const industryData = await IndustryModel.find(finalQuery).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
 
   const totalCount = await IndustryModel.countDocuments(finalQuery);
 
@@ -113,42 +96,22 @@ export const getIndustrySearchServices = async (
   };
 };
 
+// export const getIndustryTypeServices = async (tenantID) => {
+//   throwIfTrue(!tenantID, "Tenant ID is required");
 
+//   const industryModelDB = await IndustryTypeModel(tenantID);
+//   const response = await industryModelDB.find()
+//   return response
+// }
 
-export const getIndustryTypeServices = async (tenantID) => {
-  // try {
-
-  // if (!tenantID) throw new Error("Tenant ID is required");
+export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
 
   const industryModelDB = await IndustryTypeModel(tenantID);
 
-  const response = await industryModelDB.find()
+  const existingIndustry = await industryModelDB.findOne({ industry_unique_id });
 
-  return response
-  // } catch (error) {
-  //     console.error("createIndustryTypeServices fetch error ===>", error.message);
-  //     throw new Error(error.message);
-  // }
-}
-
-
-export const updateIndustrytypeServices = async (
-  tenantID,
-  industry_unique_ID,
-  updates
-) => {
-  // if (!tenantID) throw new Error("Tenant ID is required");
-  // if (!industry_unique_ID) throw new Error("Industry Unique ID is required");
-  throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!industry_unique_ID, "Industry Unique ID is required");
-
-  const industryModelDB = await IndustryTypeModel(tenantID);
-
-  const existingIndustry = await industryModelDB.findOne({ industry_unique_ID });
-  // if (!existingIndustry) {
-  //     throw new Error("Industry Type not found");
-  // }
   throwIfTrue(!existingIndustry, "Industry Type not found");
 
   if (updates.image_url && existingIndustry.image_url) {
@@ -156,7 +119,6 @@ export const updateIndustrytypeServices = async (
     if (fs.existsSync(oldImagePath)) {
       try {
         fs.unlinkSync(oldImagePath);
-        console.log("Old industry image deleted:", oldImagePath);
       } catch (err) {
         console.error("Error deleting old image:", err.message);
       }
@@ -166,37 +128,32 @@ export const updateIndustrytypeServices = async (
   updates.updatedAt = new Date();
 
   const updatedIndustry = await industryModelDB.findOneAndUpdate(
-    { industry_unique_ID },
+    { industry_unique_id },
     { $set: updates },
     { new: true }
   );
 
   return updatedIndustry;
-
 };
 
-export const deleteIndustryTypeServices = async (tenantID, industry_unique_ID) => {
-
+export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!industry_unique_ID, "Industry Type Unique ID is required");
+  throwIfTrue(!industry_unique_id, "Industry Type Unique ID is required");
 
   const industryModelDB = await IndustryTypeModel(tenantID);
 
-  const existing = await industryModelDB.findOne({ industry_unique_ID });
+  const existing = await industryModelDB.findOne({ industry_unique_id });
 
   throwIfTrue(!existing, "Industry Type not found");
 
   if (existing.image_url && fs.existsSync(existing.image_url)) {
     try {
       fs.unlinkSync(existing.image_url);
-      console.log("Industry image deleted:", existing.image_url);
     } catch (unlinkErr) {
       console.error("Error deleting image:", unlinkErr.message);
     }
   }
+  const response = await industryModelDB.findOneAndDelete({ industry_unique_id });
 
-  const response = await industryModelDB.findOneAndDelete({ industry_unique_ID });
-
-  return response
-
+  return response;
 };

@@ -1,23 +1,22 @@
 import express from "express";
-import { createIndustryTypeController, deleteIndustrytypeController, getIndustrySearchController, getIndustrytypesController, updateIndustryTypeController } from "./industryTypeController.js";
+import {
+  createIndustryTypeController,
+  deleteIndustrytypeController,
+  getIndustrysSearchController,
+  //   getIndustrytypesController,
+  updateIndustryTypeController,
+} from "./industryTypeController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
-// import { safeUpload } from "../utils/safeUpload.js";
 
 const route = express.Router();
 
 const upload = getUploadMiddleware("IndustryType");
 
-route.post(
-    "/create",
-    //    safeUpload(
-    upload.single("image"),
-    // ), 
-    createIndustryTypeController
-);
-route.put("/updateIndustryType/:id", upload.single("image"), updateIndustryTypeController)
-route.get("/searchIndustry", getIndustrySearchController);
+route.post("/", upload.single("image"), createIndustryTypeController);
+route.put("/:id", upload.single("image"), updateIndustryTypeController);
+route.get("/search", getIndustrysSearchController);
+route.delete("/delete/:id", deleteIndustrytypeController);
 
-route.get("/getAllIndustryType", getIndustrytypesController)
-route.delete("/deleteIndustryType/:id", deleteIndustrytypeController)
+// route.get("/", getIndustrytypesController);
 
 export default route;

@@ -3,13 +3,13 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 const wishlistSchema = new mongoose.Schema(
   {
-    user_ID: {
+    user_id: {
       type: String,
       required: true,
     },
     products: [
       {
-        type: String, 
+        type: String,
         required: true,
       },
     ],
