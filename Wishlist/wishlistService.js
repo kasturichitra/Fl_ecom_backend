@@ -1,105 +1,76 @@
 import ProductsModel from "../Products/productModel.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 import WishlistModel from "./wishlistModel.js";
 
-export const wishlistCreateServices = async (tenantID, user_ID, product_ID) => {
-  // try {
-    if (!tenantID) throw new Error("Tenant ID is required");
-    if (!user_ID) throw new Error("User ID is required");
-    if (!product_ID) throw new Error("Product ID is required");
+export const createWishlistServices = async (tenantID, user_id, product_id) => {
+  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!user_id, "User ID is required");
+  throwIfTrue(!product_id, "Product ID is required");
 
-    const wishlistModelDB = await WishlistModel(tenantID);
+  const wishlistModelDB = await WishlistModel(tenantID);
 
-    let wishlist = await wishlistModelDB.findOne({ user_ID });
+  let wishlist = await wishlistModelDB.findOne({ user_id });
 
-    if (!wishlist) {
-      wishlist = await wishlistModelDB.create({
-        user_ID,
-        products: [product_ID],
-      });
-    } else {
-      if (!wishlist.products.includes(product_ID)) {
-        wishlist.products.push(product_ID);
-        await wishlist.save();
-      }
-    }
-
-    return wishlist;
-  // } catch (error) {
-  //   console.error("Wishlist creation failed ===>", error.message);
-  //   throw new Error(error.message);
-  // }
-};
-
-
-
-
-
-export const getWishlistProductsServices = async (tenantID, user_ID) => {
-  // try {
-    if (!tenantID) throw new Error("Tenant ID is required");
-    if (!user_ID) throw new Error("User ID is required");
-
-    const wishlistModelDB = await WishlistModel(tenantID);
-    const productModelDB = await ProductsModel(tenantID);
-
-    const wishlist = await wishlistModelDB.findOne({ user_ID });
-
-    console.log(wishlist,'wishlist');
-    
-    if (!wishlist || !wishlist.products || wishlist.products.length === 0) {
-      return [];
-    }
-
-    const products = await productModelDB.find({
-      products_unique_ID: { $in: wishlist.products },
+  if (!wishlist) {
+    wishlist = await wishlistModelDB.create({
+      user_id,
+      products: [product_id],
     });
+  } else {
+    if (!wishlist.products.includes(product_id)) {
+      wishlist.products.push(product_id);
+      await wishlist.save();
+    }
+  }
 
-    return products;
-  // } catch (error) {
-  //   console.error("getWishlistProductsServices error ===>", error.message);
-  //   throw new Error(error.message);
-  // }
+  return wishlist;
 };
 
+export const getWishlistProductsServices = async (tenantID, user_id) => {
+  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!user_id, "User ID is required");
 
+  const wishlistModelDB = await WishlistModel(tenantID);
+  const productModelDB = await ProductsModel(tenantID);
 
-export const getWishlistServices = async (tenantID, user_ID) => {
-  // try {
-    if (!tenantID) throw new Error("Tenant ID is required");
-    if (!user_ID) throw new Error("User ID is required");
+  const wishlist = await wishlistModelDB.findOne({ user_id });
 
-    const wishlistModelDB = await WishlistModel(tenantID);
+  if (!wishlist || !wishlist.products || wishlist.products.length === 0) {
+    return [];
+  }
 
-    const response = await wishlistModelDB.find({ user_ID });
+  const products = await productModelDB.find({
+    products_unique_ID: { $in: wishlist.products },
+  });
 
-    return response;
-  // } catch (error) {
-  //   console.error("getWishlistServices error ===>", error.message);
-  //   throw new Error(error.message);
-  // }
+  return products;
 };
 
+export const getWishlistServices = async (tenantID, user_id) => {
+  if (!tenantID) throw new Error("Tenant ID is required");
+  if (!user_id) throw new Error("User ID is required");
 
+  const wishlistModelDB = await WishlistModel(tenantID);
 
-export const removeWishlistServices = async (tenantID, user_ID, product_ID) => {
-  // try {
-    if (!tenantID) throw new Error("Tenant ID is required");
-    if (!user_ID) throw new Error("User ID is required");
-    if (!product_ID) throw new Error("Product ID is required");
+  const response = await wishlistModelDB.find({ user_id });
 
-    const wishlistModelDB = await WishlistModel(tenantID);
+  return response;
+};
 
-    const updatedWishlist = await wishlistModelDB.findOneAndUpdate(
-      { user_ID },
-      { $pull: { products: product_ID } },
-      { new: true }
-    );
+export const removeWishlistServices = async (tenantID, user_id, product_id) => {
+  if (!tenantID) throw new Error("Tenant ID is required");
+  if (!user_id) throw new Error("User ID is required");
+  if (!product_id) throw new Error("Product ID is required");
 
-    if (!updatedWishlist) throw new Error("Wishlist not found for this user");
+  const wishlistModelDB = await WishlistModel(tenantID);
 
-    return updatedWishlist;
-  // } catch (error) {
-  //   console.error("removeWishlistServices error ===>", error.message);
-  //   throw new Error(error.message);
-  // }
+  const updatedWishlist = await wishlistModelDB.findOneAndUpdate(
+    { user_id },
+    { $pull: { products: product_id } },
+    { new: true }
+  );
+
+  if (!updatedWishlist) throw new Error("Wishlist not found for this user");
+
+  return updatedWishlist;
 };
