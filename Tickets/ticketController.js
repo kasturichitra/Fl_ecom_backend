@@ -5,16 +5,16 @@ export const createTicketController = async (req, res) => {
     const tenantID = req.headers["x-tenant-id"];
     if (!tenantID) return res.status(400).json({ status: "failed", message: "Tenant ID is required" });
 
-    const { user_ID, order_ID, product_ID, issue_type, subject, description, attachments, priority } = req.body;
+    const { user_id, order_id, product_id, issue_type, subject, description, attachments, priority } = req.body;
 
-    // Auto-generate ticket_ID
-    const ticket_ID = `TCKT-${Date.now()}`;
+    // Auto-generate ticket_id
+    const ticket_id = `TCKT-${Date.now()}`;
 
     const ticketData = {
-      ticket_ID,
-      user_ID,
-      order_ID,
-      product_ID,
+      ticket_id,
+      user_id,
+      order_id,
+      product_id,
       issue_type,
       subject,
       description,
