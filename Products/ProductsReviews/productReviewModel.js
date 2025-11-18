@@ -8,11 +8,11 @@ const productReviewSchema = new mongoose.Schema(
     //   required: true,
     //   unique: true,
     // },
-    products_unique_ID: {
+    product_unique_id: {
       type: String,
       required: true,
     },
-    user_unique_ID: {
+    user_unique_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -74,7 +74,7 @@ const productReviewSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-const ProductsReviewsModel = async (tenateID) => {
+const ProductReviewModel = async (tenateID) => {
   const db = await getTenanteDB(tenateID);
   return (
     db.models.ProductsReviews ||
@@ -82,4 +82,4 @@ const ProductsReviewsModel = async (tenateID) => {
   );
 };
 
-export default ProductsReviewsModel;
+export default ProductReviewModel;

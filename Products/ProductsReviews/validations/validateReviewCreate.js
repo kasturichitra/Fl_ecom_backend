@@ -1,14 +1,14 @@
 import Joi from "joi";
 
 const reviewCreateSchema = Joi.object({
-  products_unique_ID: Joi.string()
+  product_unique_id: Joi.string()
     .required()
     .messages({
       "any.required": "Product ID is required.",
       "string.base": "Product ID must be a string.",
     }),
 
-  user_unique_ID: Joi.string()
+  user_unique_id: Joi.string()
     .required()
     .messages({
       "any.required": "User ID is required.",
