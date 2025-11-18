@@ -1,9 +1,14 @@
-import { createOrderServices, getAllUserOrdersServices, orderSearchService, updateOrderService } from "./orderService.js";
+import {
+  createOrderServices,
+  getAllUserOrdersServices,
+  orderSearchServices,
+  updateOrderService,
+} from "./orderService.js";
 export const createOrderController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const {
-      user_ID,
+      user_id,
       orders,
       address,
       tax_amount,
@@ -17,15 +22,15 @@ export const createOrderController = async (req, res) => {
     } = req.body;
 
     // Early validation
-    if (!user_ID || !Array.isArray(orders) || orders.length === 0) {
+    if (!user_id || !Array.isArray(orders) || orders.length === 0) {
       return res.status(400).json({
         status: "Failed",
-        message: "user_ID and at least one product are required",
+        message: "user_id and at least one product are required",
       });
     }
 
     const payload = {
-      user_ID,
+      user_id,
       orders,
       address,
       tax_amount,
@@ -55,7 +60,6 @@ export const createOrderController = async (req, res) => {
   }
 };
 
-
 // get all user orders
 export const getAllUserOrdersController = async (req, res) => {
   try {
@@ -80,8 +84,6 @@ export const getAllUserOrdersController = async (req, res) => {
   }
 };
 
-
-
 export const getOrderSearchController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
@@ -94,7 +96,7 @@ export const getOrderSearchController = async (req, res) => {
 
     const { q } = req.query;
 
-    const orders = await orderSearchService(tenantID, { q });
+    const orders = await orderSearchServices(tenantID, { q });
 
     return res.status(200).json({
       status: "success",
@@ -111,8 +113,6 @@ export const getOrderSearchController = async (req, res) => {
     });
   }
 };
-
-
 
 export const updateOrderController = async (req, res) => {
   try {
