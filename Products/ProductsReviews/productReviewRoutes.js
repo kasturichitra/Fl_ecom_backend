@@ -1,5 +1,4 @@
 import express from "express";
-import verifyToken from "../../utils/verifyToken.js";
 import {
   createReviewsController,
   getAllReviewsController,
