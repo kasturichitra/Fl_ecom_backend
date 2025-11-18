@@ -25,10 +25,12 @@ const productValidationSchema = Joi.object({
   //     "string.empty": "Product code cannot be empty.",
   //   }),
 
-  barcode: Joi.string().trim().required().messages({
-    "any.required": "Barcode is required.",
-    "string.empty": "Barcode cannot be empty.",
-  }),
+  barcode: Joi.string()
+    .trim()
+    .messages({
+      "string.base": "Barcode must be a string.",
+    })
+    .optional(),
 
   price: Joi.number().min(0).required().messages({
     "any.required": "Price is required.",
@@ -128,6 +130,7 @@ const productValidationSchema = Joi.object({
 });
 
 export function validateProductData(data) {
+  console.info("Validating product data:", data);
   if (!data || typeof data !== "object") {
     return {
       isValid: false,

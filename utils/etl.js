@@ -2,18 +2,32 @@ import ExcelJS from "exceljs";
 import { staticExcelHeaders } from "../Products/config/staticExcelHeaders.js";
 
 /* ----------------------------------------------------------
-   Build header map: Excel column → DB key
+   Build header map for:
+   - Static headers: map Excel header → static key
+   - Dynamic headers: attr_* → attr_*
 ---------------------------------------------------------- */
 function buildHeaderMap(sheet) {
-  const excelHeaders = sheet.getRow(1).values; // 1-indexed
-  const headerMap = {};
+  const headerRow = sheet.getRow(1);
+  const headerMap = {}; // final map: key → column index
 
-  staticExcelHeaders.forEach(h => {
-    const colIndex = excelHeaders.findIndex(v => v === h.header);
-    if (colIndex === -1) {
-      throw new Error(`Missing required column in Excel: "${h.header}"`);
+  headerRow.eachCell((cell, colNumber) => {
+    const excelHeader = String(cell.value || "").trim();
+
+    if (!excelHeader) return;
+
+    // 1️⃣ STATIC HEADERS: match by "header" field
+    const staticMatch = staticExcelHeaders.find((h) => h.header === excelHeader);
+
+    if (staticMatch) {
+      headerMap[staticMatch.key] = colNumber;
+      return;
     }
-    headerMap[h.key] = colIndex;
+
+    // 2️⃣ DYNAMIC ATTRIBUTES: prefix attr_
+    if (excelHeader.startsWith("attr_")) {
+      headerMap[excelHeader.replace("*", "").trim().replaceAll(" ", "_")] = colNumber;
+      return;
+    }
   });
 
   return headerMap;
@@ -21,6 +35,7 @@ function buildHeaderMap(sheet) {
 
 /* ----------------------------------------------------------
    1. EXTRACT — Read Excel → JSON rows
+   Extracts BOTH static keys + dynamic attr_ keys
 ---------------------------------------------------------- */
 export async function extractExcel(filePath) {
   const workbook = new ExcelJS.Workbook();
@@ -35,23 +50,28 @@ export async function extractExcel(filePath) {
     if (rowNumber === 1) return; // skip header
 
     const jsonRow = {};
-    for (const { key } of staticExcelHeaders) {
-      jsonRow[key] = row.getCell(headerMap[key]).value ?? null;
+
+    for (const key in headerMap) {
+      const colIndex = headerMap[key];
+      const value = row.getCell(colIndex).value;
+      jsonRow[key] = value ?? null;
     }
 
-    extracted.push({ rowNumber, raw: jsonRow });
+    extracted.push({
+      rowNumber,
+      raw: jsonRow,
+    });
   });
 
   return extracted;
 }
-
 /* ----------------------------------------------------------
    2. VALIDATE — Auto validate required (*) fields
 ---------------------------------------------------------- */
 export function validateRow(rawRow) {
   const errors = [];
 
-  staticExcelHeaders.forEach(h => {
+  staticExcelHeaders.forEach((h) => {
     if (h.header.includes("*")) {
       if (!rawRow[h.key] || rawRow[h.key].toString().trim() === "") {
         errors.push(`${h.header.replace("*", "").trim()} is required`);
@@ -61,7 +81,7 @@ export function validateRow(rawRow) {
 
   // Optional: Numeric fields auto-check
   const numeric = ["price", "stock_quantity", "min_order_limit", "max_order_limit"];
-  numeric.forEach(field => {
+  numeric.forEach((field) => {
     if (rawRow[field] && isNaN(Number(rawRow[field]))) {
       errors.push(`${field} must be a number`);
     }
@@ -75,21 +95,59 @@ export function validateRow(rawRow) {
 ---------------------------------------------------------- */
 export function transformRow(rawRow) {
   const transformed = {};
+  const productAttributes = [];
 
-  staticExcelHeaders.forEach(h => {
-    let value = rawRow[h.key];
+  // 1) Process only the static keys (defined in config)
+  // This ensures you don't accidentally carry unknown/extra Excel columns
+  staticExcelHeaders.forEach((h) => {
+    const key = h.key; // db key from config
+    let value = rawRow[key]; // rawRow uses keys produced by extractExcel
 
+    // skip absent / null / empty values entirely
+    if (value === null || value === undefined) return;
+    if (typeof value === "string" && value.trim() === "") return;
+
+    // normalize string values
     if (typeof value === "string") value = value.trim();
-    if (value === "") value = null;
 
-    // Number conversion
-    if (value !== null && value !== "" && !isNaN(value)) {
+    // numeric conversion (simple heuristic)
+    if (!isNaN(value) && value !== "") {
       value = Number(value);
     }
 
-    transformed[h.key] = value;
+    transformed[key] = value;
   });
 
-  transformed.createdAt = new Date();
+  // 2) Extract dynamic attributes from rawRow (any keys that start with attr_, case-insensitive)
+  // Note: these attr keys are not part of staticExcelHeaders
+  Object.keys(rawRow).forEach((rawKey) => {
+    if (!rawKey) return;
+
+    // match attr_ prefix (case-insensitive)
+    const m = rawKey.match(/^attr_(.+)/i);
+    if (!m) return;
+
+    let attrValue = rawRow[rawKey];
+    if (attrValue === null || attrValue === undefined) return;
+    if (typeof attrValue === "string" && attrValue.trim() === "") return;
+
+    if (typeof attrValue === "string") attrValue = attrValue.trim();
+    if (!isNaN(attrValue) && attrValue !== "") attrValue = Number(attrValue);
+
+    const attributeCode = m[1] // the part after attr_
+      .trim()
+      .replace(/\s+/g, "_")
+      .toLowerCase();
+
+    productAttributes.push({
+      attribute_code: attributeCode,
+      value: attrValue,
+    });
+  });
+
+  if (productAttributes.length > 0) {
+    transformed.product_attributes = productAttributes;
+  }
+  
   return transformed;
 }

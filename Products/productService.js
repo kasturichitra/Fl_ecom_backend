@@ -247,8 +247,8 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
   const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : undefined;
 
   const dynamicHeaders = categoryDbAttributes.map((attr) => ({
-    header: `attr_${attr.code} : ${attr.name} *`,
-    key: `attr_${attr.code} : ${attr.name}`,
+    header: `attr_${attr.name} *`,
+    key: `attr_${attr.name}`,
     width: 30,
   }));
 
@@ -266,9 +266,9 @@ export const getProductByIdService = async (tenantId, id) => {
   return response;
 };
 
-export const createBulkProductsService = async (tenantId, filePath) => {
+export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!filePath || !fs.existsSync(filePath), "File not found");
+  throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
 
   const extracted = await extractExcel(filePath);
@@ -277,6 +277,7 @@ export const createBulkProductsService = async (tenantId, filePath) => {
   const invalid = [];
 
   for (const row of extracted) {
+    console.log("Table row", row);
     const errors = validateRow(row.raw);
     if (errors.length) {
       invalid.push({ rowNumber: row.rowNumber, errors, data: row.raw });
@@ -288,12 +289,18 @@ export const createBulkProductsService = async (tenantId, filePath) => {
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
 
-    const BATCH = 300;
+    for (let i = 0; i < valid.length; i++) {
 
-    for (let i = 0; i < rows.length; i += BATCH) {
-      await ProductModelDB.insertMany(rows.slice(i, i + BATCH), {
-        ordered: false,
-      });
+      console.log("valid", valid[i]);
+      const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
+      if (existingProduct) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
+
+      valid[i].category_unique_id = category_unique_id;
+
+      const { isValid, message } = validateProductData(valid[i]);
+      if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
+
+      await ProductModelDB.create(valid[i]);
     }
   }
 
