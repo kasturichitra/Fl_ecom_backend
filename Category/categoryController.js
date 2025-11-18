@@ -1,35 +1,29 @@
-import { json } from "express";
-import {
-  createCategoryServices,
-  deleteCategoryServices,
-  getAllCategoriesSerices,
-  getAllCategorySearchServices,
-  getCategoryByIdServices,
-  updateCategoryServices,
-} from "./categoryService.js";
 import fs from "fs";
+
 import throwIfTrue from "../utils/throwIfTrue.js";
-
-
+import {
+  createCategoryService,
+  deleteCategoryService,
+  getAllCategoriesService,
+  getCategoryByIdService,
+  updateCategoryService,
+} from "./categoryService.js";
 
 export const createCategoryController = async (req, res) => {
   let uploadedFilePath = null;
 
   try {
     const {
-      industry_unique_ID,
+      industry_unique_id,
       category_name,
       // category_brand,
-      category_unique_Id,
+      category_unique_id,
       created_by,
       // updated_by,
       attributes,
     } = req.body;
 
-
-    console.log(req.body)
-
-    const tenateID = req.headers["x-tenant-id"];    
+    const tenantId = req.headers["x-tenant-id"];
 
     uploadedFilePath = req.file ? req.file.path : null;
 
@@ -46,10 +40,10 @@ export const createCategoryController = async (req, res) => {
       parsedAttributes = attributes;
     }
 
-    const newCategory = await createCategoryServices(
-      tenateID,
-      industry_unique_ID,
-      category_unique_Id,
+    const newCategory = await createCategoryService(
+      tenantId,
+      industry_unique_id,
+      category_unique_id,
       category_name,
       // category_brand,
       uploadedFilePath,
@@ -69,7 +63,6 @@ export const createCategoryController = async (req, res) => {
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       try {
         fs.unlinkSync(uploadedFilePath);
-        console.log("Unused uploaded image deleted:", uploadedFilePath);
       } catch (unlinkErr) {
         console.error("Error deleting unused image:", unlinkErr.message);
       }
@@ -83,45 +76,22 @@ export const createCategoryController = async (req, res) => {
   }
 };
 
-
-export const getAllCategoryController = async (req, res) => {
-  try {
-
-    const tenateID = req.headers["x-tenant-id"];
-    const categorieData = await getAllCategoriesSerices(tenateID);
-    res.status(200).json({
-      status: "Success",
-      message: "All Category data fetched successfully",
-      data: categorieData,
-    });
-  } catch (error) {
-    console.log("Get all date failed error===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Get all category error",
-      error: error.message,
-    });
-  }
-};
-
-
-
 // export const getAllCategorySearchController = async (req, res) => {
 //   try {
 //     const {
 //       category_name,
 //       category_brand,
-//       category_unique_Id,
+//       category_unique_id,
 //       page = 1,
 //       limit = 10,
 //     } = req.query;
 
-//     const tenateID = req.headers["x-tenant-id"];
-//     const { categoryData, totalCount } = await getAllCategorySearchServices(
-//       tenateID,
+//     const tenantId = req.headers["x-tenant-id"];
+//     const { categoryData, totalCount } = await getAllCategoriesSearchService(
+//       tenantId,
 //       category_brand,
 //       category_name,
-//       category_unique_Id,
+//       category_unique_id,
 //       page,
 //       limit
 //     );
@@ -142,36 +112,30 @@ export const getAllCategoryController = async (req, res) => {
 //   }
 // };
 
-export const getAllCategorySearchController = async (req, res) => {
+export const getAllCategoriesController = async (req, res) => {
   try {
     const {
       category_name,
       category_brand,
-      category_unique_Id,
+      category_unique_id,
       is_active,
-      industry_unique_ID,
-      search,     // 🔥 global search bar
+      industry_unique_id,
+      search, // 🔥 global search bar
       page = 1,
       limit = 10,
     } = req.query;
 
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     const filters = {
       category_name,
       category_brand,
-      category_unique_Id,
+      category_unique_id,
       is_active,
-      industry_unique_ID,
+      industry_unique_id,
     };
 
-    const { categoryData, totalCount } = await getAllCategorySearchServices(
-      tenantID,
-      filters,
-      search,
-      page,
-      limit
-    );
+    const { categoryData, totalCount } = await getAllCategoriesService(tenantId, filters, search, page, limit);
 
     res.status(200).json({
       status: "Success",
@@ -179,7 +143,6 @@ export const getAllCategorySearchController = async (req, res) => {
       data: categoryData,
       totalCount,
     });
-
   } catch (error) {
     res.status(500).json({
       status: "Failed",
@@ -189,13 +152,12 @@ export const getAllCategorySearchController = async (req, res) => {
   }
 };
 
-
 export const getCategoryByIdController = async (req, res) => {
   try {
     const { id } = req.params;
-    const tenateID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
-    const categoryData = await getCategoryByIdServices(tenateID,id);
+    const categoryData = await getCategoryByIdService(tenantId, id);
 
     res.status(200).json({
       status: "success",
@@ -203,7 +165,7 @@ export const getCategoryByIdController = async (req, res) => {
       data: categoryData,
     });
   } catch (error) {
-    console.log("Category get data error", error.message);
+    console.error("Category get data error", error.message);
     res.status(500).json({
       status: "Failed",
       message: "Get category By ID error",
@@ -212,14 +174,12 @@ export const getCategoryByIdController = async (req, res) => {
   }
 };
 
-
-
 export const updateCategoryController = async (req, res) => {
   let uploadedFilePath = null;
 
   try {
-    const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; // category_unique_Id
+    const tenantId = req.headers["x-tenant-id"];
+    const { id } = req.params; // category_unique_id
     const {
       category_name,
       category_brand,
@@ -228,7 +188,7 @@ export const updateCategoryController = async (req, res) => {
       updated_by,
     } = req.body;
 
-    // if (!tenantID) throw new Error("Tenant ID is required");
+    // if (!tenantId) throw new Error("Tenant ID is required");
     // if (!id) throw new Error("Category Unique ID is required");
 
     uploadedFilePath = req.file ? req.file.path : null;
@@ -242,23 +202,17 @@ export const updateCategoryController = async (req, res) => {
 
     if (attributes) {
       try {
-        updates.attributes =
-          typeof attributes === "string" ? JSON.parse(attributes) : attributes;
+        updates.attributes = typeof attributes === "string" ? JSON.parse(attributes) : attributes;
       } catch (err) {
         throw new Error("Invalid JSON format for attributes");
       }
     }
 
-    const { updatedRecord, oldImagePath } = await updateCategoryServices(
-      tenantID,
-      id,
-      updates
-    );
+    const { updatedRecord, oldImagePath } = await updateCategoryService(tenantId, id, updates);
 
     if (uploadedFilePath && oldImagePath && fs.existsSync(oldImagePath)) {
       try {
         fs.unlinkSync(oldImagePath);
-        console.log("🗑️ Old category image deleted:", oldImagePath);
       } catch (unlinkErr) {
         console.error("⚠️ Error deleting old image:", unlinkErr.message);
       }
@@ -269,14 +223,12 @@ export const updateCategoryController = async (req, res) => {
       message: "Category updated successfully",
       data: updatedRecord,
     });
-
   } catch (error) {
     console.error(" Update Category Controller error:", error.message);
 
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       try {
         fs.unlinkSync(uploadedFilePath);
-        console.log("🗑️ Unused uploaded image deleted:", uploadedFilePath);
       } catch (unlinkErr) {
         console.error("⚠️ Error deleting unused image:", unlinkErr.message);
       }
@@ -289,15 +241,12 @@ export const updateCategoryController = async (req, res) => {
   }
 };
 
-
-
-
 export const deleteCategoryController = async (req, res) => {
   try {
-    const { id } = req.params; // category_unique_Id
-    const tenantID = req.headers["x-tenant-id"];
+    const { id } = req.params; // category_unique_id
+    const tenantId = req.headers["x-tenant-id"];
 
-    // if (!tenantID) {
+    // if (!tenantId) {
     //   return res.status(400).json({
     //     status: "Failed",
     //     message: "Tenant ID is required",
@@ -307,17 +256,16 @@ export const deleteCategoryController = async (req, res) => {
     // if (!id) {
     //   return res.status(400).json({
     //     status: "Failed",
-    //     message: "category_unique_Id is required",
+    //     message: "category_unique_id is required",
     //   });
     // }
 
-    const deletedData = await deleteCategoryServices(tenantID, id);
+    const deletedData = await deleteCategoryService(tenantId, id);
 
     //  Remove image file if it exists
     if (deletedData?.category_image && fs.existsSync(deletedData.category_image)) {
       try {
         fs.unlinkSync(deletedData.category_image);
-        console.log("Category image deleted:", deletedData.category_image);
       } catch (err) {
         console.error("Error deleting category image:", err.message);
       }
@@ -329,7 +277,7 @@ export const deleteCategoryController = async (req, res) => {
       data: deletedData,
     });
   } catch (error) {
-    console.log("Category delete failed in controller ===>", error.message);
+    console.error("Category delete failed in controller ===>", error.message);
     res.status(500).json({
       status: "Failed",
       message: "Category delete error",
