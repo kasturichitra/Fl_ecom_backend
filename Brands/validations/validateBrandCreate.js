@@ -7,7 +7,7 @@ const brandCreateSchema = Joi.object({
     "string.base": "Brand name must be a string.",
   }),
 
-  brand_unique_ID: Joi.string().required().messages({
+  brand_unique_id: Joi.string().required().messages({
     "any.required": "Brand unique ID is required.",
     "string.base": "Brand unique ID must be a string.",
   }),

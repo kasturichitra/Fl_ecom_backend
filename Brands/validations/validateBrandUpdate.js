@@ -6,7 +6,7 @@ const brandUpdateSchema = Joi.object({
     "string.base": "Brand name must be a string.",
   }),
 
-  brand_unique_ID: Joi.string().messages({
+  brand_unique_id: Joi.string().messages({
     "string.base": "Brand unique ID must be a string.",
   }),
 
