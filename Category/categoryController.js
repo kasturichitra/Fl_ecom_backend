@@ -5,6 +5,7 @@ import {
   createCategoryService,
   deleteCategoryService,
   getAllCategoriesService,
+  getCategoriesByIndustryIdService,
   getCategoryByIdService,
   updateCategoryService,
 } from "./categoryService.js";
@@ -157,7 +158,7 @@ export const getCategoriesByIndustryIdController = async (req, res) => {
     const { id: industry_unique_id } = req.params;
     const tenantId = req.headers["x-tenant-id"];
 
-    const categoryData = await getAllCategoriesService(tenantId, {
+    const categoryData = await getCategoriesByIndustryIdService(tenantId, {
       industry_unique_id,
     });
 
