@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-const BannerSchema = new mongoose.Schema(
+const bannerSchema = new mongoose.Schema(
   {
     banner_title: {
       type: String,
@@ -46,7 +46,7 @@ const BannerSchema = new mongoose.Schema(
 
 const BannerModel = async (tenantId) => {
   const db = await getTenanteDB(tenantId);
-  return db.models.Banner || db.model("Banner", BannerSchema);
+  return db.models.Banner || db.model("Banner", bannerSchema);
 };
 
 export default BannerModel;
