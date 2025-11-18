@@ -271,17 +271,17 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
   throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
 
-  const extracted = await extractExcel(filePath);
+  const extracted = await extractExcel(filePath, staticExcelHeaders);
 
   const valid = [];
   const invalid = [];
 
   for (const row of extracted) {
-    const errors = validateRow(row.raw);
+    const errors = validateRow(row.raw, staticExcelHeaders);
     if (errors.length) {
       invalid.push({ rowNumber: row.rowNumber, errors, data: row.raw });
     } else {
-      valid.push(transformRow(row.raw));
+      valid.push(transformRow(row.raw, staticExcelHeaders));
     }
   }
 

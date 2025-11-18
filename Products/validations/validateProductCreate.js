@@ -130,7 +130,6 @@ const productValidationSchema = Joi.object({
 });
 
 export function validateProductData(data) {
-  console.info("Validating product data:", data);
   if (!data || typeof data !== "object") {
     return {
       isValid: false,

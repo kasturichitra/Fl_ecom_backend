@@ -1,137 +1,129 @@
 import ExcelJS from "exceljs";
-import { staticExcelHeaders } from "../Products/config/staticExcelHeaders.js";
 
-/* ==========================================================
-   0. HELPERS
-========================================================== */
-
-// Convert Excel header → internal DB key
-const findStaticKey = (excelHeader) => staticExcelHeaders.find((h) => h.header === excelHeader)?.key || null;
-
-// Is dynamic attribute column?
-const isAttributeHeader = (header) => /^attr_/i.test(header);
-
-// Normalize attribute code
-const normalizeAttributeCode = (header) =>
-  header
-    .replace(/^attr_/i, "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .toLowerCase();
-
-// Clean value (remove blanks, convert to number when possible)
-const cleanValue = (v) => {
-  if (v === null || v === undefined) return undefined;
-  if (typeof v === "string") v = v.trim();
-  if (v === "") return undefined;
-  return isNaN(v) ? v : Number(v);
-};
-
-/* ==========================================================
-   1. BUILD HEADER MAP
-   Produces:  { dbKeyOrAttrKey: colIndex }
-========================================================== */
-const buildHeaderMap = (sheet) => {
-  const headerMap = {};
+/* =========================================================
+   Build a dynamic header map from sheet + passed headers[]
+   Supports:
+   - Static headers: matched by "header"
+   - Dynamic headers: attr_*
+========================================================= */
+function buildHeaderMap(sheet, excelHeaders) {
   const headerRow = sheet.getRow(1);
+  const headerMap = {};
 
-  headerRow.eachCell((cell, col) => {
+  headerRow.eachCell((cell, colNumber) => {
     const excelHeader = String(cell.value || "").trim();
     if (!excelHeader) return;
 
-    const staticKey = findStaticKey(excelHeader);
-    if (staticKey) {
-      headerMap[staticKey] = col;
+    // STATIC MATCH
+    const match = excelHeaders.find(h => h.header === excelHeader);
+    if (match) {
+      headerMap[match.key] = colNumber;
       return;
     }
 
-    if (isAttributeHeader(excelHeader)) {
-      const cleanKey = excelHeader.trim().replace(/\s+/g, "_");
-      headerMap[cleanKey] = col;
+    // DYNAMIC ATTRIBUTES
+    if (excelHeader.startsWith("attr_")) {
+      const normalized = excelHeader.replace("*", "").trim().replace(/\s+/g, "_");
+      headerMap[normalized] = colNumber;
     }
   });
 
   return headerMap;
-};
+}
 
-/* ==========================================================
-   2. EXTRACT — Read Excel rows into JSON
-========================================================== */
-export async function extractExcel(filePath) {
+/* =========================================================
+   1. EXTRACT — no static dependency, fully dynamic
+========================================================= */
+export async function extractExcel(filePath, excelHeaders) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
 
   const sheet = workbook.worksheets[0];
-  const headerMap = buildHeaderMap(sheet);
-  const rows = [];
+  const headerMap = buildHeaderMap(sheet, excelHeaders);
+
+  const extracted = [];
 
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
 
     const jsonRow = {};
+    for (const key in headerMap) {
+      const colIndex = headerMap[key];
+      const value = row.getCell(colIndex).value;
+      jsonRow[key] = value ?? null;
+    }
 
-    Object.entries(headerMap).forEach(([key, col]) => {
-      jsonRow[key] = row.getCell(col).value ?? null;
-    });
-
-    rows.push({ rowNumber, raw: jsonRow });
+    extracted.push({ rowNumber, raw: jsonRow });
   });
 
-  return rows;
+  return extracted;
 }
 
-/* ==========================================================
-   3. VALIDATE — Required fields + numeric
-========================================================== */
-export function validateRow(rawRow) {
+/* =========================================================
+   2. VALIDATE — fully dynamic based on excelHeaders metadata
+========================================================= */
+export function validateRow(rawRow, excelHeaders) {
   const errors = [];
 
-  staticExcelHeaders.forEach(({ header, key }) => {
-    if (!header.includes("*")) return;
+  excelHeaders.forEach(h => {
+    const val = rawRow[h.key];
 
-    const v = rawRow[key];
-    if (!v || String(v).trim() === "") {
-      errors.push(`${header.replace("*", "").trim()} is required`);
+    // REQUIRED logic
+    if (h.required && (val === null || val === undefined || String(val).trim() === "")) {
+      errors.push(`${h.header.replace("*", "")} is required`);
     }
-  });
 
-  ["price", "stock_quantity", "min_order_limit", "max_order_limit"].forEach((field) => {
-    if (rawRow[field] && isNaN(Number(rawRow[field]))) {
-      errors.push(`${field} must be a number`);
+    // TYPE = number
+    if (h.type === "number" && val !== null && val !== undefined && isNaN(Number(val))) {
+      errors.push(`${h.header} must be a number`);
     }
   });
 
   return errors;
 }
 
-/* ==========================================================
-   4. TRANSFORM — Clean, convert, nest attr_ values
-========================================================== */
-export function transformRow(rawRow) {
+/* =========================================================
+   3. TRANSFORM — clean, minimal, metadata-driven
+========================================================= */
+export function transformRow(rawRow, excelHeaders) {
   const transformed = {};
-  const attributes = [];
+  const productAttributes = [];
 
-  // Static fields
-  staticExcelHeaders.forEach(({ key }) => {
-    const cleaned = cleanValue(rawRow[key]);
-    if (cleaned !== undefined) transformed[key] = cleaned;
+  // STATIC HEADERS (only those passed by user)
+  excelHeaders.forEach(h => {
+    let val = rawRow[h.key];
+
+    // skip empty/null
+    if (val === null || val === undefined) return;
+    if (typeof val === "string" && val.trim() === "") return;
+
+    if (typeof val === "string") val = val.trim();
+
+    // If field type is number -> cast
+    if (h.type === "number" && !isNaN(val)) val = Number(val);
+
+    transformed[h.key] = val;
   });
 
-  // Dynamic attributes
-  Object.keys(rawRow).forEach((k) => {
-    if (!isAttributeHeader(k)) return;
+  // DYNAMIC attr_ fields
+  Object.entries(rawRow).forEach(([key, val]) => {
+    if (!key.toLowerCase().startsWith("attr_")) return;
+    if (val === null || val === undefined || val === "") return;
 
-    const cleaned = cleanValue(rawRow[k]);
-    if (cleaned === undefined) return;
+    if (typeof val === "string") val = val.trim();
+    if (!isNaN(val)) val = Number(val);
 
-    attributes.push({
-      attribute_code: normalizeAttributeCode(k),
-      value: cleaned,
-    });
+    const attribute_code = key
+      .slice(5)
+      .trim()
+      .replace(/\s+/g, "_")
+      .toLowerCase();
+
+    productAttributes.push({ attribute_code, value: val });
   });
 
-  if (attributes.length > 0) {
-    transformed.product_attributes = attributes;
+  if (productAttributes.length) {
+    transformed.product_attributes = productAttributes;
   }
 
   return transformed;
