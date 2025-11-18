@@ -8,7 +8,7 @@ const route = express.Router();
 const upload = getUploadMiddleware("user");
 
 route.post('/register', registerUserController)
-route.post('/login', verifyToken, loginUserController)
+route.post('/login', loginUserController)
 route.put("/:id", verifyToken, upload.single("image"), updateUserController);
 
 route.post("/:userID/address",verifyToken, addAddressController);
