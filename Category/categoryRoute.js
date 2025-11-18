@@ -1,27 +1,23 @@
 import express from "express";
+import getUploadMiddleware from "../utils/multerConfig.js";
 import {
   createCategoryController,
   deleteCategoryController,
-  getAllCategoryController,
-  getAllCategorySearchController,
+  getAllCategoriesController,
+  getCategoriesByIndustryIdController,
   getCategoryByIdController,
-  updateCategoryController,
-
+  updateCategoryController
 } from "./categoryController.js";
-import getUploadMiddleware from "../utils/multerConfig.js";
-
-
 
 const route = express.Router();
 
-
 const upload = getUploadMiddleware("category");
 
-route.post("/addCategory", upload.single("image"), createCategoryController);
-route.get("/getAllCategories", getAllCategoryController);
-route.get("/getallCategorySearch", getAllCategorySearchController);
-route.get("/getCategoryById/:id", getCategoryByIdController);
-route.put("/updatecategory/:id", upload.single("image"), updateCategoryController);
-route.delete("/deletecategory/:id", deleteCategoryController);
+route.post("/", upload.single("image"), createCategoryController);
+route.get("/", getAllCategoriesController);
+route.get("/industry/:id", getCategoriesByIndustryIdController);
+route.get("/:id", getCategoryByIdController);
+route.put("/:id", upload.single("image"), updateCategoryController);
+route.delete("/:id", deleteCategoryController);
 
 export default route;

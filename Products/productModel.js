@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-const productsModelSchema = new mongoose.Schema(
+const productSchema = new mongoose.Schema(
   {
     //  Relationships
     // subCategory_unique_ID: {
     //   type: String,
     //   required: true,
     // },
-    category_unique_Id: {
+    category_unique_id: {
       type: String,
       required: true,
     },
-    products_unique_ID: {
+    product_unique_id: {
       type: String,
       required: true,
       unique: true,
@@ -29,7 +29,7 @@ const productsModelSchema = new mongoose.Schema(
     //   required: true,
     //   trim: true,
     // },
-    product_brand_Id: {
+    product_brand_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Brand", // name of your Brand model
       // required: true, // optional, if every product must have a brand
@@ -79,15 +79,15 @@ const productsModelSchema = new mongoose.Schema(
       min: 0,
     },
     // Optional price fields
-    basePrice: {
+    base_price: {
       type: Number,
       min: 0,
     },
-    salePrice: {
+    sale_price: {
       type: Number,
       min: 0,
     },
-    costPrice: {
+    cost_price: {
       type: Number,
       min: 0,
     },
@@ -116,11 +116,11 @@ const productsModelSchema = new mongoose.Schema(
     },
 
     // GST and  tax related info
-    product_GST: {
+    product_gst: {
       type: Number,
       default: 0,
     },
-    GST_number: {
+    gst_number: {
       type: String,
       trim: true,
     },
@@ -261,8 +261,8 @@ const productsModelSchema = new mongoose.Schema(
   }
 );
 
-const ProductsModel = async (tenantID) => {
+const ProductModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
-  return db.models.Products || db.model("Products", productsModelSchema);
+  return db.models.Products || db.model("Products", productSchema);
 };
-export default ProductsModel;
+export default ProductModel;

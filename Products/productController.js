@@ -11,7 +11,7 @@ import {
 
 export const createProductController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     const data = req.body;
 
@@ -35,7 +35,7 @@ export const createProductController = async (req, res) => {
       product_images,
     };
 
-    const createdProduct = await createProductService(tenantID, inputData);
+    const createdProduct = await createProductService(tenantId, inputData);
 
     res.status(201).json({
       status: "Success",
@@ -55,8 +55,8 @@ export const createProductController = async (req, res) => {
 export const getAllProductsController = async (req, res) => {
   try {
     const filters = req.query;
-    const tenantID = req.headers["x-tenant-id"];
-    const { data, totalCount } = await getAllProductsService(tenantID, filters);
+    const tenantId = req.headers["x-tenant-id"];
+    const { data, totalCount } = await getAllProductsService(tenantId, filters);
 
     res.status(200).json({
       status: "Success",
@@ -78,7 +78,7 @@ export const getAllProductsController = async (req, res) => {
 export const getProductByIdController = async (req, res) => {
   try {
     const { id } = req.params; // This is products_unique_ID
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     if (!id) {
       return res.status(400).json({
@@ -87,7 +87,7 @@ export const getProductByIdController = async (req, res) => {
       });
     }
 
-    const response = await getProductByUniqueIdService(tenantID, id);
+    const response = await getProductByUniqueIdService(tenantId, id);
 
     res.status(200).json({
       status: "Success",
@@ -108,7 +108,7 @@ export const updateProductController = async (req, res) => {
   try {
     const { id } = req.params;
     const productData = req.body;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
     if (!id) {
       return res.status(400).json({
         status: "Failed",
@@ -126,7 +126,7 @@ export const updateProductController = async (req, res) => {
       }
     }
 
-    const response = await updateProductService(tenantID, id, productData);
+    const response = await updateProductService(tenantId, id, productData);
 
     res.status(200).json({
       status: "Success",
@@ -146,7 +146,7 @@ export const updateProductController = async (req, res) => {
 export const deleteProductController = async (req, res) => {
   try {
     const { id } = req.params; // products_unique_ID
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     if (!id) {
       return res.status(400).json({
@@ -155,7 +155,7 @@ export const deleteProductController = async (req, res) => {
       });
     }
 
-    const existingProduct = await deleteProductService(tenantID, id);
+    const existingProduct = await deleteProductService(tenantId, id);
 
     const deleteFileIfExists = (filePath) => {
       if (!filePath) return;
@@ -205,10 +205,10 @@ export const deleteProductController = async (req, res) => {
 
 export const downloadExcelTemplateController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
     const { id: category_unique_ID } = req.params; // category_unique_ID
 
-    const workbook = await downloadExcelTemplateService(tenantID, category_unique_ID);
+    const workbook = await downloadExcelTemplateService(tenantId, category_unique_ID);
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", "attachment; filename=product_template.xlsx");
@@ -229,7 +229,7 @@ export const downloadExcelTemplateController = async (req, res) => {
 // export const getProductByIdController = async (req, res) => {
 //   try {
 //     const { id } = req.params; // This is product id
-//     const tenantID = req.headers["x-tenant-id"];
+//     const tenantId = req.headers["x-tenant-id"];
 
 //     if (!id) {
 //       return res.status(400).json({
@@ -238,7 +238,7 @@ export const downloadExcelTemplateController = async (req, res) => {
 //       });
 //     }
 
-//     const response = await getProductByIdServices(tenantID, id);
+//     const response = await getProductByIdServices(tenantId, id);
 
 //     res.status(200).json({
 //       status: "Success",
@@ -258,7 +258,7 @@ export const downloadExcelTemplateController = async (req, res) => {
 // export const getProductsBysubUniqeIDController = async (req, res) => {
 //   try {
 //     const { id } = req.params; // This ID is  Category unique ID
-//     const tenantID = req.headers["x-tenant-id"];
+//     const tenantId = req.headers["x-tenant-id"];
 //     if (!id) {
 //       return res.status(400).json({
 //         status: "Failed",
@@ -266,7 +266,7 @@ export const downloadExcelTemplateController = async (req, res) => {
 //       });
 //     }
 
-//     const response = await getProductsBySubUniqueIDServices(tenantID, id);
+//     const response = await getProductsBySubUniqueIDServices(tenantId, id);
 
 //     if (!response || response.length === 0) {
 //       return res.status(404).json({

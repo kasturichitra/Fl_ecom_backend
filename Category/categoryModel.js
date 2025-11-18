@@ -43,18 +43,18 @@ const attributesSchema = new mongoose.Schema({
 })
 
 
-const catogorySchema = new mongoose.Schema(
+const categorySchema = new mongoose.Schema(
   {
     // category_type_unique_id: {
     //   type: String,
     //   required: true,
     // },
-    industry_unique_ID: {
+    industry_unique_id: {
       type: String,
       required: true,
       // unique: true,
     },
-    category_unique_Id: {
+    category_unique_id: {
       type:String,
       required: true
     },
@@ -70,14 +70,6 @@ const catogorySchema = new mongoose.Schema(
     is_active: {
       type: Boolean,
       default: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now(),
     },
     created_by: {
       type: String,
@@ -109,7 +101,7 @@ const catogorySchema = new mongoose.Schema(
 
 export const CategoryModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID)
-  return db.models.Category || db.model("Category", catogorySchema);
+  return db.models.Category || db.model("Category", categorySchema);
 }
 
 
