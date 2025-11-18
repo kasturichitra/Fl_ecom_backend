@@ -17,6 +17,7 @@ import orderRoute from "./Orders/orderRoutes.js";
 import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
+import brandRoutes from "./Brands/brandRoutes.js";
 import verifyToken from "./utils/verifyToken.js";
 const app = express();
 
@@ -110,6 +111,7 @@ app.use(
   //  verifyToken,
   bannerRoutes
 );
+app.use("/brands", verifyToken, brandRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");
