@@ -1,11 +1,11 @@
-import { getWishlistProductsServices, getWishlistServices, removeWishlistServices, wishlistCreateServices } from "./wishlistService.js";
+import { getWishlistProductServices, getWishlistServices, removeWishlistServices, wishlistCreateServices } from "./wishlistService.js";
 
 export const wishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { user_ID, product_ID } = req.body;
+    const { user_id, product_id } = req.body;
 
-    const response = await wishlistCreateServices(tenantID, user_ID, product_ID);
+    const response = await wishlistCreateServices(tenantID, user_id, product_id);
 
     res.status(201).json({
       status: "success",
@@ -24,12 +24,12 @@ export const wishlistController = async (req, res) => {
 export const getWishlistProductsController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; // user_ID
+    const { id } = req.params; // user_id
 
     if (!tenantID) throw new Error("Tenant ID is required");
     if (!id) throw new Error("User ID is required");
 
-    const response = await getWishlistProductsServices(tenantID, id);
+    const response = await getWishlistProductServices(tenantID, id);
 
     res.status(200).json({
       status: "Success",
@@ -74,13 +74,13 @@ export const removeWishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const { id } = req.params; 
-    const { product_ID } = req.body; 
+    const { product_id } = req.body; 
 
     if (!tenantID) throw new Error("Tenant ID is required");
     if (!id) throw new Error("User ID is required");
-    if (!product_ID) throw new Error("Product ID is required");
+    if (!product_id) throw new Error("Product ID is required");
 
-    const response = await removeWishlistServices(tenantID, id, product_ID);
+    const response = await removeWishlistServices(tenantID, id, product_id);
 
     res.status(200).json({
       status: "Success",
