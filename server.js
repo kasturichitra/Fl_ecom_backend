@@ -111,7 +111,11 @@ app.use(
   //  verifyToken,
   bannerRoutes
 );
-app.use("/brands", verifyToken, brandRoutes);
+app.use(
+  "/brands",
+  // verifyToken,
+  brandRoutes
+);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");
