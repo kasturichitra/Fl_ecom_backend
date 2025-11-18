@@ -1,57 +1,44 @@
-import { createTicketServices, getTicketServices, updateTicketServices } from "./ticketService.js";
+import { createTicketService, getAllTicketsService, updateTicketService } from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
-    try {
-        const tenantID = req.headers["x-tenant-id"];
-        if (!tenantID)
-            return res.status(400).json({ status: "failed", message: "Tenant ID is required" });
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    if (!tenantID) return res.status(400).json({ status: "failed", message: "Tenant ID is required" });
 
-        const {
-            user_ID,
-            order_ID,
-            product_ID,
-            issue_type,
-            subject,
-            description,
-            attachments,
-            priority,
-        } = req.body;
+    const { user_ID, order_ID, product_ID, issue_type, subject, description, attachments, priority } = req.body;
 
-        // Auto-generate ticket_ID
-        const ticket_ID = `TCKT-${Date.now()}`;
+    // Auto-generate ticket_ID
+    const ticket_ID = `TCKT-${Date.now()}`;
 
-        const ticketData = {
-            ticket_ID,
-            user_ID,
-            order_ID,
-            product_ID,
-            issue_type,
-            subject,
-            description,
-            attachments,
-            priority,
+    const ticketData = {
+      ticket_ID,
+      user_ID,
+      order_ID,
+      product_ID,
+      issue_type,
+      subject,
+      description,
+      attachments,
+      priority,
+    };
 
-        };
+    const response = await createTicketService(tenantID, ticketData);
 
-        const response = await createTicketServices(tenantID, ticketData);
-
-        res.status(201).json({
-            status: "success",
-            message: "Ticket created successfully",
-            data: response,
-        });
-    } catch (error) {
-        console.error("Ticket creation error:", error.message);
-        res.status(500).json({
-            status: "failed",
-            message: error.message,
-        });
-    }
+    res.status(201).json({
+      status: "success",
+      message: "Ticket created successfully",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Ticket creation error:", error.message);
+    res.status(500).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
 };
 
-
-
-export const getTicketController = async (req, res) => {
+export const getAllTicketsController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
 
@@ -62,7 +49,7 @@ export const getTicketController = async (req, res) => {
       });
     }
 
-    const response = await getTicketServices(tenantID);
+    const response = await getAllTicketsService(tenantID);
 
     res.status(200).json({
       status: "success",
@@ -79,12 +66,10 @@ export const getTicketController = async (req, res) => {
   }
 };
 
-
-
 export const updateTicketController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; 
+    const { id } = req.params;
     const updateData = req.body;
 
     if (!tenantID) {
@@ -108,7 +93,7 @@ export const updateTicketController = async (req, res) => {
       });
     }
 
-    const updatedTicket = await updateTicketServices(tenantID, id, updateData);
+    const updatedTicket = await updateTicketService(tenantID, id, updateData);
 
     if (!updatedTicket) {
       return res.status(404).json({
