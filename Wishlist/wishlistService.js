@@ -1,4 +1,4 @@
-import ProductsModel from "../Products/productModel.js";
+import ProductModel from "../Products/productModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import WishlistModel from "./wishlistModel.js";
 
@@ -31,7 +31,7 @@ export const getWishlistProductsServices = async (tenantID, user_id) => {
   throwIfTrue(!user_id, "User ID is required");
 
   const wishlistModelDB = await WishlistModel(tenantID);
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantID);
 
   const wishlist = await wishlistModelDB.findOne({ user_id });
 
