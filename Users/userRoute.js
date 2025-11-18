@@ -9,9 +9,9 @@ const upload = getUploadMiddleware("user");
 
 route.post('/register', registerUserController)
 route.post('/login', verifyToken, loginUserController)
-route.put("/userUpdateById/:id", verifyToken, upload.single("image"), updateUserController);
+route.put("/:id", verifyToken, upload.single("image"), updateUserController);
 
 route.post("/:userID/address",verifyToken, addAddressController);
-route.put("/updateAddress/:id/address/:addressId", verifyToken, updateUserAddressController)
+route.put("/:id/address/:addressId", verifyToken, updateUserAddressController)
 
 export default route;
