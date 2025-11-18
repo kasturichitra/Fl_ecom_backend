@@ -14,9 +14,9 @@ export const createBrandService = async (tenantID, brandData) => {
 
   // Check if unique ID already exists
   const existingBrand = await brandModelDB.findOne({
-    brand_unique_ID: brandData.brand_unique_ID,
+    brand_unique_id: brandData.brand_unique_id,
   });
-  throwIfTrue(existingBrand, `Brand already exists with unique ID ${brandData.brand_unique_ID}`);
+  throwIfTrue(existingBrand, `Brand already exists with unique ID ${brandData.brand_unique_id}`);
 
   const response = await brandModelDB.create(brandData);
   return response;
@@ -29,7 +29,7 @@ export const getAllBrandsService = async (tenantID, filters) => {
   const {
     brand_name,
     searchTerm, // Search term
-    brand_unique_ID,
+    brand_unique_id,
     is_active,
     categories, // comma separated: "catId1,catId2"
     page = 1,
@@ -44,14 +44,14 @@ export const getAllBrandsService = async (tenantID, filters) => {
 
   // Direct match
   if (brand_name) query.brand_name = { $regex: brand_name, $options: "i" };
-  if (brand_unique_ID) query.brand_unique_ID = brand_unique_ID;
+  if (brand_unique_id) query.brand_unique_id = brand_unique_id;
   if (typeof is_active !== "undefined") query.is_active = is_active;
 
   // Search term
   if (searchTerm) {
     query.$or = [
       { brand_name: { $regex: searchTerm, $options: "i" } },
-      { brand_unique_ID: { $regex: searchTerm, $options: "i" } },
+      { brand_unique_id: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
@@ -100,7 +100,7 @@ export const getBrandByIdService = async (tenantID, id) => {
 };
 
 // Update Brand
-export const updateBrandByIdService = async (tenantID, id, updateBrandData) => {
+export const updateBrandService = async (tenantID, id, updateBrandData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Brand ID is required");
 
@@ -109,11 +109,11 @@ export const updateBrandByIdService = async (tenantID, id, updateBrandData) => {
 
   const brandModelDB = await BrandModel(tenantID);
 
-  if (updateBrandData.brand_unique_ID) {
+  if (updateBrandData.brand_unique_id) {
     const existingBrand = await brandModelDB.findOne({
-      brand_unique_ID: updateBrandData.brand_unique_ID,
+      brand_unique_id: updateBrandData.brand_unique_id,
     });
-    throwIfTrue(existingBrand, `Brand already exists with unique ID ${updateBrandData.brand_unique_ID}`);
+    throwIfTrue(existingBrand, `Brand already exists with unique ID ${updateBrandData.brand_unique_id}`);
   }
 
   const updated = await brandModelDB.findByIdAndUpdate(id, updateBrandData, {

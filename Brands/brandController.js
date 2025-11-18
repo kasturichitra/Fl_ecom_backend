@@ -2,7 +2,7 @@ import {
   createBrandService,
   getAllBrandsService,
   getBrandByIdService,
-  updateBrandByIdService,
+  updateBrandService,
 } from "./brandService.js";
 
 // Create Brand
@@ -87,7 +87,7 @@ export const getBrandByIdController = async (req, res) => {
 };
 
 // Update Brand By Id
-export const updateBrandByIdController = async (req, res) => {
+export const updateBrandController = async (req, res) => {
   try {
     console.log("Request body is ===>", req.body);
 
@@ -104,7 +104,7 @@ export const updateBrandByIdController = async (req, res) => {
       updateBrand.brand_images = req.files.map((f) => f.path);
     }
 
-    const response = await updateBrandByIdService(
+    const response = await updateBrandService(
       tenantID,
       id,
       updateBrand

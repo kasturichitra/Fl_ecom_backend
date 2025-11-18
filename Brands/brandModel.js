@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-const BrandModelSchema = new mongoose.Schema(
+const brandSchema = new mongoose.Schema(
   {
     // Basic Info
     brand_name: {
@@ -9,7 +9,7 @@ const BrandModelSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    brand_unique_ID: {
+    brand_unique_id: {
       type: String,
       required: true,
       unique: true,
@@ -60,6 +60,6 @@ const BrandModelSchema = new mongoose.Schema(
 
 const BrandModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
-  return db.models.Products || db.model("Brand", BrandModelSchema);
+  return db.models.Products || db.model("Brand", brandSchema);
 };
 export default BrandModel;
