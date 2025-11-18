@@ -9,7 +9,7 @@ const updateStockOnOrder = async (tenantID, products) => {
 
   const bulkOps = products.map((item) => ({
     updateOne: {
-      filter: { products_unique_ID: item.product_unique_ID },
+      filter: { product_unique_id: item.product_unique_id },
       update: { $inc: { stock_quantity: -item.quantity } },
     },
   }));
@@ -23,7 +23,7 @@ export const createOrderServices = async (tenantID, payload) => {
 
   const Order = await OrdersModel(tenantID);
 
-  throwIfTrue(!payload.user_ID, "user_ID is required");
+  throwIfTrue(!payload.user_id, "user_id is required");
   throwIfTrue(!payload.payment_method, "payment_method is required");
   throwIfTrue(!payload.address || typeof payload.address !== "object", "address is required and must be an object");
 
@@ -32,12 +32,12 @@ export const createOrderServices = async (tenantID, payload) => {
   // Build product items
   const newProducts = payload.orders.map((p, idx) => {
     throwIfTrue(
-      !p.product_unique_ID || !p.product_name || !p.quantity || !p.price || !p.total_price,
+      !p.product_unique_id || !p.product_name || !p.quantity || !p.price || !p.total_price,
       `Product at index ${idx}: missing required fields`
     );
 
     return {
-      product_unique_ID: String(p.product_unique_ID),
+      product_unique_id: String(p.product_unique_id),
       product_name: String(p.product_name),
       quantity: Math.max(1, Number(p.quantity) || 0),
       price: Number(p.price),
@@ -55,7 +55,7 @@ export const createOrderServices = async (tenantID, payload) => {
   const total_amount = subtotal + tax_amount + shipping_charges;
 
   const orderDoc = {
-    user_ID: payload.user_ID,
+    user_id: payload.user_id,
     order_Products: newProducts,
     address: payload.address,
 
@@ -80,7 +80,7 @@ export const createOrderServices = async (tenantID, payload) => {
   await updateStockOnOrder(tenantID, savedOrder.order_Products);
 
   // User Notification
-  await sendUserNotification(tenantID, payload.user_ID, {
+  await sendUserNotification(tenantID, payload.user_id, {
     title: "Order Placed Successfully",
     message: `Your order  has been placed successfully!`,
     type: "order",
@@ -96,14 +96,14 @@ export const createOrderServices = async (tenantID, payload) => {
   // Admin Notification
   await sendAdminNotification(tenantID, {
     title: "New Order Received",
-    message: `New order from user ${payload.user_ID}. Total: ₹${savedOrder.total_amount}`,
+    message: `New order from user ${payload.user_id}. Total: ₹${savedOrder.total_amount}`,
     type: "order",
     relatedId: savedOrder._id,
     relatedModel: "Order",
     link: `/admin/orders/${savedOrder._id}`,
     data: {
       orderId: savedOrder._id,
-      userId: payload.user_ID,
+      userId: payload.user_id,
       amount: savedOrder.total_amount,
     },
   });
@@ -114,13 +114,13 @@ export const createOrderServices = async (tenantID, payload) => {
 export const getAllUserOrdersServices = async (tenantID, userID) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   const Order = await OrdersModel(tenantID);
-  console.log(Order.find({ user_ID: userID }), ' Order.find({ user_ID: userID });');
+  console.log(Order.find({ user_id: userID }), " Order.find({ user_id: userID });");
 
-  return await Order.find({ user_ID: userID });
-}
+  return await Order.find({ user_id: userID });
+};
 
 // Search orders
-export const orderSearchService = async (tenantID, { q } = {}) => {
+export const orderSearchServices = async (tenantID, { q } = {}) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
   const Order = await OrdersModel(tenantID);
@@ -135,10 +135,10 @@ export const orderSearchService = async (tenantID, { q } = {}) => {
     {
       $match: {
         $or: [
-          { user_ID: regex },
+          { user_id: regex },
           { transaction_id: regex },
           { "order_Products.product_name": regex },
-          { "order_Products.product_unique_ID": regex },
+          { "order_Products.product_unique_id": regex },
           { "order_Products.status": regex },
         ],
       },
@@ -148,93 +148,6 @@ export const orderSearchService = async (tenantID, { q } = {}) => {
 
   return Order.aggregate(pipeline);
 };
-
-// Update an order
-// export const updateOrderService = async (tenantID, orderID, updateData) => {
-//   throwIfTrue(!tenantID, "Tenant ID is required");
-//   throwIfTrue(!orderID, "Valid Order ID is required");
-//   throwIfTrue(!updateData || Object.keys(updateData).length === 0, "Update data is required");
-
-//   const Order = await OrdersModel(tenantID);
-//   const Product = await ProductsModel(tenantID);
-
-//   const order = await Order.findById(orderID);
-//   throwIfTrue(!order, "Order not found");
-
-//   // Prevent updates on Delivered or already Cancelled orders
-//   const isFinalStatus = ["Delivered", "Cancelled", "Returned"].includes(order.order_Products.every(p => p.status === "Delivered") ? "Delivered" : "");
-
-//   throwIfTrue(isFinalStatus, "Cannot update order that is already Delivered or Cancelled");
-
-//   let stockRestored = false;
-
-//   // Handle Address Update
-//   if (updateData.address) {
-//     // Allow address change only if not shipped yet
-//     const hasShipped = order.order_Products.some(p => ["Shipped", "Delivered"].includes(p.status));
-//     throwIfTrue(hasShipped, "Cannot change address after order is shipped");
-//     order.address = updateData.address;
-//   }
-
-//   // Handle Product Status Updates or Cancellation
-//   if (updateData.order_Products && Array.isArray(updateData.order_Products)) {
-//     updateData.order_Products.forEach((updateProd) => {
-//       const item = order.order_Products.find(
-//         p => p.product_unique_ID === updateProd.product_unique_ID
-//       );
-
-//       throwIfTrue(!item, `Product ${updateProd.product_unique_ID} not found in order`);
-
-//       // Update allowed fields
-//       if (updateProd.status) {
-//         item.status = updateProd.status;
-
-//         // Auto-set timestamps
-//         if (updateProd.status === "Delivered") {
-//           item.delivered_at = new Date();
-//         }
-//         if (updateProd.status === "Cancelled") {
-//           item.cancelled_at = new Date();
-//         }
-//       }
-//     });
-//   }
-
-//   // Top-level cancellation (via payment_status or custom flag)
-//   if (updateData.payment_status === "Refunded" || updateData.isCancelled === true) {
-//     order.payment_status = "Refunded";
-//     order.order_cancel_date = new Date();
-
-//     // Mark all products as Cancelled
-//     order.order_Products.forEach(p => {
-//       if (!["Delivered", "Returned"].includes(p.status)) {
-//         p.status = "Cancelled";
-//         p.cancelled_at = new Date();
-//       }
-//     });
-
-//     stockRestored = true;
-//   }
-
-//   const updatedOrder = await order.save();
-
-//   // Restore stock if order was just cancelled
-//   if (stockRestored) {
-//     const bulkOps = updatedOrder.order_Products.map(item => ({
-//       updateOne: {
-//         filter: { products_unique_ID: item.product_unique_ID },
-//         update: { $inc: { stock_quantity: item.quantity } },
-//       }
-//     }));
-
-//     if (bulkOps.length > 0) {
-//       await Product.bulkWrite(bulkOps);
-//     }
-//   }
-
-//   return updatedOrder;
-// };
-
 
 export const updateOrderService = async (tenantID, orderID, updateData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
@@ -248,9 +161,9 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   throwIfTrue(!order, "Order not found");
 
   // Prevent updates on fully Delivered, Cancelled, or Returned orders
-  const allDelivered = order.order_Products.every(p => p.status === "Delivered");
-  const allCancelled = order.order_Products.every(p => p.status === "Cancelled");
-  const allReturned = order.order_Products.every(p => p.status === "Returned");
+  const allDelivered = order.order_Products.every((p) => p.status === "Delivered");
+  const allCancelled = order.order_Products.every((p) => p.status === "Cancelled");
+  const allReturned = order.order_Products.every((p) => p.status === "Returned");
 
   throwIfTrue(
     allDelivered || allCancelled || allReturned,
@@ -262,9 +175,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
 
   // Handle Address Update
   if (updateData.address) {
-    const hasShipped = order.order_Products.some(p =>
-      ["Shipped", "Delivered"].includes(p.status)
-    );
+    const hasShipped = order.order_Products.some((p) => ["Shipped", "Delivered"].includes(p.status));
     throwIfTrue(hasShipped, "Cannot change address after any item is shipped");
     order.address = updateData.address;
   }
@@ -272,10 +183,8 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   // Handle Individual Product Status Updates
   if (updateData.order_Products && Array.isArray(updateData.order_Products)) {
     for (const updateProd of updateData.order_Products) {
-      const item = order.order_Products.find(
-        p => p.product_unique_ID === updateProd.product_unique_ID
-      );
-      throwIfTrue(!item, `Product ${updateProd.product_unique_ID} not found in order`);
+      const item = order.order_Products.find((p) => p.product_unique_id === updateProd.product_unique_id);
+      throwIfTrue(!item, `Product ${updateProd.product_unique_id} not found in order`);
 
       if (updateProd.status && updateProd.status !== item.status) {
         const oldStatus = item.status;
@@ -293,7 +202,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
 
         // Optional: Notify on status change
         if (["Shipped", "Delivered", "Returned", "Cancelled"].includes(updateProd.status)) {
-          await sendUserNotification(tenantID, order.user_ID, {
+          await sendUserNotification(tenantID, order.user_id, {
             title: `Item ${updateProd.status}`,
             message: `${item.product_name} is now ${updateProd.status}`,
             type: "order_update",
@@ -312,7 +221,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
     order.payment_status = "Refunded";
     order.order_cancel_date = new Date();
 
-    order.order_Products.forEach(p => {
+    order.order_Products.forEach((p) => {
       if (!["Delivered", "Returned"].includes(p.status)) {
         p.status = "Cancelled";
         p.cancelled_at = new Date();
@@ -326,10 +235,10 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   // Restore Stock on Cancellation
   if (stockRestored) {
     const bulkOps = updatedOrder.order_Products
-      .filter(item => item.status === "Cancelled")
-      .map(item => ({
+      .filter((item) => item.status === "Cancelled")
+      .map((item) => ({
         updateOne: {
-          filter: { products_unique_ID: item.product_unique_ID },
+          filter: { product_unique_id: item.product_unique_id },
           update: { $inc: { stock_quantity: +item.quantity } },
         },
       }));
@@ -343,7 +252,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
 
   // 1. Full Order Cancelled
   if (wasJustCancelled) {
-    await sendUserNotification(tenantID, updatedOrder.user_ID, {
+    await sendUserNotification(tenantID, updatedOrder.user_id, {
       title: "Order Cancelled",
       message: `Your order has been cancelled. Refund will be processed within 5-7 days.`,
       type: "order_cancelled",
@@ -367,11 +276,11 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   }
 
   // 2. Any Item Marked as Returned
-  const returnedItems = updatedOrder.order_Products.filter(p => p.status === "Returned");
+  const returnedItems = updatedOrder.order_Products.filter((p) => p.status === "Returned");
   if (returnedItems.length > 0) {
-    const itemsList = returnedItems.map(i => `${i.product_name} (x${i.quantity})`).join(", ");
+    const itemsList = returnedItems.map((i) => `${i.product_name} (x${i.quantity})`).join(", ");
 
-    await sendUserNotification(tenantID, updatedOrder.user_ID, {
+    await sendUserNotification(tenantID, updatedOrder.user_id, {
       title: "Item(s) Returned",
       message: `Returned items: ${itemsList}. Refund will be initiated soon.`,
       type: "order_returned",
