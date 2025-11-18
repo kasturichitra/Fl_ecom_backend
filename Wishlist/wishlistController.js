@@ -1,11 +1,16 @@
-import { getWishlistProductServices, getWishlistServices, removeWishlistServices, wishlistCreateServices } from "./wishlistService.js";
+import {
+  getWishlistProductsServices,
+  getWishlistServices,
+  removeWishlistServices,
+  createWishlistServices,
+} from "./wishlistService.js";
 
-export const wishlistController = async (req, res) => {
+export const createWishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const { user_id, product_id } = req.body;
 
-    const response = await wishlistCreateServices(tenantID, user_id, product_id);
+    const response = await createWishlistServices(tenantID, user_id, product_id);
 
     res.status(201).json({
       status: "success",
@@ -20,16 +25,12 @@ export const wishlistController = async (req, res) => {
   }
 };
 
-
 export const getWishlistProductsController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const { id } = req.params; // user_id
 
-    if (!tenantID) throw new Error("Tenant ID is required");
-    if (!id) throw new Error("User ID is required");
-
-    const response = await getWishlistProductServices(tenantID, id);
+    const response = await getWishlistProductsServices(tenantID, id);
 
     res.status(200).json({
       status: "Success",
@@ -44,8 +45,6 @@ export const getWishlistProductsController = async (req, res) => {
     });
   }
 };
-
-
 
 export const getWishlistController = async (req, res) => {
   try {
@@ -68,13 +67,11 @@ export const getWishlistController = async (req, res) => {
   }
 };
 
-
-
 export const removeWishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; 
-    const { product_id } = req.body; 
+    const { id } = req.params;
+    const { product_id } = req.body;
 
     if (!tenantID) throw new Error("Tenant ID is required");
     if (!id) throw new Error("User ID is required");

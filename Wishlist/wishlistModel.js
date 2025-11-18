@@ -9,7 +9,7 @@ const wishlistSchema = new mongoose.Schema(
     },
     products: [
       {
-        type: String, 
+        type: String,
         required: true,
       },
     ],

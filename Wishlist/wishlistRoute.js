@@ -1,11 +1,16 @@
-import express from 'express'
-import { getWishlistController, getWishlistProductsController, removeWishlistController, wishlistController } from './wishlistController.js'
+import express from "express";
+import {
+  getWishlistController,
+  getWishlistProductsController,
+  removeWishlistController,
+  createWishlistController,
+} from "./wishlistController.js";
 
-const route = express.Router()
+const route = express.Router();
 
-route.post("/createWishlist", wishlistController)
-route.get("/getUserWishlists/:id", getWishlistProductsController)
-route.get("/getAllWishlist/:id", getWishlistController)
-route.delete("/removeWishlist/:id", removeWishlistController)
+route.post("/", createWishlistController);
+route.get("/userWhishlist/:id", getWishlistProductsController);
+route.get("/:id", getWishlistController);
+route.delete("/:id", removeWishlistController);
 
-export default route
+export default route;
