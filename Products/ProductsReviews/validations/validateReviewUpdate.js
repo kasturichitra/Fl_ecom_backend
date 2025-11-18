@@ -1,11 +1,11 @@
 import Joi from "joi";
 
 const reviewUpdateSchema = Joi.object({
-  products_unique_ID: Joi.string().messages({
+  product_unique_id: Joi.string().messages({
     "string.base": "Product ID must be a string.",
   }),
 
-  user_unique_ID: Joi.string().messages({
+  user_unique_id: Joi.string().messages({
     "string.base": "User ID must be a string.",
   }),
 

@@ -1,37 +1,19 @@
 import express from "express";
 import {
-  createReviewsController,
+  createReviewController,
   getAllReviewsController,
-  getReviewsByIdController,
+  getReviewByIdController,
   // getReviewsBySearchController,
-  updateReviewsByIdController,
+  updateReviewController,
 } from "./productReviewController.js";
 import getUploadMiddleware from "../../utils/multerConfig.js";
 
 const route = express.Router();
 const upload = getUploadMiddleware("reviews");
 
-route.post(
-  "/createReviews",
-  //   verifyToken,
-  upload.single("image"),
-  createReviewsController
-);
-route.get(
-  "/allReviews",
-  // verifyToken,
-  getAllReviewsController
-);
-route.get(
-  "/getReviewsById/:id",
-  // verifyToken,
-  getReviewsByIdController
-);
-route.put(
-  "/updateReviewsById/:id",
-  upload.none(), 
-  //  verifyToken,
-  updateReviewsByIdController
-);
+route.post("/", upload.single("image"), createReviewController);
+route.get("/", getAllReviewsController);
+route.get("/:id", getReviewByIdController);
+route.put("/:id", upload.none(), updateReviewController);
 
 export default route;

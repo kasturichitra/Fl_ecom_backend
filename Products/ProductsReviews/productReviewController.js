@@ -1,12 +1,12 @@
 import {
-  createReviewsServices,
-  getAllReviewsServices,
-  getReviewsByIdServices,
+  createReviewService,
+  getAllReviewsService,
+  getReviewByIdService,
   // getReviewsBySearchServices,
-  updateReviewsByIdServices,
+  updateReviewService,
 } from "./productReviewService.js";
 
-export const createReviewsController = async (req, res) => {
+export const createReviewController = async (req, res) => {
   try {
     let data = req.body;
 
@@ -18,7 +18,7 @@ export const createReviewsController = async (req, res) => {
       images,
     };
 
-    const response = await createReviewsServices(tenantId, data);
+    const response = await createReviewService(tenantId, data);
     res.status(201).json({
       status: "Success",
       message: "Review created successfully",
@@ -37,9 +37,9 @@ export const createReviewsController = async (req, res) => {
 // export const getReviewsBySearchController = async (req, res) => {
 //   try {
 //     const filters = req.query;
-//     const tenantID = req.headers["x-tenant-id"];
+//     const tenantId = req.headers["x-tenant-id"];
 //     const response = await getReviewsBySearchServices({
-//       tenantID, 
+//       tenantId, 
 //       filters
 //     });
 
@@ -61,8 +61,8 @@ export const createReviewsController = async (req, res) => {
 export const getAllReviewsController = async (req, res) => {
   try {
     const filters = req.query;
-    const tenantID = req.headers["x-tenant-id"];
-    const response = await getAllReviewsServices(tenantID, filters);
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await getAllReviewsService(tenantId, filters);
     res.status(200).json({
       status: "Success",
       message: "Fetched Reviews successfully",
@@ -78,12 +78,12 @@ export const getAllReviewsController = async (req, res) => {
   }
 };
 
-export const getReviewsByIdController = async (req, res) => {
+export const getReviewByIdController = async (req, res) => {
   try {
     const { id } = req.params;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
     
-    const response = await getReviewsByIdServices(tenantID, id);
+    const response = await getReviewByIdService(tenantId, id);
 
     res.status(200).json({
       status: "Success",
@@ -100,18 +100,18 @@ export const getReviewsByIdController = async (req, res) => {
   }
 };
 
-export const updateReviewsByIdController = async (req, res) => {
+export const updateReviewController = async (req, res) => {
   try {
     console.log("Request body is ===>", req.body);
         
     const { id } = req.params;
     const updateReview = req.body;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     console.log("Request body is ===>", req.body);
 
-    const response = await updateReviewsByIdServices(
-      tenantID,
+    const response = await updateReviewService(
+      tenantId,
       id,
       updateReview
     );

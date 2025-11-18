@@ -1,34 +1,34 @@
 import OrdersModel from "../../Orders/orderModel.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
-import ProductsModel from "../productModel.js";
-import ProductsReviewsModel from "./productReviewModel.js";
+import ProductModel from "../productModel.js";
+import ProductReviewModel from "./productReviewModel.js";
 import { validateReviewCreate } from "./validations/validateReviewCreate.js";
 import { validateReviewUpdate } from "./validations/validateReviewUpdate.js";
 
 //This function will create Reviews
-export const createReviewsServices = async (tenantID, reviewsData) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const createReviewService = async (tenantId, reviewsData) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { isValid, message } = validateReviewCreate(reviewsData);
   throwIfTrue(!isValid, message);
 
-  const productModelDB = await ProductsModel(tenantID);
+  const productModelDB = await ProductModel(tenantId);
   const existingProduct = await productModelDB.findOne({
-    products_unique_ID: reviewsData.products_unique_ID,
+    product_unique_id: reviewsData.product_unique_id,
   });
   throwIfTrue(
     !existingProduct,
-    `Product not found with given unique id ${reviewsData.products_unique_ID}`
+    `Product not found with given unique id ${reviewsData.product_unique_id}`
   );
 
-  const productReviewsModelDB = await ProductsReviewsModel(tenantID);
+  const productReviewsModelDB = await ProductReviewModel(tenantId);
   let response = await productReviewsModelDB.create(reviewsData);
 
-  const ordersModelDb = await OrdersModel(tenantID);
+  const ordersModelDb = await OrdersModel(tenantId);
 
   const order = await ordersModelDb.findOne({
-    user_ID: reviewsData.user_unique_ID,
-    "products.products_unique_ID": reviewsData.products_unique_ID,
+    user_id: reviewsData.user_unique_id,
+    "products.product_unique_id": reviewsData.product_unique_id,
   });
 
   if (order) {
@@ -41,10 +41,10 @@ export const createReviewsServices = async (tenantID, reviewsData) => {
   return response;
 };
 
-export const getAllReviewsServices = async (tenantID, filters) => {
+export const getAllReviewsService = async (tenantId, filters) => {
   const {
-    products_unique_ID,
-    user_unique_ID,
+    product_unique_id,
+    user_unique_id,
     rating,
     min_rating,
     max_rating,
@@ -56,15 +56,15 @@ export const getAllReviewsServices = async (tenantID, filters) => {
 
   const skip = (page - 1) * limit;
 
-  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productReviewsModelDB = await ProductsReviewsModel(tenantID);
+  const productReviewsModelDB = await ProductReviewModel(tenantId);
 
   const query = {};
 
   // Direct equal to queries
-  if (products_unique_ID) query.products_unique_ID = products_unique_ID;
-  if (user_unique_ID) query.user_unique_ID = user_unique_ID;
+  if (product_unique_id) query.product_unique_id = product_unique_id;
+  if (user_unique_id) query.user_unique_id = user_unique_id;
   if (rating) query.rating = Number(rating);
   if (is_verified_purchase) query.is_verified_purchase = is_verified_purchase;
 
@@ -113,11 +113,11 @@ export const getAllReviewsServices = async (tenantID, filters) => {
 };
 
 //This function will get all reviews data
-// export const getAllReviewsServices = async (tenantID) => {
+// export const getAllReviewsServices = async (tenantId) => {
 //   try {
-//     if (!tenantID) throw new Error("Tenant ID is required");
+//     if (!tenantId) throw new Error("Tenant ID is required");
 
-//     const productReviewsModeDB = await ProductsReviewsModel(tenantID);
+//     const productReviewsModeDB = await ProductReviewModel(tenantId);
 //     const response = await productReviewsModeDB.find();
 //     return response;
 //   } catch (error) {
@@ -127,25 +127,25 @@ export const getAllReviewsServices = async (tenantID, filters) => {
 // };
 
 //This function will get reviews based on Id
-export const getReviewsByIdServices = async (tenantID, id) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const getReviewByIdService = async (tenantId, id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productReviewsModelDB = await ProductsReviewsModel(tenantID);
+  const productReviewsModelDB = await ProductReviewModel(tenantId);
   const response = await productReviewsModelDB.findById(id);
 
   return response;
 };
 
 //This function will update reviews based on Id
-export const updateReviewsByIdServices = async (tenantID, id, updateReview) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const updateReviewService = async (tenantId, id, updateReview) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!id, "Review ID is required");
 
   const { isValid, message } = validateReviewUpdate(updateReview);
   throwIfTrue(!isValid, message);
 
-  const productReviewsModeDB = await ProductsReviewsModel(tenantID);
-  const response = await productReviewsModeDB.findByIdAndUpdate(
+  const productReviewsModelDB = await ProductReviewModel(tenantId);
+  const response = await productReviewsModelDB.findByIdAndUpdate(
     id,
     updateReview,
     { new: true, runValidators: true }

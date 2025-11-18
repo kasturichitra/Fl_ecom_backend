@@ -1,11 +1,11 @@
-import ProductsModel from "../Products/productModel.js";
+import ProductModel from "../Products/productModel.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantID, products) => {
-  const Product = await ProductsModel(tenantID);
+  const Product = await ProductModel(tenantID);
 
   const bulkOps = products.map((item) => ({
     updateOne: {
@@ -155,7 +155,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   throwIfTrue(!updateData || Object.keys(updateData).length === 0, "Update data is required");
 
   const Order = await OrdersModel(tenantID);
-  const Product = await ProductsModel(tenantID);
+  const Product = await ProductModel(tenantID);
 
   const order = await Order.findById(orderID);
   throwIfTrue(!order, "Order not found");
