@@ -1,47 +1,47 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-
-
-const attributesSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    trim: true
+const attributesSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      trim: true,
+    },
+    code: {
+      type: String,
+      trim: true,
+    },
+    slug: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    units: {
+      type: String,
+      trim: true,
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+    created_by: {
+      type: String,
+      // required: true,
+      trim: true,
+    },
+    updated_by: {
+      type: String,
+      // required: true,
+      trim: true,
+    },
   },
-  code: {
-    type: String,
-    trim: true
-  },
-  slug: {
-    type: String,
-    trim: true
-  },
-  description: {
-    type: String,
-    trim: true
-  },
-  units: {
-    type: String,
-    trim: true
-  },
-  is_active: {
-    type: Boolean,
-    default: true,
-  },
-  created_by: {
-    type: String,
-    // required: true,
-    trim: true,
-  },
-  updated_by: {
-    type: String,
-    // required: true,
-    trim: true,
-  },
-}, {
-  timestamps: true,
-})
-
+  {
+    timestamps: true,
+  }
+);
 
 const categorySchema = new mongoose.Schema(
   {
@@ -55,8 +55,8 @@ const categorySchema = new mongoose.Schema(
       // unique: true,
     },
     category_unique_id: {
-      type:String,
-      required: true
+      type: String,
+      required: true,
     },
     category_name: {
       type: String,
@@ -65,7 +65,8 @@ const categorySchema = new mongoose.Schema(
     },
     category_image: {
       type: String,
-      required: true,
+      // required: true,
+      default: null,
     },
     is_active: {
       type: Boolean,
@@ -80,7 +81,7 @@ const categorySchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    attributes: [attributesSchema]
+    attributes: [attributesSchema],
     // category_brand: {
     //   type: String,
     //   required: true,
@@ -95,16 +96,9 @@ const categorySchema = new mongoose.Schema(
   {
     timestamps: true,
   }
-
 );
 
-
 export const CategoryModel = async (tenantID) => {
-  const db = await getTenanteDB(tenantID)
+  const db = await getTenanteDB(tenantID);
   return db.models.Category || db.model("Category", categorySchema);
-}
-
-
-
-
-
+};
