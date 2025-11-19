@@ -10,9 +10,9 @@ export const staticCategoryExcelHeaders = [
     width: 20,
   },
   { header: "Category Name *", key: "category_name", width: 20 },
-  {
-    header: "Category Image",
-    key: "category_image",
-    width: 20,
-  }
+  // {
+  //   header: "Category Image",
+  //   key: "category_image",
+  //   width: 20,
+  // }
 ];

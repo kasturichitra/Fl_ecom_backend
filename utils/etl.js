@@ -86,6 +86,8 @@ export function validateRow(rawRow, excelHeaders) {
    3. TRANSFORM — clean, minimal, metadata-driven
 ========================================================= */
 export function transformRow(rawRow, excelHeaders) {
+  console.log(rawRow,'rawRow');
+  
   const transformed = {};
   const productAttributes = [];
 
@@ -122,8 +124,49 @@ export function transformRow(rawRow, excelHeaders) {
     productAttributes.push({ attribute_code, value: val });
   });
 
+  console.log(productAttributes,'productAttributes');
+  
+
   if (productAttributes.length) {
     transformed.product_attributes = productAttributes;
+  }
+
+  return transformed;
+}
+
+
+export function transformCategoryRow(rawRow, excelHeaders) {
+  const transformed = {};
+  const attributes = {};
+
+  console.log("Raw row coming in: ", rawRow);
+
+  // 1. STATIC HEADERS
+  excelHeaders.forEach(h => {
+    let val = rawRow[h.key];
+    if (val === null || val === undefined || val === "") return;
+
+    if (typeof val === "string") val = val.trim();
+    transformed[h.key] = val;
+  });
+
+  // 2. DYNAMIC ATTRIBUTE GROUPS
+  Object.entries(rawRow).forEach(([key, val]) => {
+    if (!key.toLowerCase().startsWith("attr")) return;
+    if (val === null || val === undefined || val === "") return;
+
+    const [group, field] = key.split("_");  // attr1_name → ["attr1", "name"]
+
+    if (!attributes[group]) attributes[group] = {};
+
+    attributes[group][field] = val;
+  });
+
+  // Convert group object to array
+  const attributeList = Object.values(attributes);
+
+  if (attributeList.length > 0) {
+    transformed.attributes = attributeList;
   }
 
   return transformed;

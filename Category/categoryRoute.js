@@ -1,13 +1,14 @@
 import express from "express";
 import getUploadMiddleware from "../utils/multerConfig.js";
 import {
+  categoryBulkUploadController,
   createCategoryController,
   deleteCategoryController,
   downloadCategoryExcelTemplateController,
   getAllCategoriesController,
   getCategoriesByIndustryIdController,
   getCategoryByIdController,
-  updateCategoryController
+  updateCategoryController,
 } from "./categoryController.js";
 
 const route = express.Router();
@@ -22,4 +23,5 @@ route.put("/:id", upload.single("image"), updateCategoryController);
 route.delete("/:id", deleteCategoryController);
 
 route.get("/download-template/:id", downloadCategoryExcelTemplateController);
+route.post("/bulkUpload", upload.single("file"), categoryBulkUploadController);
 export default route;
