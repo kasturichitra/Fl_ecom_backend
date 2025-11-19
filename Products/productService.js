@@ -210,7 +210,7 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
   const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
-    product_unique_id, 
+    product_unique_id,
   });
 
   throwIfTrue(!existingProduct, "Product not found");
@@ -252,21 +252,11 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
     width: 30,
   }));
 
-  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders]);
+  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders], category_unique_id);
   return response;
 };
 
-// Get Product By Mongo Db Id
-export const getProductByIdService = async (tenantId, id) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-
-  const productModelDB = await ProductModel(tenantId);
-  const response = await productModelDB.findOne({ _id: id });
-
-  return response;
-};
-
-export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
+export const createBulkProductsService = async (tenantId, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
@@ -289,11 +279,9 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
     const ProductModelDB = await ProductModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
-
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
-      if (existingProduct) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
-
-      valid[i].category_unique_id = category_unique_id;
+      if (existingProduct)
+        invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
 
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
@@ -308,6 +296,16 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
     failed: invalid.length,
     errors: invalid,
   };
+};
+
+// Get Product By Mongo Db Id
+export const getProductByIdService = async (tenantId, id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const productModelDB = await ProductModel(tenantId);
+  const response = await productModelDB.findOne({ _id: id });
+
+  return response;
 };
 
 //This function is get by products based on subCategory_unique_ID

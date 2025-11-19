@@ -159,7 +159,6 @@ const productSchema = new mongoose.Schema(
     },
     max_order_limit: {
       type: Number,
-      required: true,
     },
     low_stock_threshold: {
       type: Number,

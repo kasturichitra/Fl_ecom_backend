@@ -47,10 +47,11 @@ const productValidationSchema = Joi.object({
     "number.min": "Minimum order limit must be at least 1.",
   }),
 
-  max_order_limit: Joi.number().min(1).required().messages({
-    "any.required": "Maximum order limit is required.",
-    "number.min": "Maximum order limit must be at least 1.",
-  }),
+  max_order_limit: Joi.number()
+    .messages({
+      "number.min": "Maximum order limit must be at least 1.",
+    })
+    .optional(),
 
   product_brand_id: Joi.string()
     .pattern(/^[a-fA-F0-9]{24}$/)

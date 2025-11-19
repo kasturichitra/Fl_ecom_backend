@@ -1,5 +1,10 @@
 export const staticExcelHeaders = [
   {
+    header: "Category Unique ID *",
+    key: "category_unique_id",
+    width: 20,
+  },
+  {
     header: "Product Unique ID *",
     key: "product_unique_id",
     width: 20,
@@ -46,7 +51,7 @@ export const staticExcelHeaders = [
     width: 20,
   },
   {
-    header: "Max Order Limit *",
+    header: "Max Order Limit",
     key: "max_order_limit",
     width: 20,
   },
@@ -66,8 +71,8 @@ export const staticExcelHeaders = [
     width: 20,
   },
   {
-    header: "Age Group", 
+    header: "Age Group",
     key: "age_group",
     width: 20,
-  }
+  },
 ];
