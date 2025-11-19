@@ -1,5 +1,7 @@
+import { generateExcelTemplate } from "../Products/config/generateExcelTemplate.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
+import { staticCategoryExcelHeaders } from "./staticExcelCategory.js";
 
 //this function is to create category
 export const createCategoryService = async (
@@ -157,4 +159,16 @@ export const deleteCategoryService = async (tenantId, category_unique_id) => {
 
   throwIfTrue(!deletedCategory, "Category not found");
   return deletedCategory;
+};
+
+
+export const downloadCategoryExcelTemplateService = async (tenantId, industry_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
+
+  const allHeaders = staticCategoryExcelHeaders;
+
+  const workbook = generateExcelTemplate(allHeaders);
+
+  return workbook;
 };

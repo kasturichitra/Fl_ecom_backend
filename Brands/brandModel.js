@@ -60,6 +60,6 @@ const brandSchema = new mongoose.Schema(
 
 const BrandModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
-  return db.models.Products || db.model("Brand", brandSchema);
+  return db.models.Brand || db.model("Brand", brandSchema);
 };
 export default BrandModel;
