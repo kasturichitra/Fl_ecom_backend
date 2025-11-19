@@ -1,4 +1,5 @@
 import { generateExcelTemplate } from "../Products/config/generateExcelTemplate.js";
+import { extractExcel, transformCategoryRow, transformRow, validateRow } from "../utils/etl.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
 import { staticCategoryExcelHeaders } from "./staticExcelCategory.js";
@@ -171,4 +172,71 @@ export const downloadCategoryExcelTemplateService = async (tenantId, industry_un
   const sheet = workbook.getWorksheet("Template");
   sheet.getRow(2).getCell(1).value = industry_unique_id;
   return workbook;
+};
+
+export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders, created_by) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const extractedRows = await extractExcel(filePath, excelHeaders);
+  const categoryDB = await CategoryModel(tenantId);
+
+  const success = [];
+  const errors = [];
+
+  for (const { rowNumber, raw } of extractedRows) {
+    // 1 VALIDATE ROW
+    const rowErrors = validateRow(raw, excelHeaders);
+
+    if (rowErrors.length > 0) {
+      errors.push({
+        row: rowNumber,
+        errors: rowErrors,
+      });
+    } else {
+      success.push(transformCategoryRow(raw, excelHeaders));
+    }
+
+    if (success.length) {
+      for (let i = 0; i < success.length; i++) {
+        console.log("Success [i]", success[i]);
+        const existing = await categoryDB.findOne({ category_unique_id: success[i].category_unique_id });
+        if (existing) {
+          errors.push({
+            row: rowNumber,
+            errors: [{ field: "", message: "Category already exists" }],
+          });
+        }
+
+        success[i].created_by = created_by;
+
+        await categoryDB.create(success[i]);
+      }
+    }
+
+    // console.log(transformed,'transformedtransformed');
+
+    // try {
+    //   //  SAVE INTO DB
+    //   transformed.created_by = created_by;
+    //   const saved = await categoryDB.create(transformed);
+
+    //   success.push({
+    //     row: rowNumber,
+    //     data: saved,
+    //   });
+    // } catch (err) {
+    //   errors.push({
+    //     row: rowNumber,
+    //     errors: [err.message],
+    //   });
+    // }
+  }
+
+  return {
+    totalRows: success.length + errors.length,
+    successCount: success.length,
+    errorCount: errors.length,
+    success,
+    errors,
+  };
 };

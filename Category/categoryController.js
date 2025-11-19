@@ -1,7 +1,8 @@
 import fs from "fs";
-
+import ExcelJS from "exceljs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import {
+  categoryBulkUploadService,
   createCategoryService,
   deleteCategoryService,
   downloadCategoryExcelTemplateService,
@@ -10,6 +11,7 @@ import {
   getCategoryByIdService,
   updateCategoryService,
 } from "./categoryService.js";
+import { staticCategoryExcelHeaders } from "./staticExcelCategory.js";
 
 export const createCategoryController = async (req, res) => {
   let uploadedFilePath = null;
@@ -323,18 +325,12 @@ export const downloadCategoryExcelTemplateController = async (req, res) => {
       });
     }
 
-    const { id: industry_unique_id } = req.params; 
+    const { id: industry_unique_id } = req.params;
 
     const workbook = await downloadCategoryExcelTemplateService(tenantId, industry_unique_id);
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=category_template.xlsx"
-    );
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=category_template.xlsx");
 
     await workbook.xlsx.write(res);
     res.end();
@@ -343,6 +339,42 @@ export const downloadCategoryExcelTemplateController = async (req, res) => {
     res.status(error.status || 500).json({
       status: "Failed",
       message: error.message || "Error downloading Category Excel template",
+    });
+  }
+};
+
+export const categoryBulkUploadController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { created_by } = req.body;
+    if (!tenantId) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Tenant ID is required in x-tenant-id",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Please upload an Excel (.xlsx) file",
+      });
+    }
+
+    // Call service
+    const result = await categoryBulkUploadService(tenantId, req.file.pa, staticCategoryExcelHeaders, created_by);
+
+    res.status(200).json({
+      status: "Success",
+      message: "Category bulk upload completed",
+      ...result,
+    });
+  } catch (error) {
+    console.error("Category Bulk Upload Error ===>", error);
+
+    res.status(500).json({
+      status: "Failed",
+      message: error.message || "Bulk upload failed",
     });
   }
 };
