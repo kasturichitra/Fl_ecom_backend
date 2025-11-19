@@ -4,51 +4,19 @@ import {
   orderSearchServices,
   updateOrderService,
 } from "./orderService.js";
+
 export const createOrderController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
-    const {
-      user_id,
-      orders,
-      address,
-      tax_amount,
-      shipping_charges,
-      currency,
-      payment_method,
-      payment_status,
-      transaction_id,
-      order_create_date,
-      order_cancel_date,
-    } = req.body;
+    const tenantId = req.headers["x-tenant-id"];
 
-    // Early validation
-    if (!user_id || !Array.isArray(orders) || orders.length === 0) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "user_id and at least one product are required",
-      });
-    }
+    const data = req.body;
 
-    const payload = {
-      user_id,
-      orders,
-      address,
-      tax_amount,
-      shipping_charges,
-      currency,
-      payment_method,
-      payment_status,
-      transaction_id,
-      order_create_date,
-      order_cancel_date,
-    };
-
-    const savedOrder = await createOrderServices(tenantID, payload);
+    const order = await createOrderServices(tenantId, data);
 
     return res.status(201).json({
       status: "Success",
       message: "Order created successfully",
-      data: savedOrder,
+      data: order,
     });
   } catch (err) {
     console.error("Order creation failed:", err);
@@ -63,10 +31,10 @@ export const createOrderController = async (req, res) => {
 // get all user orders
 export const getAllUserOrdersController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
     const userID = req.params.id;
 
-    const orders = await getAllUserOrdersServices(tenantID, userID);
+    const orders = await getAllUserOrdersServices(tenantId, userID);
 
     res.status(200).json({
       status: "success",
@@ -86,8 +54,8 @@ export const getAllUserOrdersController = async (req, res) => {
 
 export const getOrderSearchController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
-    if (!tenantID) {
+    const tenantId = req.headers["x-tenant-id"];
+    if (!tenantId) {
       return res.status(400).json({
         status: "failed",
         message: "Header 'x-tenant-id' is required",
@@ -96,7 +64,7 @@ export const getOrderSearchController = async (req, res) => {
 
     const { q } = req.query;
 
-    const orders = await orderSearchServices(tenantID, { q });
+    const orders = await orderSearchServices(tenantId, { q });
 
     return res.status(200).json({
       status: "success",
@@ -116,7 +84,7 @@ export const getOrderSearchController = async (req, res) => {
 
 export const updateOrderController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
     const { id } = req.params;
     if (!id) {
       return res.status(400).json({
@@ -127,7 +95,7 @@ export const updateOrderController = async (req, res) => {
 
     const updateData = req.body;
 
-    const updatedOrder = await updateOrderService(tenantID, id, updateData);
+    const updatedOrder = await updateOrderService(tenantId, id, updateData);
 
     return res.status(200).json({
       status: "success",
