@@ -20,6 +20,16 @@ export const createProductService = async (tenantId, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
+  const existingCategory = await CategoryModel(tenantId).findOne({
+    category_unique_id: productData.category_unique_id,
+  });
+  throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
+
+  // const existingBrand = await CategoryModel(tenantId).findOne({
+  //   brand_unique_id: productData.brand_unique_id,
+  // });
+  // throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
+
   const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
@@ -279,6 +289,15 @@ export const createBulkProductsService = async (tenantId, filePath) => {
     const ProductModelDB = await ProductModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
+      // Mandatory check for category and brand before creating product
+      // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
+      // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
+
+      const existingCategory = await CategoryModel(tenantId).findOne({
+        category_unique_id: valid[i].category_unique_id,
+      });
+      if (!existingCategory) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Category not found" }] });
+
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
       if (existingProduct)
         invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
