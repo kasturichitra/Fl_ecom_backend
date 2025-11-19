@@ -1,42 +1,56 @@
 import ExcelJS from "exceljs";
-import { staticExcelHeaders } from "../Products/config/staticExcelHeaders.js";
 
-/* ----------------------------------------------------------
-   Build header map: Excel column → DB key
----------------------------------------------------------- */
-function buildHeaderMap(sheet) {
-  const excelHeaders = sheet.getRow(1).values; // 1-indexed
+/* =========================================================
+   Build a dynamic header map from sheet + passed headers[]
+   Supports:
+   - Static headers: matched by "header"
+   - Dynamic headers: attr_*
+========================================================= */
+function buildHeaderMap(sheet, excelHeaders) {
+  const headerRow = sheet.getRow(1);
   const headerMap = {};
 
-  staticExcelHeaders.forEach(h => {
-    const colIndex = excelHeaders.findIndex(v => v === h.header);
-    if (colIndex === -1) {
-      throw new Error(`Missing required column in Excel: "${h.header}"`);
+  headerRow.eachCell((cell, colNumber) => {
+    const excelHeader = String(cell.value || "").trim();
+    if (!excelHeader) return;
+
+    // STATIC MATCH
+    const match = excelHeaders.find(h => h.header === excelHeader);
+    if (match) {
+      headerMap[match.key] = colNumber;
+      return;
     }
-    headerMap[h.key] = colIndex;
+
+    // DYNAMIC ATTRIBUTES
+    if (excelHeader.startsWith("attr_")) {
+      const normalized = excelHeader.replace("*", "").trim().replace(/\s+/g, "_");
+      headerMap[normalized] = colNumber;
+    }
   });
 
   return headerMap;
 }
 
-/* ----------------------------------------------------------
-   1. EXTRACT — Read Excel → JSON rows
----------------------------------------------------------- */
-export async function extractExcel(filePath) {
+/* =========================================================
+   1. EXTRACT — no static dependency, fully dynamic
+========================================================= */
+export async function extractExcel(filePath, excelHeaders) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
 
   const sheet = workbook.worksheets[0];
-  const headerMap = buildHeaderMap(sheet);
+  const headerMap = buildHeaderMap(sheet, excelHeaders);
 
   const extracted = [];
 
   sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return; // skip header
+    if (rowNumber === 1) return;
 
     const jsonRow = {};
-    for (const { key } of staticExcelHeaders) {
-      jsonRow[key] = row.getCell(headerMap[key]).value ?? null;
+    for (const key in headerMap) {
+      const colIndex = headerMap[key];
+      const value = row.getCell(colIndex).value;
+      jsonRow[key] = value ?? null;
     }
 
     extracted.push({ rowNumber, raw: jsonRow });
@@ -45,51 +59,72 @@ export async function extractExcel(filePath) {
   return extracted;
 }
 
-/* ----------------------------------------------------------
-   2. VALIDATE — Auto validate required (*) fields
----------------------------------------------------------- */
-export function validateRow(rawRow) {
+/* =========================================================
+   2. VALIDATE — fully dynamic based on excelHeaders metadata
+========================================================= */
+export function validateRow(rawRow, excelHeaders) {
   const errors = [];
 
-  staticExcelHeaders.forEach(h => {
-    if (h.header.includes("*")) {
-      if (!rawRow[h.key] || rawRow[h.key].toString().trim() === "") {
-        errors.push(`${h.header.replace("*", "").trim()} is required`);
-      }
-    }
-  });
+  excelHeaders.forEach(h => {
+    const val = rawRow[h.key];
 
-  // Optional: Numeric fields auto-check
-  const numeric = ["price", "stock_quantity", "min_order_limit", "max_order_limit"];
-  numeric.forEach(field => {
-    if (rawRow[field] && isNaN(Number(rawRow[field]))) {
-      errors.push(`${field} must be a number`);
+    // REQUIRED logic
+    if (h.required && (val === null || val === undefined || String(val).trim() === "")) {
+      errors.push(`${h.header.replace("*", "")} is required`);
+    }
+
+    // TYPE = number
+    if (h.type === "number" && val !== null && val !== undefined && isNaN(Number(val))) {
+      errors.push(`${h.header} must be a number`);
     }
   });
 
   return errors;
 }
 
-/* ----------------------------------------------------------
-   3. TRANSFORM — Convert types, trim strings
----------------------------------------------------------- */
-export function transformRow(rawRow) {
+/* =========================================================
+   3. TRANSFORM — clean, minimal, metadata-driven
+========================================================= */
+export function transformRow(rawRow, excelHeaders) {
   const transformed = {};
+  const productAttributes = [];
 
-  staticExcelHeaders.forEach(h => {
-    let value = rawRow[h.key];
+  // STATIC HEADERS (only those passed by user)
+  excelHeaders.forEach(h => {
+    let val = rawRow[h.key];
 
-    if (typeof value === "string") value = value.trim();
-    if (value === "") value = null;
+    // skip empty/null
+    if (val === null || val === undefined) return;
+    if (typeof val === "string" && val.trim() === "") return;
 
-    // Number conversion
-    if (value !== null && value !== "" && !isNaN(value)) {
-      value = Number(value);
-    }
+    if (typeof val === "string") val = val.trim();
 
-    transformed[h.key] = value;
+    // If field type is number -> cast
+    if (h.type === "number" && !isNaN(val)) val = Number(val);
+
+    transformed[h.key] = val;
   });
 
-  transformed.createdAt = new Date();
+  // DYNAMIC attr_ fields
+  Object.entries(rawRow).forEach(([key, val]) => {
+    if (!key.toLowerCase().startsWith("attr_")) return;
+    if (val === null || val === undefined || val === "") return;
+
+    if (typeof val === "string") val = val.trim();
+    if (!isNaN(val)) val = Number(val);
+
+    const attribute_code = key
+      .slice(5)
+      .trim()
+      .replace(/\s+/g, "_")
+      .toLowerCase();
+
+    productAttributes.push({ attribute_code, value: val });
+  });
+
+  if (productAttributes.length) {
+    transformed.product_attributes = productAttributes;
+  }
+
   return transformed;
 }

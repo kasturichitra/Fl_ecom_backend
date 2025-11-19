@@ -5,13 +5,13 @@ const addressSchema = new mongoose.Schema({
   street: String,
   city: String,
   state: String,
-  postalCode: String,
+  postal_code: String,
   country: String,
 });
 
 const userSchema = new mongoose.Schema(
   {
-    userName: {
+    username: {
       type: String,
       required: [true, "Username is required"],
       trim: true,
@@ -38,9 +38,9 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-    isActive:{
-      type:Boolean,
-      default:true,
+    is_active: {
+      type: Boolean,
+      default: true,
     },
     image: {
       type: String,
@@ -50,12 +50,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
-const UsersModel = async (tenateID) => {
-  const db =await getTenanteDB(tenateID)
+const UserModel = async (tenateID) => {
+  const db = await getTenanteDB(tenateID);
   return db.models.User || db.model("User", userSchema);
-}
+};
 
-
-export default UsersModel
-
+export default UserModel;

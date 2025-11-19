@@ -22,10 +22,10 @@ const getUploadMiddleware = (modelName) => {
 
   // Allow only image files
   const fileFilter = (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
+    const allowed = /jpeg|jpg|png|webp|xlsx/;
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.test(ext)) cb(null, true);
-    else cb(new Error("Only image files (jpeg, jpg, png, webp,) are allowed"));
+    else cb(new Error("Only image files (jpeg, jpg, png, webp,) and xlsx files are allowed"));
   };
 
   return multer({ storage, fileFilter });
