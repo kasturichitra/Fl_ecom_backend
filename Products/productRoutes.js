@@ -25,7 +25,7 @@ router.post(
   createProductController
 );
 
-router.post("/bulk/:id", upload.single("file"), createBulkProductsController);
+router.post("/bulk", upload.single("file"), createBulkProductsController);
 router.get("/:id", getProductByIdController);
 router.get("/", getAllProductsController);
 router.put(

@@ -17,6 +17,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    brand_unique_id: {
+      type: String,
+      required: true,
+    },
 
     // Basic Info
     product_name: {
@@ -29,11 +33,6 @@ const productSchema = new mongoose.Schema(
     //   required: true,
     //   trim: true,
     // },
-    product_brand_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Brand", // name of your Brand model
-      // required: true, // optional, if every product must have a brand
-    },
     product_slug: {
       type: String,
       trim: true,
@@ -159,7 +158,6 @@ const productSchema = new mongoose.Schema(
     },
     max_order_limit: {
       type: Number,
-      required: true,
     },
     low_stock_threshold: {
       type: Number,

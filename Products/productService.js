@@ -20,6 +20,16 @@ export const createProductService = async (tenantId, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
+  const existingCategory = await CategoryModel(tenantId).findOne({
+    category_unique_id: productData.category_unique_id,
+  });
+  throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
+
+  // const existingBrand = await CategoryModel(tenantId).findOne({
+  //   brand_unique_id: productData.brand_unique_id,
+  // });
+  // throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
+
   const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
@@ -130,7 +140,37 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
+  // const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
+  const data = await productModelDB.aggregate([
+    { $match: query },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "brand_unique_id",
+        foreignField: "brand_unique_id",
+        as: "brand",
+      },
+    },
+    {
+      $unwind: {
+        path: "$brand",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        brand_name: "$brand.brand_name",
+      },
+    },
+    {
+      $project: {
+        brand: 0,
+      },
+    },
+    { $skip: skip },
+    { $limit: limit },
+    { $sort: sortObj },
+  ]);
 
   const totalCount = await productModelDB.countDocuments(query);
 
@@ -210,7 +250,7 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
   const productModelDB = await ProductModel(tenantId);
 
   const existingProduct = await productModelDB.findOne({
-    product_unique_id, 
+    product_unique_id,
   });
 
   throwIfTrue(!existingProduct, "Product not found");
@@ -252,21 +292,11 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
     width: 30,
   }));
 
-  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders]);
+  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders], category_unique_id);
   return response;
 };
 
-// Get Product By Mongo Db Id
-export const getProductByIdService = async (tenantId, id) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-
-  const productModelDB = await ProductModel(tenantId);
-  const response = await productModelDB.findOne({ _id: id });
-
-  return response;
-};
-
-export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
+export const createBulkProductsService = async (tenantId, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
@@ -287,13 +317,30 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
 
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
+    const CategoryModelDB = await CategoryModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
+      // Mandatory check for category and brand before creating product
+      // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
+      // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
+
+      const existingCategory = await CategoryModelDB.findOne({ category_unique_id: valid[i].category_unique_id });
+      if (!existingCategory) {
+        invalid.push({
+          rowNumber: i + 1,
+          errors: [{ field: "", message: `Category not found with id: ${valid[i].category_unique_id}` }],
+        });
+        continue;
+      }
 
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
-      if (existingProduct) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
-
-      valid[i].category_unique_id = category_unique_id;
+      if (existingProduct) {
+        invalid.push({
+          rowNumber: i + 1,
+          errors: [{ field: "", message: `Product already exists with id: ${valid[i].product_unique_id}` }],
+        });
+        continue;
+      }
 
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
@@ -304,10 +351,20 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
 
   return {
     totalRows: extracted.length,
-    success: valid.length,
+    success: extracted.length - invalid.length,
     failed: invalid.length,
     errors: invalid,
   };
+};
+
+// Get Product By Mongo Db Id
+export const getProductByIdService = async (tenantId, id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const productModelDB = await ProductModel(tenantId);
+  const response = await productModelDB.findOne({ _id: id });
+
+  return response;
 };
 
 //This function is get by products based on subCategory_unique_ID

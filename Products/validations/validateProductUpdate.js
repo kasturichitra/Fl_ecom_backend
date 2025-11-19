@@ -38,7 +38,7 @@ const productUpdateValidationSchema = Joi.object({
   }),
 
   // Brand ID only needs to be a string now
-  product_brand_id: Joi.string().messages({
+  brand_unique_id: Joi.string().messages({
     "string.base": "Brand ID must be a string.",
   }),
 

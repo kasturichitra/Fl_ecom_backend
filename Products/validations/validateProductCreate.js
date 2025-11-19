@@ -47,17 +47,17 @@ const productValidationSchema = Joi.object({
     "number.min": "Minimum order limit must be at least 1.",
   }),
 
-  max_order_limit: Joi.number().min(1).required().messages({
-    "any.required": "Maximum order limit is required.",
-    "number.min": "Maximum order limit must be at least 1.",
-  }),
-
-  product_brand_id: Joi.string()
-    .pattern(/^[a-fA-F0-9]{24}$/)
+  max_order_limit: Joi.number()
     .messages({
-      "string.pattern.base": "Invalid Brand ObjectId format.",
+      "number.min": "Maximum order limit must be at least 1.",
     })
     .optional(),
+
+  brand_unique_id: Joi.string().messages({
+    "string.base": "Product brand ID must be a string.",
+    "any.required": "Product brand ID is required.",
+  }).required(),
+
   product_slug: Joi.string().optional(),
   product_description: Joi.string().optional(),
   long_description: Joi.string().optional(),

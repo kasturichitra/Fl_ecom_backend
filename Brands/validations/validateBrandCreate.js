@@ -27,9 +27,12 @@ const brandCreateSchema = Joi.object({
   // Relations
   categories: Joi.array()
     .items(
-      Joi.string().messages({
-        "string.base": "Each category ID must be a string.",
-      })
+      Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/, "Mongo ObjectId")
+        .messages({
+          "string.pattern.name": "Each category ID must be a valid Mongo ObjectId.",
+          "string.base": "Each category ID must be a string.",
+        })
     )
     .messages({
       "array.base": "Categories must be an array of category IDs.",
