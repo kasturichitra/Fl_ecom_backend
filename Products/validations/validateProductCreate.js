@@ -53,12 +53,11 @@ const productValidationSchema = Joi.object({
     })
     .optional(),
 
-  product_brand_id: Joi.string()
-    .pattern(/^[a-fA-F0-9]{24}$/)
-    .messages({
-      "string.pattern.base": "Invalid Brand ObjectId format.",
-    })
-    .optional(),
+  brand_unique_id: Joi.string().messages({
+    "string.base": "Product brand ID must be a string.",
+    "any.required": "Product brand ID is required.",
+  }).required(),
+
   product_slug: Joi.string().optional(),
   product_description: Joi.string().optional(),
   long_description: Joi.string().optional(),

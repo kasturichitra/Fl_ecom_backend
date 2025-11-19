@@ -5,6 +5,11 @@ export const staticExcelHeaders = [
     width: 20,
   },
   {
+    header: "Brand Unique ID *",
+    key: "brand_unique_id",
+    width: 20,
+  }, 
+  {
     header: "Product Unique ID *",
     key: "product_unique_id",
     width: 20,

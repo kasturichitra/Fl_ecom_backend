@@ -17,6 +17,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    brand_unique_id: {
+      type: String,
+      required: true,
+    },
 
     // Basic Info
     product_name: {
@@ -29,10 +33,6 @@ const productSchema = new mongoose.Schema(
     //   required: true,
     //   trim: true,
     // },
-    product_brand_id: {
-      type: String,
-      required: true,
-    },
     product_slug: {
       type: String,
       trim: true,
