@@ -30,9 +30,8 @@ const productSchema = new mongoose.Schema(
     //   trim: true,
     // },
     product_brand_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Brand", // name of your Brand model
-      // required: true, // optional, if every product must have a brand
+      type: String,
+      required: true,
     },
     product_slug: {
       type: String,

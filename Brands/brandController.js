@@ -1,15 +1,13 @@
-import {
-  createBrandService,
-  getAllBrandsService,
-  getBrandByIdService,
-  updateBrandService,
-} from "./brandService.js";
+import parseFormData from "../utils/parseFormDataIntoJsonData.js";
+import { createBrandService, getAllBrandsService, getBrandByIdService, updateBrandService } from "./brandService.js";
 
 // Create Brand
 export const createBrandController = async (req, res) => {
   try {
     let data = req.body;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
+
+    let parsedData = parseFormData(data, "categories");
 
     // If single file upload used: brand_image
     const brand_image = req.file ? req.file.path : undefined;
@@ -17,13 +15,13 @@ export const createBrandController = async (req, res) => {
     // If multiple files:
     const brand_images = req.files.length ? req.files.map((f) => f.path) : [];
 
-    data = {
-      ...data,
+    parsedData = {
+      ...parsedData,
       brand_image,
       brand_images,
     };
 
-    const response = await createBrandService(tenantID, data);
+    const response = await createBrandService(tenantId, parsedData);
 
     res.status(201).json({
       status: "Success",
@@ -31,7 +29,7 @@ export const createBrandController = async (req, res) => {
       data: response,
     });
   } catch (error) {
-    console.error("Create Brand Controller Error ===>", error.message);
+    console.error("Create Brand Controller Error ===>", error);
     res.status(500).json({
       status: "Failed",
       message: "Error creating brand",
@@ -44,9 +42,9 @@ export const createBrandController = async (req, res) => {
 export const getAllBrandsController = async (req, res) => {
   try {
     const filters = req.query;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
-    const response = await getAllBrandsService(tenantID, filters);
+    const response = await getAllBrandsService(tenantId, filters);
 
     res.status(200).json({
       status: "Success",
@@ -67,9 +65,9 @@ export const getAllBrandsController = async (req, res) => {
 export const getBrandByIdController = async (req, res) => {
   try {
     const { id } = req.params;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
-    const response = await getBrandByIdService(tenantID, id);
+    const response = await getBrandByIdService(tenantId, id);
 
     res.status(200).json({
       status: "Success",
@@ -93,7 +91,7 @@ export const updateBrandController = async (req, res) => {
 
     const { id } = req.params;
     const updateBrand = req.body;
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
 
     // Optional file update
     if (req.file) {
@@ -104,11 +102,7 @@ export const updateBrandController = async (req, res) => {
       updateBrand.brand_images = req.files.map((f) => f.path);
     }
 
-    const response = await updateBrandService(
-      tenantID,
-      id,
-      updateBrand
-    );
+    const response = await updateBrandService(tenantId, id, updateBrand);
 
     res.status(200).json({
       status: "Success",
