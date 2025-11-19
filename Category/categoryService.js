@@ -161,7 +161,6 @@ export const deleteCategoryService = async (tenantId, category_unique_id) => {
   return deletedCategory;
 };
 
-
 export const downloadCategoryExcelTemplateService = async (tenantId, industry_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
@@ -169,6 +168,7 @@ export const downloadCategoryExcelTemplateService = async (tenantId, industry_un
   const allHeaders = staticCategoryExcelHeaders;
 
   const workbook = generateExcelTemplate(allHeaders);
-
+  const sheet = workbook.getWorksheet("Template");
+  sheet.getRow(2).getCell(1).value = industry_unique_id;
   return workbook;
 };
