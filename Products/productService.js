@@ -102,6 +102,8 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
       { barcode: { $regex: searchTerm, $options: "i" } },
       { tag: { $regex: searchTerm, $options: "i" } },
       { country_of_origin: { $regex: searchTerm, $options: "i" } },
+      { brand_unique_id: { $regex: searchTerm, $options: "i" } },
+      { category_unique_id: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
