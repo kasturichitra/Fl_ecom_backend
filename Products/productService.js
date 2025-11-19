@@ -287,20 +287,30 @@ export const createBulkProductsService = async (tenantId, filePath) => {
 
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
+    const CategoryModelDB = await CategoryModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
       // Mandatory check for category and brand before creating product
       // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
       // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
 
-      const existingCategory = await CategoryModel(tenantId).findOne({
-        category_unique_id: valid[i].category_unique_id,
-      });
-      if (!existingCategory) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Category not found" }] });
+      const existingCategory = await CategoryModelDB.findOne({ category_unique_id: valid[i].category_unique_id });
+      if (!existingCategory) {
+        invalid.push({
+          rowNumber: i + 1,
+          errors: [{ field: "", message: `Category not found with id: ${valid[i].category_unique_id}` }],
+        });
+        continue;
+      }
 
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
-      if (existingProduct)
-        invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Product already exists" }] });
+      if (existingProduct) {
+        invalid.push({
+          rowNumber: i + 1,
+          errors: [{ field: "", message: `Product already exists with id: ${valid[i].product_unique_id}` }],
+        });
+        continue;
+      }
 
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
@@ -311,7 +321,7 @@ export const createBulkProductsService = async (tenantId, filePath) => {
 
   return {
     totalRows: extracted.length,
-    success: valid.length,
+    success: extracted.length - invalid.length,
     failed: invalid.length,
     errors: invalid,
   };
