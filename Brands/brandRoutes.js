@@ -27,6 +27,6 @@ router.get("/", getAllBrandsController);
 router.get("/:id", getBrandByIdController);
 
 // Update brand
-router.put("/:id", upload.none(), updateBrandController);
+router.put("/:id", upload.single("brand_image"), updateBrandController);
 
 export default router;
