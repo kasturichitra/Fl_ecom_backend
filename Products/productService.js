@@ -140,7 +140,37 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
+  // const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
+  const data = await productModelDB.aggregate([
+    { $match: query },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "brand_unique_id",
+        foreignField: "brand_unique_id",
+        as: "brand",
+      },
+    },
+    {
+      $unwind: {
+        path: "$brand",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        brand_name: "$brand.brand_name",
+      },
+    },
+    {
+      $project: {
+        brand: 0,
+      },
+    },
+    { $skip: skip },
+    { $limit: limit },
+    { $sort: sortObj },
+  ]);
 
   const totalCount = await productModelDB.countDocuments(query);
 
