@@ -13,6 +13,9 @@ const updateStockOnOrder = async (tenantID, products) => {
       update: { $inc: { stock_quantity: -item.quantity } },
     },
   }));
+  console.log(bulkOps,'bulkOps');
+  console.log(Product,'Product');
+  
 
   if (bulkOps.length) await Product.bulkWrite(bulkOps);
 };

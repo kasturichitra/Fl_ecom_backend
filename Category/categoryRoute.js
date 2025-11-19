@@ -3,6 +3,7 @@ import getUploadMiddleware from "../utils/multerConfig.js";
 import {
   createCategoryController,
   deleteCategoryController,
+  downloadCategoryExcelTemplateController,
   getAllCategoriesController,
   getCategoriesByIndustryIdController,
   getCategoryByIdController,
@@ -20,4 +21,5 @@ route.get("/:id", getCategoryByIdController);
 route.put("/:id", upload.single("image"), updateCategoryController);
 route.delete("/:id", deleteCategoryController);
 
+route.get("/download-template/:id", downloadCategoryExcelTemplateController);
 export default route;

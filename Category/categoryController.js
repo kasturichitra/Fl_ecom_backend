@@ -4,6 +4,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import {
   createCategoryService,
   deleteCategoryService,
+  downloadCategoryExcelTemplateService,
   getAllCategoriesService,
   getCategoriesByIndustryIdService,
   getCategoryByIdService,
@@ -307,6 +308,41 @@ export const deleteCategoryController = async (req, res) => {
       status: "Failed",
       message: "Category delete error",
       error: error.message,
+    });
+  }
+};
+
+// controllers/downloadCategoryExcelTemplateController.js
+export const downloadCategoryExcelTemplateController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    if (!tenantId) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Tenant ID is required in header x-tenant-id",
+      });
+    }
+
+    const { id: industry_unique_id } = req.params; 
+
+    const workbook = await downloadCategoryExcelTemplateService(tenantId, industry_unique_id);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=category_template.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Error in downloadCategoryExcelTemplateController ===>", error.message);
+    res.status(error.status || 500).json({
+      status: "Failed",
+      message: error.message || "Error downloading Category Excel template",
     });
   }
 };
