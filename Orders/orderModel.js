@@ -2,12 +2,45 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 const addressSchema = new mongoose.Schema({
-  house_number: String,
-  street: String,
-  city: String,
-  state: String,
-  postal_code: String,
-  country: String,
+  house_number: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  street: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  landmark: {
+    type: String,
+    trim: true,
+  },
+  city: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  district: {
+    type: String,
+    trim: true,
+    required: true,
+  }, 
+  state: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  postal_code: {
+    type: String,
+    trim: true,
+    required: true,
+  },
+  country: {
+    type: String,
+    trim: true,
+    required: true,
+  },
 });
 
 const orderProductSchema = new mongoose.Schema({
