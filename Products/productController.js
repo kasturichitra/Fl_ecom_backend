@@ -44,7 +44,7 @@ export const createProductController = async (req, res) => {
       data: createdProduct,
     });
   } catch (error) {
-    console.error("Product creation failed in controller ===>", error.message);
+    console.error("Product creation failed in controller ===>", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,

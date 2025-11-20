@@ -20,7 +20,9 @@ export const createProductService = async (tenantId, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
-  const existingCategory = await CategoryModel(tenantId).findOne({
+  const CategoryModelDB = await CategoryModel(tenantId); 
+  
+  const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
