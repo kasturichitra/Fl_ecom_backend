@@ -127,11 +127,11 @@ export const getAllReviewsService = async (tenantId, filters) => {
 // };
 
 //This function will get reviews based on Id
-export const getReviewByIdService = async (tenantId, id) => {
+export const getReviewByIdService = async (tenantId, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);
-  const response = await productReviewsModelDB.findById(id);
+  const response = await productReviewsModelDB.findOne({ product_unique_id });
 
   return response;
 };

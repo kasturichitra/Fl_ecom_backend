@@ -39,7 +39,7 @@ export const createReviewController = async (req, res) => {
 //     const filters = req.query;
 //     const tenantId = req.headers["x-tenant-id"];
 //     const response = await getReviewsBySearchServices({
-//       tenantId, 
+//       tenantId,
 //       filters
 //     });
 
@@ -80,10 +80,10 @@ export const getAllReviewsController = async (req, res) => {
 
 export const getReviewByIdController = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id: product_unique_id } = req.params;
     const tenantId = req.headers["x-tenant-id"];
-    
-    const response = await getReviewByIdService(tenantId, id);
+
+    const response = await getReviewByIdService(tenantId, product_unique_id);
 
     res.status(200).json({
       status: "Success",
@@ -103,18 +103,14 @@ export const getReviewByIdController = async (req, res) => {
 export const updateReviewController = async (req, res) => {
   try {
     console.log("Request body is ===>", req.body);
-        
+
     const { id } = req.params;
     const updateReview = req.body;
     const tenantId = req.headers["x-tenant-id"];
 
     console.log("Request body is ===>", req.body);
 
-    const response = await updateReviewService(
-      tenantId,
-      id,
-      updateReview
-    );
+    const response = await updateReviewService(tenantId, id, updateReview);
 
     res.status(200).json({
       status: "Success",
