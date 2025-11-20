@@ -1,4 +1,5 @@
 import ProductModel from "../Products/productModel.js";
+import UserModel from "../Users/userModel.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";
@@ -25,6 +26,19 @@ export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const OrderModelDB = await OrdersModel(tenantId);
+  const UserModelDB = await UserModel(tenantId);
+
+  // Handle user not found validation
+  let username = null;
+  let userDoc = null;
+
+  if (payload.user_id) {
+    userDoc = await UserModelDB.findById(payload.user_id);
+    throwIfTrue(!userDoc, `User not found with id: ${payload.user_id}`);
+    username = userDoc.username;
+  } else {
+    username = payload.customer_name;
+  }
 
   const { order_products = [] } = payload;
 
@@ -37,7 +51,7 @@ export const createOrderServices = async (tenantId, payload) => {
   const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
   const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
-  // Design a ready to go order Doc to send to db 
+  // Design a ready to go order Doc to send to db
   const orderDoc = {
     ...payload,
     order_cancel_date,
@@ -57,31 +71,33 @@ export const createOrderServices = async (tenantId, payload) => {
   // Update product stock
   await updateStockOnOrder(tenantId, order.order_products);
 
-  // User Notification
-  await sendUserNotification(tenantId, payload.user_id, {
-    title: "Order Placed Successfully",
-    message: `Your order  has been placed successfully!`,
-    type: "order",
-    relatedId: order._id,
-    relatedModel: "Order",
-    link: `/orders/${order._id}`,
-    data: {
-      orderId: order._id,
-      total: order.total_amount,
-    },
-  });
+  if (order.user_id) {
+    // User Notification
+    await sendUserNotification(tenantId, payload.user_id, {
+      title: "Order Placed Successfully",
+      message: `Your order  has been placed successfully!`,
+      type: "order",
+      relatedId: order._id,
+      relatedModel: "Order",
+      link: `/orders/${order._id}`,
+      data: {
+        orderId: order._id,
+        total: order.total_amount,
+      },
+    });
+  }
 
   // Admin Notification
   await sendAdminNotification(tenantId, {
     title: "New Order Received",
-    message: `New order from user ${payload.user_id}. Total: ₹${order.total_amount}`,
+    message: `New order from user ${username}. Total: ₹${order.total_amount}`,
     type: "order",
     relatedId: order._id,
     relatedModel: "Order",
     link: `/admin/orders/${order._id}`,
     data: {
       orderId: order._id,
-      userId: payload.user_id,
+      userId: order.user_id,
       amount: order.total_amount,
     },
   });
