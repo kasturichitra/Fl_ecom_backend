@@ -1,6 +1,49 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
+const addressSchema = new mongoose.Schema({
+  house_number: String,
+  street: String,
+  city: String,
+  state: String,
+  postal_code: String,
+  country: String,
+});
+
+const orderProductSchema = new mongoose.Schema({
+  product_unique_id: {
+    type: String,
+    required: true,
+  },
+  product_name: {
+    type: String,
+    required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  discount_price: {
+    type: Number,
+    default: 0,
+  },
+  total_price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  tax_amount: {
+    type: Number,
+    default: 0,
+  },
+});
+
 const orderSchema = new mongoose.Schema(
   {
     user_id: {
@@ -29,53 +72,22 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
     order_cancel_date: { type: Date },
+    order_status: {
+      type: String,
+      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
+      default: "Pending",
+    },
 
-    order_Products: [
+    order_products: [
       {
-        product_unique_id: {
-          type: String,
-          required: true,
-        },
-        product_name: {
-          type: String,
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-        discount_price: {
-          type: Number,
-          default: 0,
-        },
-        total_price: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-        tax_amount: {
-          type: Number,
-          default: 0,
-        },
-        status: {
-          type: String,
-          enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
-          default: "Pending",
-        },
-        delivered_at: { type: Date },
-        cancelled_at: { type: Date },
+        type: orderProductSchema,
+        required: true,
       },
     ],
-    address: {
-      type: Object,
-      required: true,
-    },
+
+    tax_amount: { type: Number, default: 0 },
+
+    address: addressSchema,
     subtotal: { type: Number, required: true, min: 0 },
     shipping_charges: { type: Number, default: 0 },
     total_amount: { type: Number, required: true, min: 0 },

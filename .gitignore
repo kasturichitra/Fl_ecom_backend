@@ -36,6 +36,8 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+swark-output
+
 # Optional caches
 .npm
 .yarn/cache

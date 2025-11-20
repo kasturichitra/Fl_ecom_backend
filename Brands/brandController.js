@@ -98,7 +98,7 @@ export const updateBrandController = async (req, res) => {
       updateBrand.brand_image = req.file.path;
     }
 
-    if (req.files) {
+    if (req.files && req.files.length > 0) {
       updateBrand.brand_images = req.files.map((f) => f.path);
     }
 
@@ -110,7 +110,7 @@ export const updateBrandController = async (req, res) => {
       data: response,
     });
   } catch (error) {
-    console.error("Update Brand Controller Error ===>", error.message);
+    console.error("Update Brand Controller Error ===>", error);
     res.status(500).json({
       status: "Failed",
       message: "Failed to update brand",

@@ -2,10 +2,11 @@ import ProductModel from "../Products/productModel.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";
+import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 
 //   Decrease product stock (called after order is saved)
-const updateStockOnOrder = async (tenantID, products) => {
-  const Product = await ProductModel(tenantID);
+const updateStockOnOrder = async (tenantId, products) => {
+  const Product = await ProductModel(tenantId);
 
   const bulkOps = products.map((item) => ({
     updateOne: {
@@ -13,120 +14,94 @@ const updateStockOnOrder = async (tenantID, products) => {
       update: { $inc: { stock_quantity: -item.quantity } },
     },
   }));
-  console.log(bulkOps,'bulkOps');
-  console.log(Product,'Product');
-  
+  console.log(bulkOps, "bulkOps");
+  console.log(Product, "Product");
 
   if (bulkOps.length) await Product.bulkWrite(bulkOps);
 };
 
 //  Create / update a **single** order (one payment, many items)
-export const createOrderServices = async (tenantID, payload) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const createOrderServices = async (tenantId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const Order = await OrdersModel(tenantID);
+  const OrderModelDB = await OrdersModel(tenantId);
 
-  throwIfTrue(!payload.user_id, "user_id is required");
-  throwIfTrue(!payload.payment_method, "payment_method is required");
-  throwIfTrue(!payload.address || typeof payload.address !== "object", "address is required and must be an object");
-
-  throwIfTrue(!Array.isArray(payload.orders) || payload.orders.length === 0, "At least one product is required");
-
-  // Build product items
-  const newProducts = payload.orders.map((p, idx) => {
-    throwIfTrue(
-      !p.product_unique_id || !p.product_name || !p.quantity || !p.price || !p.total_price,
-      `Product at index ${idx}: missing required fields`
-    );
-
-    return {
-      product_unique_id: String(p.product_unique_id),
-      product_name: String(p.product_name),
-      quantity: Math.max(1, Number(p.quantity) || 0),
-      price: Number(p.price),
-      discount_price: Number(p.discount_price ?? 0),
-      total_price: Number(p.total_price),
-      tax_amount: Number(p.tax_amount ?? 0),
-      status: p.status ?? "Pending",
-    };
-  });
+  const { order_products = [] } = payload;
 
   // Compute totals
-  const subtotal = newProducts.reduce((sum, item) => sum + item.total_price, 0);
+  const subtotal = order_products.reduce((sum, item) => sum + item.total_price, 0);
   const tax_amount = Number(payload.tax_amount ?? 0);
   const shipping_charges = Number(payload.shipping_charges ?? 0);
   const total_amount = subtotal + tax_amount + shipping_charges;
 
+  const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
+  const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
+
+  // Design a ready to go order Doc to send to db 
   const orderDoc = {
-    user_id: payload.user_id,
-    order_Products: newProducts,
-    address: payload.address,
-
-    payment_status: payload.payment_status ?? "Pending",
-    payment_method: payload.payment_method,
-    transaction_id: payload.transaction_id ?? null,
-    order_create_date: payload.order_create_date ? new Date(payload.order_create_date) : new Date(),
-    order_cancel_date: payload.order_cancel_date ? new Date(payload.order_cancel_date) : null,
-
+    ...payload,
+    order_cancel_date,
+    order_create_date,
     subtotal,
     shipping_charges,
     total_amount,
-    currency: payload.currency ?? "INR",
+    tax_amount,
   };
 
-  const order = new (await Order)();
-  Object.assign(order, orderDoc);
+  // Do schema validation on order Doc
+  const { isValid, message } = validateOrderCreate(orderDoc);
+  throwIfTrue(!isValid, message);
 
-  const savedOrder = await order.save();
+  const order = await OrderModelDB.create(orderDoc);
 
   // Update product stock
-  await updateStockOnOrder(tenantID, savedOrder.order_Products);
+  await updateStockOnOrder(tenantId, order.order_products);
 
   // User Notification
-  await sendUserNotification(tenantID, payload.user_id, {
+  await sendUserNotification(tenantId, payload.user_id, {
     title: "Order Placed Successfully",
     message: `Your order  has been placed successfully!`,
     type: "order",
-    relatedId: savedOrder._id,
+    relatedId: order._id,
     relatedModel: "Order",
-    link: `/orders/${savedOrder._id}`,
+    link: `/orders/${order._id}`,
     data: {
-      orderId: savedOrder._id,
-      total: savedOrder.total_amount,
+      orderId: order._id,
+      total: order.total_amount,
     },
   });
 
   // Admin Notification
-  await sendAdminNotification(tenantID, {
+  await sendAdminNotification(tenantId, {
     title: "New Order Received",
-    message: `New order from user ${payload.user_id}. Total: ₹${savedOrder.total_amount}`,
+    message: `New order from user ${payload.user_id}. Total: ₹${order.total_amount}`,
     type: "order",
-    relatedId: savedOrder._id,
+    relatedId: order._id,
     relatedModel: "Order",
-    link: `/admin/orders/${savedOrder._id}`,
+    link: `/admin/orders/${order._id}`,
     data: {
-      orderId: savedOrder._id,
+      orderId: order._id,
       userId: payload.user_id,
-      amount: savedOrder.total_amount,
+      amount: order.total_amount,
     },
   });
-  return savedOrder;
+  return order;
 };
 
 // Get all orders for a user
-export const getAllUserOrdersServices = async (tenantID, userID) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
-  const Order = await OrdersModel(tenantID);
+export const getAllUserOrdersServices = async (tenantId, userID) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  const Order = await OrdersModel(tenantId);
   console.log(Order.find({ user_id: userID }), " Order.find({ user_id: userID });");
 
   return await Order.find({ user_id: userID });
 };
 
 // Search orders
-export const orderSearchServices = async (tenantID, { q } = {}) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const orderSearchServices = async (tenantId, { q } = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const Order = await OrdersModel(tenantID);
+  const Order = await OrdersModel(tenantId);
 
   if (!q?.trim()) {
     return Order.aggregate([{ $sort: { createdAt: -1 } }]);
@@ -152,13 +127,13 @@ export const orderSearchServices = async (tenantID, { q } = {}) => {
   return Order.aggregate(pipeline);
 };
 
-export const updateOrderService = async (tenantID, orderID, updateData) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
+export const updateOrderService = async (tenantId, orderID, updateData) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderID, "Valid Order ID is required");
   throwIfTrue(!updateData || Object.keys(updateData).length === 0, "Update data is required");
 
-  const Order = await OrdersModel(tenantID);
-  const Product = await ProductModel(tenantID);
+  const Order = await OrdersModel(tenantId);
+  const Product = await ProductModel(tenantId);
 
   const order = await Order.findById(orderID);
   throwIfTrue(!order, "Order not found");
@@ -205,7 +180,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
 
         // Optional: Notify on status change
         if (["Shipped", "Delivered", "Returned", "Cancelled"].includes(updateProd.status)) {
-          await sendUserNotification(tenantID, order.user_id, {
+          await sendUserNotification(tenantId, order.user_id, {
             title: `Item ${updateProd.status}`,
             message: `${item.product_name} is now ${updateProd.status}`,
             type: "order_update",
@@ -255,7 +230,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
 
   // 1. Full Order Cancelled
   if (wasJustCancelled) {
-    await sendUserNotification(tenantID, updatedOrder.user_id, {
+    await sendUserNotification(tenantId, updatedOrder.user_id, {
       title: "Order Cancelled",
       message: `Your order has been cancelled. Refund will be processed within 5-7 days.`,
       type: "order_cancelled",
@@ -269,7 +244,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
       },
     });
 
-    await sendAdminNotification(tenantID, {
+    await sendAdminNotification(tenantId, {
       title: "Order Cancelled",
       message: `Order cancelled by user/admin. Amount: ₹${updatedOrder.total_amount}`,
       type: "order_cancelled",
@@ -283,7 +258,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
   if (returnedItems.length > 0) {
     const itemsList = returnedItems.map((i) => `${i.product_name} (x${i.quantity})`).join(", ");
 
-    await sendUserNotification(tenantID, updatedOrder.user_id, {
+    await sendUserNotification(tenantId, updatedOrder.user_id, {
       title: "Item(s) Returned",
       message: `Returned items: ${itemsList}. Refund will be initiated soon.`,
       type: "order_returned",
@@ -292,7 +267,7 @@ export const updateOrderService = async (tenantID, orderID, updateData) => {
       data: { returnedItems: itemsList },
     });
 
-    await sendAdminNotification(tenantID, {
+    await sendAdminNotification(tenantId, {
       title: "Items Returned",
       message: `User returned items in order #${updatedOrder._id}: ${itemsList}`,
       type: "order_returned",

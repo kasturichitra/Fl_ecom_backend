@@ -1,3 +1,5 @@
+import fs from "fs";
+
 import throwIfTrue from "../utils/throwIfTrue.js";
 import BrandModel from "./brandModel.js";
 import { validateBrandCreate } from "./validations/validateBrandCreate.js";
@@ -114,6 +116,15 @@ export const updateBrandService = async (tenantID, id, updateBrandData) => {
       brand_unique_id: updateBrandData.brand_unique_id,
     });
     throwIfTrue(existingBrand, `Brand already exists with unique ID ${updateBrandData.brand_unique_id}`);
+  }
+
+  const existingBrand = await brandModelDB.findById(id);
+  throwIfTrue(!existingBrand, `Brand not found with id: ${id}`);
+
+  if (updateBrandData.brand_image && existingBrand.brand_image) {
+    if (fs.existsSync(existingBrand.brand_image)) {
+      fs.unlinkSync(existingBrand.brand_image);
+    }
   }
 
   const updated = await brandModelDB.findByIdAndUpdate(id, updateBrandData, {
