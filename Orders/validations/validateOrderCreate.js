@@ -1,23 +1,43 @@
 import Joi from "joi";
 
 const addressSchema = Joi.object({
-  house_number: Joi.string().allow(null, "").messages({
+  house_number: Joi.string().trim().required().messages({
     "string.base": "House number must be a string.",
+    "any.required": "House number is required.",
   }),
-  street: Joi.string().allow(null, "").messages({
+
+  street: Joi.string().trim().required().messages({
     "string.base": "Street must be a string.",
+    "any.required": "Street is required.",
   }),
-  city: Joi.string().allow(null, "").messages({
+
+  landmark: Joi.string().trim().allow("", null).messages({
+    "string.base": "Landmark must be a string.",
+  }),
+
+  city: Joi.string().trim().required().messages({
     "string.base": "City must be a string.",
+    "any.required": "City is required.",
   }),
-  state: Joi.string().allow(null, "").messages({
+
+  district: Joi.string().trim().required().messages({
+    "string.base": "District must be a string.",
+    "any.required": "District is required.",
+  }),
+
+  state: Joi.string().trim().required().messages({
     "string.base": "State must be a string.",
+    "any.required": "State is required.",
   }),
-  postal_code: Joi.string().allow(null, "").messages({
+
+  postal_code: Joi.string().trim().required().messages({
     "string.base": "Postal code must be a string.",
+    "any.required": "Postal code is required.",
   }),
-  country: Joi.string().allow(null, "").messages({
+
+  country: Joi.string().trim().required().messages({
     "string.base": "Country must be a string.",
+    "any.required": "Country is required.",
   }),
 });
 
