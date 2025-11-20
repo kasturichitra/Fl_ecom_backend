@@ -90,34 +90,63 @@ export const getCategoryByIdService = async (tenantId, targetId) => {
 };
 
 
+// export const updateCategoryService = async (tenantId, category_unique_id, updates) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+//   throwIfTrue(!category_unique_id, "category_unique_id is required");
+
+//   const CategoryDB = await CategoryModel(tenantId);
+
+//   const existing = await CategoryDB.findOne({ category_unique_id });
+//   throwIfTrue(!existing, "Category not found");
+
+//   const oldImagePath = existing.category_image;
+
+//   if (updates.attributes) {
+//     const attrs = typeof updates.attributes === "string" ? JSON.parse(updates.attributes) : updates.attributes;
+//     existing.attributes = attrs.map(a => ({
+//       ...a,
+//       is_active: a.is_active ?? true,
+//       created_by: a.created_by || existing.created_by,
+//       updated_by: a.updated_by || existing.updated_by || existing.created_by
+//     }));
+//     delete updates.attributes;
+//   }
+
+//   Object.assign(existing, updates, { updatedAt: new Date() });
+//   const updatedRecord = await existing.save();
+
+//   return { updatedRecord, oldImagePath };
+// };
+//this function is to delete catogory
 export const updateCategoryService = async (tenantId, category_unique_id, updates) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!category_unique_id, "category_unique_id is required");
+  throwIfTrue(!tenantId || !category_unique_id, "IDs required");
 
-  const CategoryDB = await CategoryModel(tenantId);
+  const ProductModel  = (await import("../Products/productModel.js")).default;
 
-  const existing = await CategoryDB.findOne({ category_unique_id });
-  throwIfTrue(!existing, "Category not found");
+  const [Category, Product] = await Promise.all([
+    CategoryModel(tenantId),
+    ProductModel(tenantId)
+  ]);
 
-  const oldImagePath = existing.category_image;
+  const cat = await Category.findOneAndUpdate(
+    { category_unique_id },
+    { $set: { ...updates, updatedAt: new Date() } },
+    { new: true }
+  );
 
-  if (updates.attributes) {
-    const attrs = typeof updates.attributes === "string" ? JSON.parse(updates.attributes) : updates.attributes;
-    existing.attributes = attrs.map(a => ({
-      ...a,
-      is_active: a.is_active ?? true,
-      created_by: a.created_by || existing.created_by,
-      updated_by: a.updated_by || existing.updated_by || existing.created_by
-    }));
-    delete updates.attributes;
+  if (!cat) throw new Error("Category not found");
+
+  // Auto inactive all products if category inactivated
+  if ("is_active" in updates) {
+    await Product.updateMany(
+      { category_unique_id },
+      { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
+    );
   }
 
-  Object.assign(existing, updates, { updatedAt: new Date() });
-  const updatedRecord = await existing.save();
-
-  return { updatedRecord, oldImagePath };
+  return cat;
 };
-//this function is to delete catogory
+
 export const deleteCategoryService = async (tenantId, category_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
@@ -180,7 +209,7 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
         success[i].created_by = created_by;
 
         // await categoryDB.create(success[i]);
-        await CategoryDB.insertMany(success); 
+        await categoryDB.insertMany(success); 
       }
     }
   }
