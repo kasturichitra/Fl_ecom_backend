@@ -6,30 +6,29 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 /* ---------------------------------------------
    CREATE INDUSTRY
 ----------------------------------------------*/
+
 export const createIndustryTypeServices = async (tenantID, data) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-
+  throwIfTrue(!data.industry_name || !data.industry_name.trim(), "Industry Name is required");
   const IndustryModel = await IndustryTypeModel(tenantID);
 
-  const { industry_unique_id } = data;
-
-  const existing = await IndustryModel.findOne({ industry_unique_id }).lean();
-  throwIfTrue(existing, "Industry Type with this ID already exists");
+  if (data.industry_unique_id) {
+    if (await IndustryModel.exists({ industry_unique_id: data.industry_unique_id }))
+      throw new Error("Industry Type with this ID already exists");
+  }
 
   return await IndustryModel.create({
-    industry_unique_id,
-    industry_name: data.industry_name,
-    description: data.description || "",
-    is_active: typeof data.is_active === "boolean" ? data.is_active : true,
-    created_by: data.created_by || "System",
-    updated_by: data.updated_by || null,
-    image_url: data.image_url || null,
+    ...data,
+    industry_name: data.industry_name.trim(),
+    description: data.description?.trim() || "",
+    is_active: data.is_active ?? true,
+    image_url: data.image_url ?? null,
   });
 };
-
 /* ---------------------------------------------
    SEARCH INDUSTRIES (OPTIMIZED)
 ----------------------------------------------*/
+
 export const getIndustrysSearchServices = async (
   tenantID,
   search = "",
@@ -45,90 +44,68 @@ export const getIndustrysSearchServices = async (
   throwIfTrue(!tenantID, "Tenant ID is required");
 
   const IndustryModel = await IndustryTypeModel(tenantID);
-
   const skip = (page - 1) * limit;
+  const r = (v) => ({ $regex: v?.trim() || "", $options: "i" });
 
-  const regex = (val) => ({ $regex: val, $options: "i" });
+  const filter = {};
+  if (industry_name) filter.industry_name = r(industry_name);
+  if (industry_unique_id) filter.industry_unique_id = r(industry_unique_id);
+  if (created_by) filter.created_by = r(created_by);
+  if (is_active !== undefined) filter.is_active = is_active === "true";
 
-  const filterSearch = {};
-
-  if (industry_name) filterSearch.industry_name = regex(industry_name);
-  if (industry_unique_id) filterSearch.industry_unique_id = regex(industry_unique_id);
-  if (created_by) filterSearch.created_by = regex(created_by);
-  if (is_active !== undefined) filterSearch.is_active = is_active === "true";
-
-  // Date filter
   if (startDate || endDate) {
-    filterSearch.createdAt = {};
-    if (startDate) filterSearch.createdAt.$gte = new Date(startDate);
-    if (endDate) filterSearch.createdAt.$lte = new Date(endDate);
+    filter.createdAt = {};
+    if (startDate) filter.createdAt.$gte = new Date(startDate);
+    if (endDate) filter.createdAt.$lte = new Date(endDate);
   }
 
-  // Global search improvement
-  const globalSearch = search
-    ? {
-        $or: [
-          { industry_name: regex(search) },
-          { industry_unique_id: regex(search) },
-          { description: regex(search) },
-          { created_by: regex(search) },
-        ],
-      }
-    : null;
-
-  const finalQuery = globalSearch
-    ? { $and: [globalSearch, filterSearch] }
-    : filterSearch;
+  const query = search
+    ? { $and: [{ $or: [
+          { industry_name: r(search) },
+          { industry_unique_id: r(search) },
+          { description: r(search) },
+          { created_by: r(search) }
+        ]}, filter] }
+    : filter;
 
   const [industryData, totalCount] = await Promise.all([
-    IndustryModel.find(finalQuery)
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ createdAt: -1 })
-      .lean(),
-
-    IndustryModel.countDocuments(finalQuery),
+    IndustryModel.find(query).skip(skip).limit(+limit).sort({ createdAt: -1 }).lean(),
+    IndustryModel.countDocuments(query)
   ]);
 
   return {
     industryData,
     totalCount,
-    currentPage: page,
-    totalPages: Math.ceil(totalCount / limit),
+    currentPage: +page,
+    totalPages: Math.ceil(totalCount / limit)
   };
 };
-
 /* ---------------------------------------------
    UPDATE INDUSTRY
 ----------------------------------------------*/
+
 export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
 
   const IndustryModel = await IndustryTypeModel(tenantID);
 
-  const existing = await IndustryModel.findOne({ industry_unique_id }).lean();
-  throwIfTrue(!existing, "Industry Type not found");
+  // Fast check + update in one query (atomic & fastest)
+  const updated = await IndustryModel.findOneAndUpdate(
+    { industry_unique_id },
+    { $set: { ...updates, updatedAt: new Date() } },
+    { new: true, fields: { image_url: 1 } } // only get old image_url
+  ).lean();
 
-  // Delete old image if new one is uploaded
-  if (updates.image_url && existing.image_url) {
-    try {
-      const oldPath = path.resolve(existing.image_url);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch (err) {
-      console.error("Error deleting old image:", err.message);
-    }
+  if (!updated) throw new Error("Industry Type not found");
+
+  // Delete old image if new one uploaded
+  if (updates.image_url && updated.image_url && updated.image_url !== updates.image_url) {
+    fs.unlink(path.resolve(updated.image_url), () => {});
   }
 
-  updates.updatedAt = new Date();
-
-  return await IndustryModel.findOneAndUpdate(
-    { industry_unique_id },
-    { $set: updates },
-    { new: true }
-  ).lean();
+  return updated;
 };
-
 /* ---------------------------------------------
    DELETE INDUSTRY
 ----------------------------------------------*/
@@ -138,20 +115,15 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
 
   const IndustryModel = await IndustryTypeModel(tenantID);
 
-  const existing = await IndustryModel.findOne({ industry_unique_id }).lean();
-  throwIfTrue(!existing, "Industry Type not found");
+  // One query: get image_url + delete atomically
+  const doc = await IndustryModel.findOneAndDelete({ industry_unique_id })
+    .select("image_url")
+    .lean();
 
-  // Delete image file
-  if (existing.image_url) {
-    try {
-      const imgPath = path.resolve(existing.image_url);
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    } catch (err) {
-      console.error("Error deleting image:", err.message);
-    }
-  }
+  if (!doc) throw new Error("Industry Type not found");
+  if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
 
-  return await IndustryModel.findOneAndDelete({ industry_unique_id }).lean();
+  return doc;
 };
 
 
