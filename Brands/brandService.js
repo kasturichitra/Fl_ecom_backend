@@ -4,6 +4,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import BrandModel from "./brandModel.js";
 import { validateBrandCreate } from "./validations/validateBrandCreate.js";
 import { validateBrandUpdate } from "./validations/validateBrandUpdate.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData) => {
@@ -64,19 +65,7 @@ export const getAllBrandsService = async (tenantID, filters) => {
   }
 
   /// Sorting logic
-  let sortObj = { createdAt: -1 }; // default
-  if (sort) {
-    sortObj = {};
-    const sortFields = sort.split(",");
-
-    for (const item of sortFields) {
-      const [field, direction] = item.split(":");
-      if (!field) continue;
-
-      sortObj[field] = direction === "asc" ? 1 : -1;
-    }
-  }
-
+  const sortObj = buildSortObject(sort);
   const brands = await brandModelDB.find(query).sort(sortObj).skip(skip).limit(Number(limit));
 
   const totalCount = await brandModelDB.countDocuments(query);

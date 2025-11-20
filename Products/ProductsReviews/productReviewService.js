@@ -1,4 +1,5 @@
 import OrdersModel from "../../Orders/orderModel.js";
+import { buildSortObject } from "../../utils/buildSortObject.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
 import ProductModel from "../productModel.js";
 import ProductReviewModel from "./productReviewModel.js";
@@ -76,23 +77,7 @@ export const getAllReviewsService = async (tenantId, filters) => {
   }
 
   // Sorting logic
-  let sortObj = { createdAt: -1 }; // default
-  if (sort) {
-    sortObj = {};
-
-    const sortFields = sort.split(",");
-    // ["createdAt:desc", "price:asc"]
-
-    for (const item of sortFields) {
-      const [field, direction] = item.split(":");
-
-      if (!field) continue;
-
-      const order = direction === "asc" ? 1 : -1;
-
-      sortObj[field] = order;
-    }
-  }
+  const sortObj = buildSortObject(sort);
 
   console.log("Query before going to db ===>", query);
   const reviews = await productReviewsModelDB

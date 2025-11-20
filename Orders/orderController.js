@@ -1,7 +1,7 @@
 import {
   createOrderServices,
   getAllUserOrdersServices,
-  orderSearchServices,
+  getAllOrdersService,
   updateOrderService,
 } from "./orderService.js";
 
@@ -52,19 +52,12 @@ export const getAllUserOrdersController = async (req, res) => {
   }
 };
 
-export const getOrderSearchController = async (req, res) => {
+export const getAllOrdersController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    if (!tenantId) {
-      return res.status(400).json({
-        status: "failed",
-        message: "Header 'x-tenant-id' is required",
-      });
-    }
+    const filters = req.query;
 
-    const { q } = req.query;
-
-    const orders = await orderSearchServices(tenantId, { q });
+    const orders = await getAllOrdersService(tenantId, filters);
 
     return res.status(200).json({
       status: "success",

@@ -10,6 +10,7 @@ import { CategoryModel } from "../Category/categoryModel.js";
 import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
 import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
 import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 export const createProductService = async (tenantId, productData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -20,8 +21,8 @@ export const createProductService = async (tenantId, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
-  const CategoryModelDB = await CategoryModel(tenantId); 
-  
+  const CategoryModelDB = await CategoryModel(tenantId);
+
   const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
@@ -123,24 +124,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     if (max_price) query.price.$lte = Number(max_price);
   }
 
-  // Sorting logic
-  let sortObj = { createdAt: -1 }; // default
-  if (sort) {
-    sortObj = {};
-
-    const sortFields = sort.split(",");
-    // ["createdAt:desc", "price:asc"]
-
-    for (const item of sortFields) {
-      const [field, direction] = item.split(":");
-
-      if (!field) continue;
-
-      const order = direction === "asc" ? 1 : -1;
-
-      sortObj[field] = order;
-    }
-  }
+  const sortObj = buildSortObject(sort);
 
   const productModelDB = await ProductModel(tenantId);
 
@@ -179,11 +163,11 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   const totalCount = await productModelDB.countDocuments(query);
 
   return {
-    data,
     totalCount,
     page,
     limit,
     totalPages: Math.ceil(totalCount / limit),
+    data,
   };
 };
 
