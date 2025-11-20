@@ -1,13 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
-
-const addressSchema = new mongoose.Schema({
-  street: String,
-  city: String,
-  state: String,
-  postal_code: String,
-  country: String,
-});
+import { addressSchema } from "../Orders/orderModel.js";
 
 const userSchema = new mongoose.Schema(
   {
