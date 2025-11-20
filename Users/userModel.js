@@ -1,13 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
-
-const addressSchema = new mongoose.Schema({
-  street: String,
-  city: String,
-  state: String,
-  postal_code: String,
-  country: String,
-});
+import { addressSchema } from "../Orders/orderModel.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -33,9 +26,14 @@ const userSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       match: [/^\d{10,15}$/, "Please provide a valid phone number"],
     },
+    // Branch name means which branch employee is operating from. 
+    branch_name: {
+      type: String, 
+    }, 
+    // User means end customer who will use this app or e commerce website.
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["admin", "employee", "user"],
       default: "user",
     },
     is_active: {

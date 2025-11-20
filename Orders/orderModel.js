@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-const addressSchema = new mongoose.Schema({
+export const addressSchema = new mongoose.Schema({
   house_number: {
     type: String,
     trim: true,
