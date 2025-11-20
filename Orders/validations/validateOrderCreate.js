@@ -75,15 +75,14 @@ const orderProductSchema = Joi.object({
   }),
 });
 
-const orderCreateSchema = Joi.object({
-  user_id: Joi.string().trim().required().messages({
-    "any.required": "User ID is required.",
-    "string.base": "User ID must be a string.",
+export const orderValidationSchema = Joi.object({
+  order_type: Joi.string().valid("Online", "Offline").required().messages({
+    "any.only": "Order type must be Online or Offline.",
+    "any.required": "Order type is required.",
   }),
 
-  payment_status: Joi.string().valid("Pending", "Paid", "Failed", "Refunded").messages({
-    "string.base": "Payment status must be a string.",
-    "any.only": "Invalid payment status.",
+  payment_status: Joi.string().valid("Pending", "Paid", "Failed", "Refunded").default("Pending").messages({
+    "any.only": "Payment status is invalid.",
   }),
 
   payment_method: Joi.string()
@@ -91,65 +90,136 @@ const orderCreateSchema = Joi.object({
     .required()
     .messages({
       "any.required": "Payment method is required.",
-      "string.base": "Payment method must be a string.",
       "any.only": "Invalid payment method.",
     }),
 
-  transaction_id: Joi.string().allow(null, "").messages({
+  transaction_id: Joi.string().trim().allow(null, "").messages({
     "string.base": "Transaction ID must be a string.",
   }),
 
   order_create_date: Joi.date().required().messages({
-    "any.required": "Order create date is required.",
     "date.base": "Order create date must be a valid date.",
+    "any.required": "Order create date is required.",
   }),
 
-  order_cancel_date: Joi.date().messages({
+  order_cancel_date: Joi.date().allow(null).messages({
     "date.base": "Order cancel date must be a valid date.",
   }),
 
-  order_status: Joi.string().valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned").messages({
-    "string.base": "Order status must be a string.",
-    "any.only": "Invalid order status.",
-  }),
+  order_status: Joi.string()
+    .valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned")
+    .default("Pending")
+    .messages({
+      "any.only": "Invalid order status.",
+    }),
 
   order_products: Joi.array().items(orderProductSchema).min(1).required().messages({
-    "any.required": "Order products are required.",
     "array.base": "Order products must be an array.",
     "array.min": "At least one product is required.",
+    "any.required": "Order products are required.",
   }),
 
-  address: addressSchema,
-
-  subtotal: Joi.number().min(0).required().messages({
-    "any.required": "Subtotal is required.",
-    "number.base": "Subtotal must be a number.",
-    "number.min": "Subtotal cannot be negative.",
-  }),
-
-  shipping_charges: Joi.number().min(0).messages({
-    "number.base": "Shipping charges must be a number.",
-    "number.min": "Shipping charges cannot be negative.",
-  }),
-
-  tax_amount: Joi.number().min(0).messages({
+  tax_amount: Joi.number().min(0).default(0).messages({
     "number.base": "Tax amount must be a number.",
     "number.min": "Tax amount cannot be negative.",
   }),
 
-  total_amount: Joi.number().min(0).required().messages({
-    "any.required": "Total amount is required.",
-    "number.base": "Total amount must be a number.",
-    "number.min": "Total amount cannot be negative.",
+  subtotal: Joi.number().min(0).required().messages({
+    "number.base": "Subtotal must be a number.",
+    "number.min": "Subtotal cannot be negative.",
+    "any.required": "Subtotal is required.",
   }),
 
-  currency: Joi.string().messages({
+  total_amount: Joi.number().min(0).required().messages({
+    "number.base": "Total amount must be a number.",
+    "number.min": "Total amount cannot be negative.",
+    "any.required": "Total amount is required.",
+  }),
+
+  currency: Joi.string().default("INR").messages({
     "string.base": "Currency must be a string.",
+  }),
+
+  // ----------------------------------------------------
+  // 🔥 Conditional Fields
+  // ----------------------------------------------------
+
+  // 🧍‍♂ Offline: Required
+  customer_name: Joi.string()
+    .trim()
+    .when("order_type", {
+      is: "Offline",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(null, ""),
+    })
+    .messages({
+      "string.base": "Customer name must be a string.",
+      "any.required": "Customer name is required for offline orders.",
+    }),
+
+  mobile_number: Joi.string()
+    .trim()
+    .when("order_type", {
+      is: "Offline",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(null, ""),
+    })
+    .messages({
+      "string.base": "Mobile number must be a string.",
+      "any.required": "Mobile number is required for offline orders.",
+    }),
+
+  // 📦 Online: Required
+  address: Joi.when("order_type", {
+    is: "Online",
+    then: addressSchema.required().messages({
+      "any.required": "Address is required for online orders.",
+      // "any.unknown": "Address is not allowed for offline orders.",
+    }),
+    otherwise: Joi.forbidden(),
+  }),
+
+  shipping_charges: Joi.when("order_type", {
+    is: "Online",
+    then: Joi.number().min(0).required().messages({
+      "number.base": "Shipping charges must be a number.",
+      "number.min": "Shipping charges cannot be negative.",
+      "any.required": "Shipping charges are required for online orders.",
+    }),
+
+    otherwise: Joi.number().valid(0).default(0).messages({
+      "number.base": "Shipping charges must be a number.",
+      "any.only": "Shipping charges must be 0 for offline orders.",
+    }),
+  }),
+
+  cash_on_delivery: Joi.when("order_type", {
+    is: "Online",
+    then: Joi.boolean().required().messages({
+      "boolean.base": "Cash on delivery must be a boolean.",
+      "any.required": "Cash on delivery is required for online orders.",
+    }),
+
+    // In case of offline deliveries, cash on delivery is always true
+    otherwise: Joi.boolean().default(true).messages({
+      "boolean.base": "Cash on delivery must be a boolean.",
+      "any.only": "Cash on delivery must be true for offline orders.",
+    }),
+  }),
+
+  user_id: Joi.when("order_type", {
+    is: "Online",
+    then: Joi.string().required(),
+    otherwise: Joi.forbidden(),
+  }).messages({
+    "string.base": "User ID must be a string.",
+    "any.required": "User ID is required for online orders.",
+    "any.unknown": "User ID is not allowed for offline orders.",
   }),
 });
 
 export function validateOrderCreate(data) {
-  const { error } = orderCreateSchema.validate(data, { abortEarly: false });
+  const { error } = orderValidationSchema.validate(data, { abortEarly: false });
 
   if (error) {
     return {
