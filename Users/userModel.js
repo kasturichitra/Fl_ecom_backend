@@ -33,9 +33,14 @@ const userSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       match: [/^\d{10,15}$/, "Please provide a valid phone number"],
     },
+    // Branch name means which branch employee is operating from. 
+    branch_name: {
+      type: String, 
+    }, 
+    // User means end customer who will use this app or e commerce website.
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["admin", "employee", "user"],
       default: "user",
     },
     is_active: {
