@@ -7,20 +7,17 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,                // 🔥 Fast lookup
     },
     user_id: {
       type: String,
       required: true,
-      index: true,                // 🔥 User ticket history becomes fast
+      index: true,                //  User ticket history becomes fast
     },
     order_id: { 
       type: String,
-      index: true                 // 🔥 For searching order-wise tickets
     },
     product_id: { 
       type: String,
-      index: true                 // 🔥 Speeds up product related tickets
     },
 
     issue_type: {
@@ -35,7 +32,7 @@ const ticketSchema = new mongoose.Schema(
         "Account Issue",
         "Other",
       ],
-      index: true,                // 🔥 Filter by type becomes fast
+      index: true,                //Filter by type becomes fast
     },
 
     subject: {
@@ -56,20 +53,20 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       enum: ["Open", "In Progress", "Resolved", "Closed", "Rejected"],
       default: "Open",
-      index: true,                // 🔥 Status filters are common
+      index: true,                //  Status filters are common
     },
 
     priority: {
       type: String,
       enum: ["Low", "Medium", "High", "Urgent"],
       default: "Medium",
-      index: true,                // 🔥 Reporting by priority becomes fast
+      index: true,                // Reporting by priority becomes fast
     },
 
     assigned_to: { 
       type: String,
       trim: true,
-      index: true                 // 🔥 Agent-wise ticket list becomes fast
+      index: true                 // Agent-wise ticket list becomes fast
     },
 
     resolution_notes: { type: String },
@@ -77,13 +74,13 @@ const ticketSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    versionKey: false,           // Removes __v
+    versionKey: false,         
     strict: true,                // Prevents unwanted fields
   }
 );
 
 // ---------------------------------
-// 🔥 Additional Compound Indexes
+// Additional Compound Indexes
 // ---------------------------------
 
 // Most common filters in dashboards
