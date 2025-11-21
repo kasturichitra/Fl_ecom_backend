@@ -70,7 +70,7 @@ io.on("connection", (socket) => {
 // app.use("/categoryType", categoryTypeRoute);
 // app.use("/subCategory", subCategoryRoute);
 
-app.use("/users", userRoutes);
+app.use("/", userRoutes);
 app.use(
   "/industryType",
   //  verifyToken,

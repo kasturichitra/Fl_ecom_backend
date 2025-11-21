@@ -60,24 +60,31 @@ export const getIndustrysSearchServices = async (
   }
 
   const query = search
-    ? { $and: [{ $or: [
-          { industry_name: r(search) },
-          { industry_unique_id: r(search) },
-          { description: r(search) },
-          { created_by: r(search) }
-        ]}, filter] }
+    ? {
+        $and: [
+          {
+            $or: [
+              { industry_name: r(search) },
+              { industry_unique_id: r(search) },
+              { description: r(search) },
+              { created_by: r(search) },
+            ],
+          },
+          filter,
+        ],
+      }
     : filter;
 
   const [industryData, totalCount] = await Promise.all([
     IndustryModel.find(query).skip(skip).limit(+limit).sort({ createdAt: -1 }).lean(),
-    IndustryModel.countDocuments(query)
+    IndustryModel.countDocuments(query),
   ]);
 
   return {
     industryData,
     totalCount,
     currentPage: +page,
-    totalPages: Math.ceil(totalCount / limit)
+    totalPages: Math.ceil(totalCount / limit),
   };
 };
 /* ---------------------------------------------
@@ -85,21 +92,31 @@ export const getIndustrysSearchServices = async (
 ----------------------------------------------*/
 
 export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
-  throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
+  if (!tenantID || !industry_unique_id) throw new Error("Tenant ID & Industry ID required");
 
   const IndustryModel = await IndustryTypeModel(tenantID);
 
-  // Fast check + update in one query (atomic & fastest)
+  // Lazy-load CategoryModel ONLY when needed → breaks circular dependency
+  const CategoryModel = (await import("../Category/categoryModel.js")).CategoryModel;
+  const categoryModelInstance = await CategoryModel(tenantID);
+
   const updated = await IndustryModel.findOneAndUpdate(
     { industry_unique_id },
     { $set: { ...updates, updatedAt: new Date() } },
-    { new: true, fields: { image_url: 1 } } // only get old image_url
+    { new: true, fields: { image_url: 1, is_active: 1 } }
   ).lean();
 
   if (!updated) throw new Error("Industry Type not found");
 
-  // Delete old image if new one uploaded
+  // Cascade is_active
+  if (updates.hasOwnProperty("is_active")) {
+    await categoryModelInstance.updateMany(
+      { industry_unique_id },
+      { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
+    );
+  }
+
+  // Delete old image
   if (updates.image_url && updated.image_url && updated.image_url !== updates.image_url) {
     fs.unlink(path.resolve(updated.image_url), () => {});
   }
@@ -116,21 +133,13 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
   const IndustryModel = await IndustryTypeModel(tenantID);
 
   // One query: get image_url + delete atomically
-  const doc = await IndustryModel.findOneAndDelete({ industry_unique_id })
-    .select("image_url")
-    .lean();
+  const doc = await IndustryModel.findOneAndDelete({ industry_unique_id }).select("image_url").lean();
 
   if (!doc) throw new Error("Industry Type not found");
   if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
 
   return doc;
 };
-
-
-
-
-
-
 
 // import IndustryTypeModel from "./industryTypeModel.js";
 // import fs from "fs";
@@ -229,8 +238,6 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
 //     totalPages: Math.ceil(totalCount / limit),
 //   };
 // };
-
-
 
 // export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
 //   throwIfTrue(!tenantID, "Tenant ID is required");

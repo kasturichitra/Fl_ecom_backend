@@ -1,5 +1,6 @@
 import {
   addAddressService,
+  employeCreateService,
   loginUserService,
   registerUserService,
   updateUserAddressService,
@@ -8,36 +9,25 @@ import {
 
 export const registerUserController = async (req, res) => {
   try {
-    const { username, email, phone_number, password } = req.body;
     const tenantId = req.headers["x-tenant-id"];
+    const { username, email, phone_number, password } = req.body;
 
-    if (!username || !email || !phone_number || !password) {
-      return res.status(400).json({
-        status: "failed",
-        message: "All fields (username, email, phone_number, password) are required",
-      });
-    }
+    if (!username || !email || !phone_number || !password)
+      return res.status(400).json({ status: "failed", message: "All fields are required" });
 
     const user = await registerUserService(tenantId, username, email, password, phone_number);
 
-    res.status(201).json({
-      status: "success",
-      message: "User registered successfully",
-      user,
-    });
+    res.status(201).json({ status: "success", message: "User registered successfully", user });
   } catch (error) {
-    console.error("Registration failed:", error);
-    res.status(400).json({
-      status: "failed",
-      message: error.message,
-    });
+    res.status(400).json({ status: "failed", message: error.message });
   }
 };
 
 export const loginUserController = async (req, res) => {
   try {
-    const { email, password } = req.body;
     const tenantId = req.headers["x-tenant-id"];
+    const { email, password } = req.body;
+
     const userData = await loginUserService(tenantId, email, password);
     res.json(userData);
   } catch (error) {
@@ -49,13 +39,9 @@ export const updateUserController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
-    const image = req.file ? req.file.path : undefined;
-
-    if (image) {
-      updateData.image = image;
-    }
+    if (req.file) updateData.image = req.file.path;
 
     const updatedUser = await updateUserService(tenantId, id, updateData);
     res.status(200).json({ status: "Success", data: updatedUser });
@@ -67,34 +53,20 @@ export const updateUserController = async (req, res) => {
 export const addAddressController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { user_id } = req.params; // user_id passed in URL
-    const addressData = req.body; // address fields from body
+    const { user_id } = req.params;
 
-    if (!tenantId) {
-      return res.status(400).json({ status: "Failed", message: "Tenant ID is required" });
-    }
+    if (!tenantId || !user_id)
+      return res.status(400).json({ status: "Failed", message: "Tenant ID & User ID required" });
 
-    if (!user_id) {
-      return res.status(400).json({ status: "Failed", message: "User ID is required" });
-    }
+    const updatedUser = await addAddressService(tenantId, user_id, req.body);
 
-    if (!addressData || Object.keys(addressData).length === 0) {
-      return res.status(400).json({ status: "Failed", message: "Address data is required" });
-    }
-
-    const updatedUser = await addAddressService(tenantId, user_id, addressData);
-
-    return res.status(200).json({
+    res.status(200).json({
       status: "Success",
       message: "Address added successfully",
       data: updatedUser,
     });
   } catch (error) {
-    console.error("Add Address Controller Error:", error.message);
-    return res.status(500).json({
-      status: "Failed",
-      message: error.message || "Internal Server Error",
-    });
+    res.status(500).json({ status: "Failed", message: error.message });
   }
 };
 
@@ -102,16 +74,13 @@ export const updateUserAddressController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const { id, address_id } = req.params;
-    const addressData = req.body.address || req.body;
 
-    if (!tenantId) {
-      return res.status(400).json({
-        status: "failed",
-        message: "Tenant ID is required in headers",
-      });
-    }
-
-    const updatedUser = await updateUserAddressService(tenantId, id, address_id, addressData);
+    const updatedUser = await updateUserAddressService(
+      tenantId,
+      id,
+      address_id,
+      req.body.address || req.body
+    );
 
     res.status(200).json({
       status: "success",
@@ -119,10 +88,25 @@ export const updateUserAddressController = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Address update error:", error.message);
-    res.status(400).json({
-      status: "failed",
-      message: error.message,
+    res.status(400).json({ status: "failed", message: error.message });
+  }
+};
+
+export const employeCreateController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await employeCreateService(tenantId, req.body);
+
+    res.status(201).json({
+      status: "Success",
+      message: "Employee created successfully",
+      data: response,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "Failed",
+      message: "Failed to create employee",
+      error: error.message,
     });
   }
 };
