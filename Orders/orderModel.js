@@ -25,7 +25,7 @@ export const addressSchema = new mongoose.Schema({
     type: String,
     trim: true,
     required: true,
-  }, 
+  },
   state: {
     type: String,
     trim: true,
@@ -81,10 +81,14 @@ const orderSchema = new mongoose.Schema(
   {
     user_id: {
       type: String,
-      required: true,
+      // required: true,
       trim: true,
     },
-
+    order_type: {
+      type: String,
+      enum: ["Online", "Offline"],
+      required: true,
+    },
     // Move these OUT of the array
     payment_status: {
       type: String,
@@ -93,8 +97,12 @@ const orderSchema = new mongoose.Schema(
     },
     payment_method: {
       type: String,
-      enum: ["COD", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
+      enum: ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
       required: true,
+    },
+    cash_on_delivery: {
+      type: Boolean,
+      default: false,
     },
     transaction_id: {
       type: String,
@@ -109,6 +117,16 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
       default: "Pending",
+    },
+
+    // Customer details for offline orders
+    customer_name: {
+      type: String,
+      trim: true,
+    },
+    mobile_number: {
+      type: String,
+      trim: true,
     },
 
     order_products: [
@@ -128,6 +146,7 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 const OrdersModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.Orders || db.model("Orders", orderSchema);
