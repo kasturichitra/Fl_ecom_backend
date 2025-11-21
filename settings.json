@@ -1,0 +1,6 @@
+{
+  "editor.foldingStrategy": "indentation",
+  "editor.showFoldingControls": "always",
+  "editor.minimap.enabled": true,
+  "editor.occurrencesHighlight": true
+}
