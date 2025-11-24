@@ -13,7 +13,7 @@ export const createBrandController = async (req, res) => {
     const brand_image = req.file ? req.file.path : undefined;
 
     // If multiple files:
-    const brand_images = req.files.length ? req.files.map((f) => f.path) : [];
+    const brand_images = req.files ? req.files.map((f) => f.path) : [];
 
     parsedData = {
       ...parsedData,
