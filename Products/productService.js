@@ -114,6 +114,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
       { country_of_origin: { $regex: searchTerm, $options: "i" } },
       { brand_unique_id: { $regex: searchTerm, $options: "i" } },
       { category_unique_id: { $regex: searchTerm, $options: "i" } },
+      { industry_unique_id: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
