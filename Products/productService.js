@@ -18,15 +18,14 @@ export const createProductService = async (tenantId, productData) => {
   // Parse the attributes which come as text field in form data into true JSON Data
   productData = parseFormData(productData, "product_attributes");
 
-  const { isValid, message } = validateProductData(productData);
-  throwIfTrue(!isValid, message);
-
   const CategoryModelDB = await CategoryModel(tenantId);
 
   const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
+
+  productData.industry_unique_id = existingCategory.industry_unique_id;
 
   // const existingBrand = await CategoryModel(tenantId).findOne({
   //   brand_unique_id: productData.brand_unique_id,
@@ -40,6 +39,9 @@ export const createProductService = async (tenantId, productData) => {
   });
 
   throwIfTrue(existingProduct, "Product with unique id already exists");
+
+  const { isValid, message } = validateProductData(productData);
+  throwIfTrue(!isValid, message);
 
   const newProduct = await productModelDB.create(productData);
   return newProduct;
@@ -59,6 +61,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     product_color,
     product_size,
     category_unique_id,
+    industry_unique_id,
     barcode,
     stock_availability,
     cash_on_delivery,
@@ -74,7 +77,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
-  
+
   const skip = (page - 1) * limit;
 
   const query = {};
@@ -90,6 +93,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (product_color) query.product_color = product_color;
   if (product_size) query.product_size = product_size;
   if (category_unique_id) query.category_unique_id = category_unique_id;
+  if (industry_unique_id) query.industry_unique_id = industry_unique_id;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
@@ -131,7 +135,6 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  // const data = await productModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
   const data = await productModelDB.aggregate([
     { $match: query },
     {
@@ -332,6 +335,8 @@ export const createBulkProductsService = async (tenantId, filePath) => {
         });
         continue;
       }
+
+      valid[i].industry_unique_id = existingCategory.industry_unique_id;
 
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });

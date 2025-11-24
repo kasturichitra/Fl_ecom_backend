@@ -6,6 +6,11 @@ const productValidationSchema = Joi.object({
     "string.empty": "Category unique ID cannot be empty.",
   }),
 
+  industry_unique_id: Joi.string().required().messages({
+    "any.required": "Industry unique ID is required.",
+    "string.empty": "Industry unique ID cannot be empty.",
+  }),
+
   product_unique_id: Joi.string().required().messages({
     "any.required": "Product unique ID is required.",
     "string.empty": "Product unique ID cannot be empty.",

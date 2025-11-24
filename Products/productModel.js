@@ -12,6 +12,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    industry_unique_id: {
+      type: String,
+      required: true,
+    }, 
     product_unique_id: {
       type: String,
       required: true,
