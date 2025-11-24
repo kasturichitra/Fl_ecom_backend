@@ -116,7 +116,7 @@ export const getReviewByIdService = async (tenantId, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);
-  const response = await productReviewsModelDB.findOne({ product_unique_id });
+  const response = await productReviewsModelDB.find({ product_unique_id });
 
   return response;
 };
