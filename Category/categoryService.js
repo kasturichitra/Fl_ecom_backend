@@ -1,4 +1,5 @@
 import { generateExcelTemplate } from "../Products/config/generateExcelTemplate.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 import { extractExcel, transformCategoryRow, transformRow, validateRow } from "../utils/etl.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
@@ -34,7 +35,7 @@ export const createCategoryService = async (
 };
 
 //this function is to search category with pagination
-export const getAllCategoriesService = async (tenantId, filters, search, page = 1, limit = 10) => {
+export const getAllCategoriesService = async (tenantId, filters, search, page = 1, limit = 10, sortParam) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const skip = (page - 1) * limit;
@@ -62,8 +63,9 @@ export const getAllCategoriesService = async (tenantId, filters, search, page = 
     ];
   }
 
+  const sortObj = buildSortObject(sortParam);
   const [categoryData, totalCount] = await Promise.all([
-    categoryModelDB.find(query).skip(skip).limit(+limit).sort({ createdAt: -1 }).lean(),
+    categoryModelDB.find(query).skip(skip).limit(+limit).sort(sortObj).lean(),
     categoryModelDB.countDocuments(query)
   ]);
 

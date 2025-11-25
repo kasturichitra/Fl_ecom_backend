@@ -43,7 +43,7 @@ const productReviewSchema = new mongoose.Schema(
     },
     is_verified_purchase: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     status: {
       type: String,
