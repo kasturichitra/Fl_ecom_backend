@@ -42,12 +42,16 @@ export const getAllBrandsController = async (req, res) => {
     const filters = req.query;
     const tenantId = req.headers["x-tenant-id"];
 
-    const response = await getAllBrandsService(tenantId, filters);
+    const { totalCount, page, limit, totalPages, data } = await getAllBrandsService(tenantId, filters);
 
     res.status(200).json({
       status: "Success",
       message: "Fetched brands successfully",
-      data: response,
+      totalCount,
+      page,
+      limit,
+      totalPages,
+      data,
     });
   } catch (error) {
     console.error("Get All Brands Error ===>", error.message);

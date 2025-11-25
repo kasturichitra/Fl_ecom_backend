@@ -75,7 +75,7 @@ export const getAllBrandsService = async (tenantID, filters) => {
     page,
     limit,
     totalPages: Math.ceil(totalCount / limit),
-    brands,
+    data: brands,
   };
 };
 
