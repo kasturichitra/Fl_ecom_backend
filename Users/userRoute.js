@@ -2,6 +2,8 @@ import express from "express";
 import {
   addAddressController,
   employeCreateController,
+  getAllUsersController,
+  getUserByIdController,
   loginUserController,
   registerUserController,
   updateUserAddressController,
@@ -19,6 +21,9 @@ const upload = getUploadMiddleware("user");
 route.post("/register", registerUserController);
 route.post("/login", loginUserController);
 
+route.get("/user", getAllUsersController);
+route.get("/user/:id", getUserByIdController)
+
 // User Update
 route.put("/:id", verifyToken, upload.single("image"), updateUserController);
 
@@ -27,7 +32,9 @@ route.post("/:user_id/address", verifyToken, addAddressController);
 route.put("/:id/address/:address_id", verifyToken, updateUserAddressController);
 
 // Employee Create (Admin only)
-route.post("/employe", verifyToken, verifyAdmin, employeCreateController);
+route.post("/employe", verifyToken, 
+  // ?verifyAdmin, 
+  employeCreateController);
 
 export default route;
 

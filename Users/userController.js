@@ -1,6 +1,8 @@
 import {
   addAddressService,
   employeCreateService,
+  getAllUsersService,
+  getUserByIdService,
   loginUserService,
   registerUserService,
   updateUserAddressService,
@@ -34,6 +36,30 @@ export const loginUserController = async (req, res) => {
     res.status(401).json({ message: error.message });
   }
 };
+
+export const getAllUsersController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const { totalCount, currentPage, totalPages, limit, data } = await getAllUsersService(tenantId, filters);
+    res.status(200).json({ status: "Success", totalCount, currentPage, totalPages, limit, data });
+  } catch (error) {
+    res.status(400).json({ status: "Failed", message: error.message });
+  }
+};
+
+export const getUserByIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id } = req.params;
+
+    const user = await getUserByIdService(tenantId, id);
+    res.status(200).json({ status: "Success", data: user });
+  } catch (error) {
+    res.status(400).json({ status: "Failed", message: error.message });
+  }
+}
 
 export const updateUserController = async (req, res) => {
   try {
@@ -75,12 +101,7 @@ export const updateUserAddressController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     const { id, address_id } = req.params;
 
-    const updatedUser = await updateUserAddressService(
-      tenantId,
-      id,
-      address_id,
-      req.body.address || req.body
-    );
+    const updatedUser = await updateUserAddressService(tenantId, id, address_id, req.body.address || req.body);
 
     res.status(200).json({
       status: "success",
