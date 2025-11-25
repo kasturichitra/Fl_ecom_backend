@@ -48,7 +48,7 @@ const orderUpdateSchema = Joi.object({
     "any.only": "Invalid payment status.",
   }),
 
-  payment_method: Joi.string().valid("COD", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet").messages({
+  payment_method: Joi.string().valid("Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet").messages({
     "string.base": "Payment method must be a string.",
     "any.only": "Invalid payment method.",
   }),

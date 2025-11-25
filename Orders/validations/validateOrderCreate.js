@@ -86,7 +86,7 @@ export const orderValidationSchema = Joi.object({
   }),
 
   payment_method: Joi.string()
-    .valid("COD", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet")
+    .valid("Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet")
     .required()
     .messages({
       "any.required": "Payment method is required.",
