@@ -1,4 +1,3 @@
-
 import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import {
@@ -50,8 +49,9 @@ export const createCategoryController = async (req, res) => {
     });
   } catch (error) {
     safeDelete(filePath);
-    res.status(error.message.includes("required") || error.message.includes("exists") ? 400 : 500)
-       .json({ status: "failed", message: error.message });
+    res
+      .status(error.message.includes("required") || error.message.includes("exists") ? 400 : 500)
+      .json({ status: "failed", message: error.message });
   }
 };
 
@@ -63,14 +63,15 @@ export const getAllCategoriesController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     throwIfTrue(!tenantId, "Tenant ID is required");
 
-    const { page = 1, limit = 10, search, ...filters } = req.query;
+    const { page = 1, limit = 10, search, sort, ...filters } = req.query;
 
     const { categoryData, totalCount } = await getAllCategoriesService(
       tenantId,
       filters,
       search?.trim(),
       +page,
-      +limit
+      +limit,
+      sort
     );
 
     res.json({

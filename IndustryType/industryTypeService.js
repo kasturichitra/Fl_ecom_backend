@@ -2,6 +2,7 @@ import IndustryTypeModel from "./industryTypeModel.js";
 import fs from "fs";
 import path from "path";
 import throwIfTrue from "../utils/throwIfTrue.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
@@ -39,7 +40,8 @@ export const getIndustrysSearchServices = async (
   startDate,
   endDate,
   page = 1,
-  limit = 10
+  limit = 10,
+  sortParam
 ) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
@@ -74,9 +76,9 @@ export const getIndustrysSearchServices = async (
         ],
       }
     : filter;
-
+  const sortObj = buildSortObject(sortParam);
   const [industryData, totalCount] = await Promise.all([
-    IndustryModel.find(query).skip(skip).limit(+limit).sort({ createdAt: -1 }).lean(),
+    IndustryModel.find(query).skip(skip).limit(+limit).sort(sortObj).lean(),
     IndustryModel.countDocuments(query),
   ]);
 

@@ -52,7 +52,8 @@ export const getIndustrysSearchController = async (req, res) => {
       req.query.startDate,
       req.query.endDate,
       +req.query.page || 1,
-      +req.query.limit || 10
+      +req.query.limit || 10,
+       req.query.sort
     );
 
     res.json({
