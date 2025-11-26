@@ -4,7 +4,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js", 
+    "start": "nodemon server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],
@@ -24,8 +24,10 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
     "mongoose": "^8.19.3",
+    "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "nodemon": "^3.1.10",
+    "rotating-file-stream": "^3.2.7",
     "socket.io": "^4.8.1"
   }
 }
