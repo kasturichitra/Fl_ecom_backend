@@ -5,6 +5,7 @@ import BrandModel from "./brandModel.js";
 import { validateBrandCreate } from "./validations/validateBrandCreate.js";
 import { validateBrandUpdate } from "./validations/validateBrandUpdate.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { CategoryModel } from "../Category/categoryModel.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData) => {
@@ -35,6 +36,7 @@ export const getAllBrandsService = async (tenantID, filters) => {
     brand_unique_id,
     is_active,
     categories, // comma separated: "catId1,catId2"
+    category_unique_id,
     page = 1,
     limit = 10,
     sort, // "brand_name:asc,createdAt:desc"
@@ -43,6 +45,7 @@ export const getAllBrandsService = async (tenantID, filters) => {
   const skip = (page - 1) * limit;
 
   const brandModelDB = await BrandModel(tenantID);
+  const categoryModelDB = await CategoryModel(tenantID);
   const query = {};
 
   // Direct match
@@ -62,6 +65,20 @@ export const getAllBrandsService = async (tenantID, filters) => {
   if (categories) {
     const catIds = categories.split(",");
     query.categories = { $in: catIds };
+  }
+
+  if (category_unique_id) {
+    const categoryDoc = await categoryModelDB.findOne({ category_unique_id });
+
+    if (categoryDoc) {
+      query.categories = {
+        ...(query.categories || {}),
+        $in: [...(query.categories?.$in || []), categoryDoc._id],
+      };
+    } else {
+      // No category found; force empty result
+      query.categories = { $in: [] };
+    }
   }
 
   /// Sorting logic
