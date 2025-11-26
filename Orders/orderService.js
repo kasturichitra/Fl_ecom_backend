@@ -1,6 +1,7 @@
 import ProductModel from "../Products/productModel.js";
 import UserModel from "../Users/userModel.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import generateNextOrderId from "../utils/generateOrderId.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";
@@ -42,7 +43,14 @@ export const createOrderServices = async (tenantId, payload) => {
   }
 
   const { order_products = [] } = payload;
-
+  const currectDate = new Date();
+  
+  const lastOrderId = await OrderModelDB.findOne({
+    order_create_date: {
+      $gte: new Date(currectDate.setHours(0, 0, 0, 0)),
+      $lt: new Date(currectDate.setHours(23, 59, 59, 999)),
+    },
+  }).sort({ createdAt: -1 });
   // Compute totals
   const subtotal = order_products.reduce((sum, item) => sum + item.total_price, 0);
   // const tax_amount = Number(payload.tax_amount ?? 0);
@@ -51,6 +59,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
   const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
+  const order_id = generateNextOrderId(lastOrderId?.order_id);
 
   // Design a ready to go order Doc to send to db
   const orderDoc = {
@@ -61,6 +70,7 @@ export const createOrderServices = async (tenantId, payload) => {
     shipping_charges,
     total_amount,
     // tax_amount,
+    order_id,
   };
 
   // Do schema validation on order Doc
@@ -331,7 +341,7 @@ export const getOrderProductService = async (tenantId, orderId) => {
   const Product = await ProductModel(tenantId);
 
   //  Get order
-  const order = await Order.findOne({ _id: orderId });
+  const order = await Order.findOne({ order_id: orderId });
   if (!order) throw new Error("Order not found");
 
   //  Extract product_unique_ids from order

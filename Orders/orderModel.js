@@ -88,6 +88,10 @@ const orderSchema = new mongoose.Schema(
       // required: true,
       trim: true,
     },
+    order_id: {
+      type: String,
+      required: true,
+    },
     order_type: {
       type: String,
       enum: ["Online", "Offline"],

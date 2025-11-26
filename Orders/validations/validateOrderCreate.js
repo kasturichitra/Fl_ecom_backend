@@ -80,7 +80,9 @@ export const orderValidationSchema = Joi.object({
     "any.only": "Order type must be Online or Offline.",
     "any.required": "Order type is required.",
   }),
-
+  order_id: Joi.string().trim().allow(null, "").messages({
+    "string.base": "Order ID must be a string.",
+  }),
   payment_status: Joi.string().valid("Pending", "Paid", "Failed", "Refunded").default("Pending").messages({
     "any.only": "Payment status is invalid.",
   }),
