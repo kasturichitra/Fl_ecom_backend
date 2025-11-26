@@ -62,6 +62,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     product_size,
     category_unique_id,
     industry_unique_id,
+    brand_unique_id,
     barcode,
     stock_availability,
     cash_on_delivery,
@@ -94,6 +95,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (product_size) query.product_size = product_size;
   if (category_unique_id) query.category_unique_id = category_unique_id;
   if (industry_unique_id) query.industry_unique_id = industry_unique_id;
+  if (brand_unique_id) query.brand_unique_id = brand_unique_id;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
