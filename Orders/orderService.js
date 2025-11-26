@@ -322,3 +322,35 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
   return updatedOrder;
 };
+
+export const getOrderProductService = async (tenantId, orderId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!orderId, "Valid Order ID is required");
+
+  const Order = await OrdersModel(tenantId);
+  const Product = await ProductModel(tenantId);
+
+  //  Get order
+  const order = await Order.findOne({ _id: orderId });
+  if (!order) throw new Error("Order not found");
+
+  //  Extract product_unique_ids from order
+  const ids = order.order_products.map((p) => p.product_unique_id);
+
+  //  Get matching products in one query
+  const products = await Product.find({ product_unique_id: { $in: ids } });
+
+  // 4. Attach product object
+  const mergedProducts = order.order_products.map((item) => ({
+    ...item.toObject(),
+    product_details: products.find(
+      (prod) => prod.product_unique_id === item.product_unique_id
+    ) || null,
+  }));
+
+  return {
+    ...order.toObject(),
+    order_products: mergedProducts,
+  };
+};
+

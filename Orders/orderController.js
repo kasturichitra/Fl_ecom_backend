@@ -3,6 +3,7 @@ import {
   getAllUserOrdersServices,
   getAllOrdersService,
   updateOrderService,
+  getOrderProductService,
 } from "./orderService.js";
 
 export const createOrderController = async (req, res) => {
@@ -106,3 +107,28 @@ export const updateOrderController = async (req, res) => {
     });
   }
 };
+
+
+export const getOrderProductController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id:orderId } = req.params;
+
+    // Logic to get products for the given orderId
+    const products = await getOrderProductService(tenantId, orderId);
+    return res.status(200).json({
+      status: "success",
+      message: "Order products fetched successfully",
+      data: products,
+    });
+  }
+  catch (error) {
+    console.error("Get order products failed:", error.message);
+    return res.status(500).json({
+      status: "failed",
+      message: "Failed to fetch order products",
+      error: error.message,
+    });
+  }
+};
+
