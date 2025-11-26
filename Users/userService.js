@@ -5,6 +5,7 @@ import generateToken from "../utils/generateToken.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import UserModel from "./userModel.js";
 import { validateUserCreate } from "./validationUser.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 export const registerUserService = async (tenantId, username, email, password, phone_number) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -34,6 +35,80 @@ export const loginUserService = async (tenantId, email, password) => {
   throwIfTrue(!(await bcrypt.compare(password, user.password)), "Invalid password");
 
   return { token: generateToken(user._id), message: "Login successful", status: "Success" };
+};
+
+export const getAllUsersService = async (tenantId, filters) => {
+  let {
+    username,
+    email,
+    phone_number,
+    branch_name,
+    role,
+    is_active,
+    searchTerm,
+    page = 1,
+    limit = 10,
+    sort = "createdAt:desc",
+  } = filters;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  const skip = (page - 1) * limit;
+
+  const query = {};
+
+  if (username) query.username = username;
+  if (email) query.email = email;
+  if (phone_number) query.phone_number = phone_number;
+  if (branch_name) query.branch_name = branch_name;
+  if (role) query.role = role;
+  if (is_active !== undefined) query.is_active = is_active === "true";
+
+  if (searchTerm) {
+    query.$or = [
+      { username: { $regex: searchTerm, $options: "i" } },
+      { email: { $regex: searchTerm, $options: "i" } },
+      { phone_number: { $regex: searchTerm, $options: "i" } },
+      { branch_name: { $regex: searchTerm, $options: "i" } },
+      { role: { $regex: searchTerm, $options: "i" } },
+      { created_by: { $regex: searchTerm, $options: "i" } },
+      { "address.house_number": { $regex: searchTerm, $options: "i" } },
+      { "address.street": { $regex: searchTerm, $options: "i" } },
+      { "address.landmark": { $regex: searchTerm, $options: "i" } },
+      { "address.city": { $regex: searchTerm, $options: "i" } },
+      { "address.district": { $regex: searchTerm, $options: "i" } },
+      { "address.state": { $regex: searchTerm, $options: "i" } },
+      { "address.country": { $regex: searchTerm, $options: "i" } },
+      { "address.postal_code": { $regex: searchTerm, $options: "i" } },
+    ];
+  }
+
+  const sortObj = buildSortObject(sort);
+
+  const usersDB = await UserModel(tenantId);
+  const users = await usersDB.find(query).sort(sortObj).skip(skip).limit(limit);
+
+  const totalCount = await usersDB.countDocuments(query);
+
+  return {
+    totalCount,
+    currentPage: page,
+    totalPages: Math.ceil(totalCount / limit),
+    limit,
+    data: users,
+  };
+};
+
+export const getUserByIdService = async (tenantId, id) => {
+  throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
+
+  const usersDB = await UserModel(tenantId);
+  const user = await usersDB.findById(id);
+
+  user.password = undefined; 
+
+  return user; 
 };
 
 export const updateUserService = async (tenantId, user_id, updateData) => {

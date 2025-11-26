@@ -86,7 +86,7 @@ export const orderValidationSchema = Joi.object({
   }),
 
   payment_method: Joi.string()
-    .valid("COD", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet")
+    .valid("Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet")
     .required()
     .messages({
       "any.required": "Payment method is required.",
@@ -119,10 +119,10 @@ export const orderValidationSchema = Joi.object({
     "any.required": "Order products are required.",
   }),
 
-  tax_amount: Joi.number().min(0).default(0).messages({
-    "number.base": "Tax amount must be a number.",
-    "number.min": "Tax amount cannot be negative.",
-  }),
+  // tax_amount: Joi.number().min(0).default(0).messages({
+  //   "number.base": "Tax amount must be a number.",
+  //   "number.min": "Tax amount cannot be negative.",
+  // }),
 
   subtotal: Joi.number().min(0).required().messages({
     "number.base": "Subtotal must be a number.",

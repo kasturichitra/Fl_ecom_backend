@@ -45,9 +45,9 @@ export const createOrderServices = async (tenantId, payload) => {
 
   // Compute totals
   const subtotal = order_products.reduce((sum, item) => sum + item.total_price, 0);
-  const tax_amount = Number(payload.tax_amount ?? 0);
+  // const tax_amount = Number(payload.tax_amount ?? 0);
   const shipping_charges = Number(payload.shipping_charges ?? 0);
-  const total_amount = subtotal + tax_amount + shipping_charges;
+  const total_amount = subtotal + shipping_charges;
 
   const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
   const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
@@ -60,7 +60,7 @@ export const createOrderServices = async (tenantId, payload) => {
     subtotal,
     shipping_charges,
     total_amount,
-    tax_amount,
+    // tax_amount,
   };
 
   // Do schema validation on order Doc
