@@ -11,6 +11,7 @@ import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
 import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
 import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import BrandModel from "../Brands/brandModel.js";
 
 export const createProductService = async (tenantId, productData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -19,18 +20,17 @@ export const createProductService = async (tenantId, productData) => {
   productData = parseFormData(productData, "product_attributes");
 
   const CategoryModelDB = await CategoryModel(tenantId);
-
+  const BrandModelDB = await BrandModel(tenantId);
+  const findBrand= await BrandModelDB.findOne({
+    brand_unique_id: productData.brand_unique_id,
+  });
+  throwIfTrue(!findBrand, `Brand not found with id: ${productData.brand_unique_id}`);
   const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
 
   productData.industry_unique_id = existingCategory.industry_unique_id;
-
-  // const existingBrand = await CategoryModel(tenantId).findOne({
-  //   brand_unique_id: productData.brand_unique_id,
-  // });
-  // throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
 
   const productModelDB = await ProductModel(tenantId);
 
@@ -42,7 +42,7 @@ export const createProductService = async (tenantId, productData) => {
 
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
-
+  productData.brand_name = findBrand.brand_name;
   const newProduct = await productModelDB.create(productData);
   return newProduct;
 };

@@ -10,7 +10,7 @@ import {
 const route = express.Router();
 
 route.post("/", createOrderController);
-route.get("/userOrders/:id", getAllUserOrdersController);
+// route.get("/userOrders/:id", getAllUserOrdersController);
 route.get("/search", getAllOrdersController);
 route.get("/:id", getOrderProductController);
 route.put("/:id", updateOrderController);
