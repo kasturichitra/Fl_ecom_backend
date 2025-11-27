@@ -44,7 +44,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   const { order_products = [] } = payload;
   const currectDate = new Date();
-  
+
   const lastOrderId = await OrderModelDB.findOne({
     order_create_date: {
       $gte: new Date(currectDate.setHours(0, 0, 0, 0)),
@@ -73,9 +73,21 @@ export const createOrderServices = async (tenantId, payload) => {
     order_id,
   };
 
+  // Remove save_addres from orderDoc to prevent validation error
+  delete orderDoc.save_addres;
+
+
   // Do schema validation on order Doc
   const { isValid, message } = validateOrderCreate(orderDoc);
   throwIfTrue(!isValid, message);
+  //save_addres means save the address in user collection
+  if (payload.save_addres) {
+    if (payload.save_addres && userDoc) {
+      userDoc.address.push(payload.address);
+      await userDoc.save();
+    }
+  }
+  // console.log(orderDoc, "orderDoc");
 
   const order = await OrderModelDB.create(orderDoc);
 
@@ -130,6 +142,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
 
   let {
     searchTerm,
+    user_id,
     from,
     to,
     payment_status,
@@ -153,6 +166,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       $lte: new Date(to),
     };
   }
+  if (user_id) query.user_id = user_id;
   if (payment_status) query.payment_status = payment_status;
   if (order_type) query.order_type = order_type;
   if (payment_method) query.payment_method = payment_method;
