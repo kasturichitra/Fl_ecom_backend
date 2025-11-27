@@ -5,6 +5,7 @@ import {
   getUserByIdService,
   loginUserService,
   registerUserService,
+  storeFcmTokenService,
   updateUserAddressService,
   updateUserService,
 } from "./userService.js";
@@ -59,7 +60,7 @@ export const getUserByIdController = async (req, res) => {
   } catch (error) {
     res.status(400).json({ status: "Failed", message: error.message });
   }
-}
+};
 
 export const updateUserController = async (req, res) => {
   try {
@@ -132,5 +133,17 @@ export const employeCreateController = async (req, res) => {
       message: "Failed to create employee",
       error: error.message,
     });
+  }
+};
+
+export const storeFcmTokenController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: user_id } = req.params;
+    const { fcm_token } = req.body;
+    const response = await storeFcmTokenService(tenantId, user_id, fcm_token);
+    res.status(200).json({ status: "Success", data: response });
+  } catch (error) {
+    res.status(500).json({ status: "Failed", message: error.message });
   }
 };

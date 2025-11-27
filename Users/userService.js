@@ -178,3 +178,12 @@ export const employeCreateService = async (tenantId, userData) => {
   const usersDB = await UserModel(tenantId);
   return await usersDB.create(userData);
 };
+
+export const storeFcmTokenService = async (tenantId, user_id, token) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+
+  const usersDB = await UserModel(tenantId);
+  const result = await usersDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
+
+  return result;
+}
