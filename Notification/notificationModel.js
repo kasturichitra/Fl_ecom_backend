@@ -3,21 +3,21 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 const notificationSchema = new mongoose.Schema(
   {
-    sender: {
+    sender: {//sender is the user who will send the notification
       type: String,
       required: [true, "Sender ID is required"],
     },
-    senderModel: {
+    senderModel: {//senderModel is the model of the user who will send the notification
       type: String,
       required: [true, "Sender model is required"],
       enum: ["User", "Admin"],
     },
 
-    receiver: {
+    receiver: {//receiver is the user who will receive the notification
       type: mongoose.Schema.Types.ObjectId,
       refPath: "receiverModel",
     },
-    receiverModel: {
+    receiverModel: {//receiverModel is the model of the user who will receive the notification
       type: String,
       enum: ["User", "Admin"],
     },
@@ -53,12 +53,12 @@ const notificationSchema = new mongoose.Schema(
       default: "custom",
     },
 
-    relatedId: {
+    relatedId: {//relatedId is the id of the related model
       type: mongoose.Schema.Types.ObjectId,
       refPath: "relatedModel",
     },
 
-    relatedModel: {
+    relatedModel: {//relatedModel is the model of the related model
       type: String,
       enum: ["Order", "OfferBanner"],
     },

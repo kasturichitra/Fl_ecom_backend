@@ -25,7 +25,6 @@ export const sendUserNotification = async (tenantID, userId, data) => {
     const socketId = connectedUsers.get(userId);
     if (socketId) {
       io.to(socketId).emit("newNotification", saved);
-      console.log(`Sent notification to user ${userId}`);
     }
 
     return saved;
@@ -52,13 +51,7 @@ export const sendAdminNotification = async (tenantID, data) => {
       is_broadcast: true,
     });
 
-    for (const [key, socketId] of connectedUsers.entries()) {
-      if (key.startsWith("admin_")) {
-        io.to(socketId).emit("newAdminNotification", saved);
-      }
-    }
-
-    console.log("Broadcasted admin notification");
+    io.to("admins").emit("newAdminNotification", saved);
     return saved;
   } catch (err) {
     console.error("SendAdminNotification error:", err.message);

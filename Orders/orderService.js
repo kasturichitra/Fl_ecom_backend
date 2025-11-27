@@ -46,7 +46,7 @@ export const createOrderServices = async (tenantId, payload) => {
   const currectDate = new Date();
 
   const lastOrderId = await OrderModelDB.findOne({
-    order_create_date: {
+    createdAt: {
       $gte: new Date(currectDate.setHours(0, 0, 0, 0)),
       $lt: new Date(currectDate.setHours(23, 59, 59, 999)),
     },
@@ -100,30 +100,34 @@ export const createOrderServices = async (tenantId, payload) => {
       title: "Order Placed Successfully",
       message: `Your order  has been placed successfully!`,
       type: "order",
-      relatedId: order._id,
+      relatedId: order.order_id,
       relatedModel: "Order",
-      link: `/orders/${order._id}`,
+      link: `/orders/${order.order_id}`,
       data: {
-        orderId: order._id,
+        orderId: order.order_id,
         total: order.total_amount,
       },
     });
   }
 
   // Admin Notification
-  await sendAdminNotification(tenantId, {
-    title: "New Order Received",
-    message: `New order from user ${username}. Total: ₹${order.total_amount}`,
-    type: "order",
-    relatedId: order._id,
-    relatedModel: "Order",
-    link: `/admin/orders/${order._id}`,
-    data: {
-      orderId: order._id,
-      userId: order.user_id,
-      amount: order.total_amount,
-    },
-  });
+  if (order.order_type === "online") {
+    await sendAdminNotification(tenantId, {
+      title: "New Order Received",
+      message: `New order from user ${username}. Total: ₹${order.total_amount}`,
+      type: "order",
+      relatedId: order.order_id,
+      relatedModel: "Order",
+      senderModel: "User",
+      sender: username,
+      link: `/admin/orders/${order.order_id}`,
+      data: {
+        orderId: order.order_id,
+        userId: order.user_id,
+        amount: order.total_amount,
+      },
+    });
+  };
   return order;
 };
 

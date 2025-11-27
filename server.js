@@ -15,6 +15,7 @@ import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
 import brandRoutes from "./Brands/brandRoutes.js";
+import notificationRoutes from "./Notification/notificationRoutes.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
@@ -51,10 +52,12 @@ export const connectedUsers = new Map();
 io.on("connection", (socket) => {
   console.log("✔ Socket connected:", socket.id);
 
-  socket.on("registerUser", (userId) => {
+  socket.on("registerUser", (userId, role) => {
     if (userId) {
       connectedUsers.set(userId, socket.id);
-      console.log(`🟢 User ${userId} registered with socket ${socket.id}`);
+    }
+    if (role === "Admin") {
+      socket.join("admins");
     }
   });
 
@@ -62,7 +65,6 @@ io.on("connection", (socket) => {
     for (const [userId, socketId] of connectedUsers.entries()) {
       if (socketId === socket.id) {
         connectedUsers.delete(userId);
-        console.log(`🔴 User ${userId} disconnected`);
         break;
       }
     }
@@ -88,8 +90,6 @@ if (process.env.NODE_ENV !== "production") {
 
 /* -------------------------- REST API Routes -------------------------- */
 
-app.use("/", userRoutes);
-
 app.use("/industryType", industryType);
 app.use("/category", categoryRoute);
 app.use("/products", productRoute);
@@ -99,6 +99,9 @@ app.use("/ticket", ticketRoute);
 app.use("/wishlists", wishlistRoute);
 app.use("/banners", bannerRoutes);
 app.use("/brands", brandRoutes);
+app.use("/notifications", notificationRoutes);
+
+app.use("/", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");
