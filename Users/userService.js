@@ -6,6 +6,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import UserModel from "./userModel.js";
 import { validateUserCreate } from "./validationUser.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { fcm } from "../utils/firebase-admin.js";
 
 export const registerUserService = async (tenantId, username, email, password, phone_number) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -106,9 +107,9 @@ export const getUserByIdService = async (tenantId, id) => {
   const usersDB = await UserModel(tenantId);
   const user = await usersDB.findById(id);
 
-  user.password = undefined; 
+  user.password = undefined;
 
-  return user; 
+  return user;
 };
 
 export const updateUserService = async (tenantId, user_id, updateData) => {
@@ -185,5 +186,15 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
   const usersDB = await UserModel(tenantId);
   const result = await usersDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
 
+  // const updatedUser = await usersDB.findOne({ _id: user_id });
+
+  // fcm.send({
+  //   token: updatedUser.fcm_token,
+  //   notification: {
+  //     title: "Title",
+  //     body: "Notification working",
+  //   },
+  // });
+
   return result;
-}
+};

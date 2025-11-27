@@ -24,7 +24,7 @@ const updateStockOnOrder = async (tenantId, products) => {
 };
 
 //  Create / update a **single** order (one payment, many items)
-export const createOrderServices = async (tenantId, payload) => {
+export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const OrderModelDB = await OrdersModel(tenantId);
@@ -96,7 +96,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   if (order.user_id) {
     // User Notification
-    await sendUserNotification(tenantId, payload.user_id, {
+    await sendUserNotification(tenantId, order.user_id, {
       title: "Order Placed Successfully",
       message: `Your order  has been placed successfully!`,
       type: "order",
@@ -112,7 +112,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   // Admin Notification
   if (order.order_type === "online") {
-    await sendAdminNotification(tenantId, {
+    await sendAdminNotification(tenantId, adminId, {
       title: "New Order Received",
       message: `New order from user ${username}. Total: ₹${order.total_amount}`,
       type: "order",

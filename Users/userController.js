@@ -144,6 +144,7 @@ export const storeFcmTokenController = async (req, res) => {
     const response = await storeFcmTokenService(tenantId, user_id, fcm_token);
     res.status(200).json({ status: "Success", data: response });
   } catch (error) {
+    console.error("Error in storeFcmTokenController ===>", error);
     res.status(500).json({ status: "Failed", message: error.message });
   }
 };
