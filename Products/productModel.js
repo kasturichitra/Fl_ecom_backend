@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema(
     industry_unique_id: {
       type: String,
       required: true,
-    }, 
+    },
     product_unique_id: {
       type: String,
       required: true,
@@ -25,8 +25,11 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    brand_name:{
-      type:String
+    brand_name: {
+      type: String,
+    },
+    category_name: {
+      type: String,
     },
 
     // Basic Info

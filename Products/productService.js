@@ -21,14 +21,20 @@ export const createProductService = async (tenantId, productData) => {
 
   const CategoryModelDB = await CategoryModel(tenantId);
   const BrandModelDB = await BrandModel(tenantId);
-  const findBrand= await BrandModelDB.findOne({
+  const existingBrand = await BrandModelDB.findOne({
     brand_unique_id: productData.brand_unique_id,
   });
-  throwIfTrue(!findBrand, `Brand not found with id: ${productData.brand_unique_id}`);
+  throwIfTrue(
+    !existingBrand,
+    `Brand not found with id: ${productData.brand_unique_id}`
+  );
   const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
-  throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
+  throwIfTrue(
+    !existingCategory,
+    `Category not found with id: ${productData.category_unique_id}`
+  );
 
   productData.industry_unique_id = existingCategory.industry_unique_id;
 
@@ -42,7 +48,8 @@ export const createProductService = async (tenantId, productData) => {
 
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
-  productData.brand_name = findBrand.brand_name;
+  productData.brand_name = existingBrand.brand_name;
+  productData.category_name = existingCategory.category_name;
   const newProduct = await productModelDB.create(productData);
   return newProduct;
 };
@@ -84,9 +91,11 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   const query = {};
 
   // --- String fields with regex ---
-  if (product_name) query.product_name = { $regex: product_name, $options: "i" };
+  if (product_name)
+    query.product_name = { $regex: product_name, $options: "i" };
   if (sku) query.sku = { $regex: sku, $options: "i" };
-  if (model_number) query.model_number = { $regex: model_number, $options: "i" };
+  if (model_number)
+    query.model_number = { $regex: model_number, $options: "i" };
 
   // --- Exact match fields ---
   if (gender) query.gender = gender;
@@ -181,7 +190,10 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 };
 
 // Get product by products unique id
-export const getProductByUniqueIdService = async (tenantId, product_unique_id) => {
+export const getProductByUniqueIdService = async (
+  tenantId,
+  product_unique_id
+) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const productModelDB = await ProductModel(tenantId);
@@ -193,7 +205,11 @@ export const getProductByUniqueIdService = async (tenantId, product_unique_id) =
   return response;
 };
 
-export const updateProductService = async (tenantId, product_unique_id, updateData) => {
+export const updateProductService = async (
+  tenantId,
+  product_unique_id,
+  updateData
+) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { isValid, message } = validateProductUpdateData(updateData);
@@ -232,10 +248,14 @@ export const updateProductService = async (tenantId, product_unique_id, updateDa
     });
   }
 
-  const response = await productModelDB.findOneAndUpdate({ product_unique_id }, updateData, {
-    new: true,
-    runValidators: true,
-  });
+  const response = await productModelDB.findOneAndUpdate(
+    { product_unique_id },
+    updateData,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 
   return response;
 };
@@ -273,15 +293,23 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
 };
 
 // This is to download excel template
-export const downloadExcelTemplateService = async (tenantId, category_unique_id) => {
+export const downloadExcelTemplateService = async (
+  tenantId,
+  category_unique_id
+) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const CategoryModelDB = await CategoryModel(tenantId);
 
   const categoryData = await CategoryModelDB.findOne({ category_unique_id });
-  throwIfTrue(!categoryData, `Category not found with id: ${category_unique_id}`);
+  throwIfTrue(
+    !categoryData,
+    `Category not found with id: ${category_unique_id}`
+  );
 
-  const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : undefined;
+  const categoryDbAttributes = categoryData.attributes.length
+    ? categoryData.attributes
+    : undefined;
 
   const dynamicHeaders = categoryDbAttributes.map((attr) => ({
     header: `attr_${attr.name} *`,
@@ -289,14 +317,20 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
     width: 30,
   }));
 
-  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders], category_unique_id);
+  const response = generateExcelTemplate(
+    [...staticExcelHeaders, ...dynamicHeaders],
+    category_unique_id
+  );
   return response;
 };
 
 export const createBulkProductsService = async (tenantId, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath, "File Path is required");
-  throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
+  throwIfTrue(
+    !filePath.endsWith(".xlsx"),
+    "Invalid file format - Plz provide only xlsx file"
+  );
 
   const extracted = await extractExcel(filePath, staticExcelHeaders);
 
@@ -321,20 +355,34 @@ export const createBulkProductsService = async (tenantId, filePath) => {
       // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
       // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
 
-      const existingCategory = await CategoryModelDB.findOne({ category_unique_id: valid[i].category_unique_id });
+      const existingCategory = await CategoryModelDB.findOne({
+        category_unique_id: valid[i].category_unique_id,
+      });
       if (!existingCategory) {
         invalid.push({
           rowNumber: i + 1,
-          errors: [{ field: "", message: `Category not found with id: ${valid[i].category_unique_id}` }],
+          errors: [
+            {
+              field: "",
+              message: `Category not found with id: ${valid[i].category_unique_id}`,
+            },
+          ],
         });
         continue;
       }
 
-      const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
+      const existingProduct = await ProductModelDB.findOne({
+        product_unique_id: valid[i].product_unique_id,
+      });
       if (existingProduct) {
         invalid.push({
           rowNumber: i + 1,
-          errors: [{ field: "", message: `Product already exists with id: ${valid[i].product_unique_id}` }],
+          errors: [
+            {
+              field: "",
+              message: `Product already exists with id: ${valid[i].product_unique_id}`,
+            },
+          ],
         });
         continue;
       }
@@ -342,7 +390,8 @@ export const createBulkProductsService = async (tenantId, filePath) => {
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
 
       const { isValid, message } = validateProductData(valid[i]);
-      if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
+      if (!isValid)
+        invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
 
       await ProductModelDB.create(valid[i]);
     }
@@ -367,7 +416,10 @@ export const getProductByIdService = async (tenantId, id) => {
 };
 
 //This function is get by products based on subCategory_unique_ID
-export const getProductsBySubUniqueIDService = async (tenantId, category_unique_id) => {
+export const getProductsBySubUniqueIDService = async (
+  tenantId,
+  category_unique_id
+) => {
   if (!tenantId) throw new Error("Tenent ID is required");
   const productModelDB = await ProductModel(tenantId);
 
