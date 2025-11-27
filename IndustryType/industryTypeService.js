@@ -53,8 +53,9 @@ export const getIndustrysSearchServices = async (
   if (industry_name) filter.industry_name = r(industry_name);
   if (industry_unique_id) filter.industry_unique_id = r(industry_unique_id);
   if (created_by) filter.created_by = r(created_by);
-  if (is_active !== undefined) filter.is_active = is_active === "true";
-
+  if (is_active === "true") filter.is_active = true;
+  if (is_active === "false") filter.is_active = false;
+  
   if (startDate || endDate) {
     filter.createdAt = {};
     if (startDate) filter.createdAt.$gte = new Date(startDate);
