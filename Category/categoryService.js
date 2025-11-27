@@ -48,7 +48,8 @@ export const getAllCategoriesService = async (tenantId, filters, search, page = 
   if (filters.category_brand) query.category_brand = r(filters.category_brand);
   if (filters.category_unique_id) query.category_unique_id = r(filters.category_unique_id);
   if (filters.industry_unique_id) query.industry_unique_id = filters.industry_unique_id;
-  if (filters.is_active !== undefined) query.is_active = filters.is_active === "true";
+  if (filters.is_active === "true") query.is_active = true;
+  if (filters.is_active === "false") query.is_active = false;
 
   if (search) {
     query.$or = [
