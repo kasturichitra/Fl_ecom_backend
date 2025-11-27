@@ -1,6 +1,7 @@
-
 import { NotificationModel } from "../Notification/notificationModel.js";
 import { io, connectedUsers } from "../server.js";
+import UserModel from "../Users/userModel.js";
+import { fcm } from "./firebase-admin.js";
 
 /**
  * Send notification to a specific user
@@ -43,7 +44,7 @@ export const sendAdminNotification = async (tenantID, data) => {
     const saved = await Notification.create({
       sender: data.sender || "System",
       senderModel: data.senderModel || "User",
-      receiver: null,
+      receiver: adminId,
       receiverModel: "Admin",
       title: data.title,
       message: data.message,
@@ -52,6 +53,19 @@ export const sendAdminNotification = async (tenantID, data) => {
     });
 
     io.to("admins").emit("newAdminNotification", saved);
+
+    const usersDB = await UserModel(tenantID);
+    const users = await usersDB.find({ role: "admin" });
+    const token = users.map((user) => user.fcm_token);
+
+    fcm.send({
+      token,
+      notification: {
+        title: data.title,
+        body: data.message,       
+      }
+    })
+
     return saved;
   } catch (err) {
     console.error("SendAdminNotification error:", err.message);

@@ -23,6 +23,8 @@ coverage/
 tmp/
 temp/
 
+utils/serviceAccountKey.json
+
 # OS-generated files
 .DS_Store
 Thumbs.db

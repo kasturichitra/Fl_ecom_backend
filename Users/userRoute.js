@@ -6,6 +6,7 @@ import {
   getUserByIdController,
   loginUserController,
   registerUserController,
+  storeFcmTokenController,
   updateUserAddressController,
   updateUserController,
 } from "./userController.js";
@@ -30,6 +31,8 @@ route.put("/:id", verifyToken, upload.single("image"), updateUserController);
 // Address
 route.post("/:user_id/address", verifyToken, addAddressController);
 route.put("/:id/address/:address_id", verifyToken, updateUserAddressController);
+
+route.put("/fcm-token/:id", storeFcmTokenController); 
 
 // Employee Create (Admin only)
 route.post("/employe", verifyToken, 
