@@ -65,7 +65,10 @@ export const updateUserController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const { id } = req.params;
-    const updateData = { ...req.body };
+    let updateData = { ...req.body };
+    if (req.body.address) {
+      updateData.address = JSON.parse(req.body.address);
+    }
 
     if (req.file) updateData.image = req.file.path;
 
