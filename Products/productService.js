@@ -21,10 +21,10 @@ export const createProductService = async (tenantId, productData) => {
 
   const CategoryModelDB = await CategoryModel(tenantId);
   const BrandModelDB = await BrandModel(tenantId);
-  const findBrand= await BrandModelDB.findOne({
+  const existingBrand = await BrandModelDB.findOne({
     brand_unique_id: productData.brand_unique_id,
   });
-  throwIfTrue(!findBrand, `Brand not found with id: ${productData.brand_unique_id}`);
+  throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
   const existingCategory = await CategoryModelDB.findOne({
     category_unique_id: productData.category_unique_id,
   });
@@ -42,7 +42,8 @@ export const createProductService = async (tenantId, productData) => {
 
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
-  productData.brand_name = findBrand.brand_name;
+  productData.brand_name = existingBrand.brand_name;
+  productData.category_name = existingCategory.category_name;
   const newProduct = await productModelDB.create(productData);
   return newProduct;
 };
@@ -117,6 +118,18 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
       { brand_unique_id: { $regex: searchTerm, $options: "i" } },
       { category_unique_id: { $regex: searchTerm, $options: "i" } },
       { industry_unique_id: { $regex: searchTerm, $options: "i" } },
+      {
+        "product_attributes.attribute_code": {
+          $regex: searchTerm,
+          $options: "i",
+        },
+      },
+      {
+        "product_attributes.value": {
+          $regex: searchTerm,
+          $options: "i",
+        },
+      },
     ];
   }
 
@@ -179,6 +192,158 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     data,
   };
 };
+
+// API for production with atlas search provided by Mongo db atlas for text search
+
+// export const getAllProductsService = async (tenantId, filters = {}) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+
+//   let {
+//     product_name,
+//     sku,
+//     model_number,
+//     gender,
+//     product_type,
+//     product_color,
+//     product_size,
+//     category_unique_id,
+//     industry_unique_id,
+//     brand_unique_id,
+//     barcode,
+//     stock_availability,
+//     cash_on_delivery,
+//     minimum_age,
+//     maximum_age,
+//     min_price,
+//     max_price,
+//     sort,
+//     searchTerm,
+//     page = 1,
+//     limit = 10,
+//   } = filters;
+
+//   page = parseInt(page) || 1;
+//   limit = parseInt(limit) || 10;
+
+//   const skip = (page - 1) * limit;
+//   const query = {};
+
+//   // --------------------
+//   // Normal exact & regex filters
+//   // --------------------
+//   if (product_name) query.product_name = { $regex: product_name, $options: "i" };
+//   if (sku) query.sku = { $regex: sku, $options: "i" };
+//   if (model_number) query.model_number = { $regex: model_number, $options: "i" };
+
+//   if (gender) query.gender = gender;
+//   if (product_type) query.product_type = product_type;
+//   if (product_color) query.product_color = product_color;
+//   if (product_size) query.product_size = product_size;
+//   if (category_unique_id) query.category_unique_id = category_unique_id;
+//   if (industry_unique_id) query.industry_unique_id = industry_unique_id;
+//   if (brand_unique_id) query.brand_unique_id = brand_unique_id;
+//   if (barcode) query.barcode = barcode;
+//   if (stock_availability) query.stock_availability = stock_availability;
+//   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
+
+//   if (minimum_age || maximum_age) {
+//     query.minimum_age = {};
+//     query.maximum_age = {};
+//     if (minimum_age) query.minimum_age.$gte = Number(minimum_age);
+//     if (maximum_age) query.maximum_age.$lte = Number(maximum_age);
+//   }
+
+//   if (min_price || max_price) {
+//     query.price = {};
+//     if (min_price) query.price.$gte = Number(min_price);
+//     if (max_price) query.price.$lte = Number(max_price);
+//   }
+
+//   const sortObj = buildSortObject(sort);
+//   const productModelDB = await ProductModel(tenantId);
+
+//   // --------------------
+//   // Final Aggregation Pipeline
+//   // --------------------
+//   const pipeline = [];
+
+//   // --------------------------------------
+//   // 🔥 ATLAS SEARCH STAGE (Lucene Engine)
+//   // --------------------------------------
+//   if (searchTerm) {
+//     pipeline.push({
+//       $search: {
+//         index: "default", // your index name
+//         text: {
+//           query: searchTerm,
+//           path: [
+//             "product_name",
+//             "product_description",
+//             "product_slug",
+//             "brand_name",
+//             "category_name",
+//             "tag",
+//             "product_attributes.attribute_code",
+//             "product_attributes.value"
+//           ],
+//           fuzzy: { maxEdits: 2 }
+//         }
+//       }
+//     });
+//   }
+
+//   // Match all normal filters
+//   pipeline.push({ $match: query });
+
+//   // Join with brand info
+//   pipeline.push(
+//     {
+//       $lookup: {
+//         from: "brands",
+//         localField: "brand_unique_id",
+//         foreignField: "brand_unique_id",
+//         as: "brand"
+//       }
+//     },
+//     {
+//       $unwind: {
+//         path: "$brand",
+//         preserveNullAndEmptyArrays: true
+//       }
+//     },
+//     {
+//       $addFields: {
+//         brand_name: "$brand.brand_name"
+//       }
+//     },
+//     {
+//       $project: {
+//         brand: 0
+//       }
+//     }
+//   );
+
+//   // Sorting & Pagination
+//   pipeline.push(
+//     { $sort: sortObj },
+//     { $skip: skip },
+//     { $limit: limit }
+//   );
+
+//   // Execute final query
+//   const data = await productModelDB.aggregate(pipeline);
+
+//   // Count total documents matching filters (without pagination)
+//   const totalCount = await productModelDB.countDocuments(query);
+
+//   return {
+//     totalCount,
+//     page,
+//     limit,
+//     totalPages: Math.ceil(totalCount / limit),
+//     data
+//   };
+// };
 
 // Get product by products unique id
 export const getProductByUniqueIdService = async (tenantId, product_unique_id) => {
@@ -321,20 +486,34 @@ export const createBulkProductsService = async (tenantId, filePath) => {
       // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
       // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
 
-      const existingCategory = await CategoryModelDB.findOne({ category_unique_id: valid[i].category_unique_id });
+      const existingCategory = await CategoryModelDB.findOne({
+        category_unique_id: valid[i].category_unique_id,
+      });
       if (!existingCategory) {
         invalid.push({
           rowNumber: i + 1,
-          errors: [{ field: "", message: `Category not found with id: ${valid[i].category_unique_id}` }],
+          errors: [
+            {
+              field: "",
+              message: `Category not found with id: ${valid[i].category_unique_id}`,
+            },
+          ],
         });
         continue;
       }
 
-      const existingProduct = await ProductModelDB.findOne({ product_unique_id: valid[i].product_unique_id });
+      const existingProduct = await ProductModelDB.findOne({
+        product_unique_id: valid[i].product_unique_id,
+      });
       if (existingProduct) {
         invalid.push({
           rowNumber: i + 1,
-          errors: [{ field: "", message: `Product already exists with id: ${valid[i].product_unique_id}` }],
+          errors: [
+            {
+              field: "",
+              message: `Product already exists with id: ${valid[i].product_unique_id}`,
+            },
+          ],
         });
         continue;
       }
