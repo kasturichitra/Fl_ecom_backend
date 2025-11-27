@@ -51,7 +51,10 @@ export const getAllBrandsService = async (tenantID, filters) => {
   // Direct match
   if (brand_name) query.brand_name = { $regex: brand_name, $options: "i" };
   if (brand_unique_id) query.brand_unique_id = brand_unique_id;
-  if (typeof is_active !== "undefined") query.is_active = is_active;
+  // if (typeof is_active !== "undefined") query.is_active = is_active;
+
+  if (is_active === "true") query.is_active = true;
+  if (is_active === "false") query.is_active = false;
 
   // Search term
   if (searchTerm) {
