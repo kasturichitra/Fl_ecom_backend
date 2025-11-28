@@ -5,13 +5,12 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import UserModel from "../Users/userModel.js";
 import { title } from "process";
-import { fcm } from "../utils/firebase-admin.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
 ----------------------------------------------*/
 
-export const createIndustryTypeServices = async (tenantID, data, user_id = "69259c7026c2856821c44ced") => {
+export const createIndustryTypeServices = async (tenantID, data, user_id="69259c7026c2856821c44ced") => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!data.industry_name || !data.industry_name.trim(), "Industry Name is required");
   const IndustryModel = await IndustryTypeModel(tenantID);
@@ -20,33 +19,7 @@ export const createIndustryTypeServices = async (tenantID, data, user_id = "6925
     if (await IndustryModel.exists({ industry_unique_id: data.industry_unique_id }))
       throw new Error("Industry Type with this ID already exists");
   }
-
-  const userModelDB = await UserModel(tenantID);
-  const user = await userModelDB.findById(user_id);
-  console.log(user, "user");
-  const token = user.fcm_token;
-  console.log(token, "token");
-  console.log("Hitting notify");
-
-  try {
-    const response = await fcm.send({
-      token,
-      notification: {
-        title: "New Industry Type Created",
-        body: "New Industry Type Created",
-      },
-      data: {
-        title: "New Industry Type Created",
-        body: "New Industry Type Created",
-      }
-    });
-    console.info("Notification sent successfully", response);
-  } catch (error) {
-    console.error("Error sending notification", error);
-  }
-
-  // throw new Error("Hitting notify");
-
+  
   return await IndustryModel.create({
     ...data,
     industry_name: data.industry_name.trim(),
@@ -84,7 +57,7 @@ export const getIndustrysSearchServices = async (
   if (created_by) filter.created_by = r(created_by);
   if (is_active === "true") filter.is_active = true;
   if (is_active === "false") filter.is_active = false;
-
+  
   if (startDate || endDate) {
     filter.createdAt = {};
     if (startDate) filter.createdAt.$gte = new Date(startDate);
