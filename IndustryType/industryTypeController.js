@@ -65,7 +65,7 @@ export const getIndustrysSearchController = async (req, res) => {
       totalPages: result.totalPages,
     });
   } catch (error) {
-    console.log("Industry Search Error ====>", error.message);
+    console.log("Industry Search Error ====>", error);
     res.status(500).json({ status: "Failed", message: error.message });
   }
 };
