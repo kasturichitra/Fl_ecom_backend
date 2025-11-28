@@ -6,7 +6,6 @@ import {
   clearCartService,
 } from "./cartService.js";
 
-
 export const addToCartController = async (req, res) => {
   try {
     const data = req.body;
@@ -28,7 +27,6 @@ export const addToCartController = async (req, res) => {
     });
   }
 };
-
 
 export const getCartByUserIdController = async (req, res) => {
   try {
@@ -52,13 +50,12 @@ export const getCartByUserIdController = async (req, res) => {
   }
 };
 
-
 export const removeFromCartController = async (req, res) => {
   try {
-    const { user_id, product_id } = req.body;
+    const { user_id, product_unique_id } = req.body;
     const tenantId = req.headers["x-tenant-id"];
 
-    const response = await removeFromCartService(tenantId, user_id, product_id);
+    const response = await removeFromCartService(tenantId, user_id, product_unique_id);
 
     res.status(200).json({
       status: "Success",
@@ -75,18 +72,12 @@ export const removeFromCartController = async (req, res) => {
   }
 };
 
-
 export const updateCartQuantityController = async (req, res) => {
   try {
-    const { user_id, product_id, quantity } = req.body;
+    const { user_id, product_unique_id, quantity } = req.body;
     const tenantId = req.headers["x-tenant-id"];
 
-    const response = await updateCartQuantityService(
-      tenantId,
-      user_id,
-      product_id,
-      quantity
-    );
+    const response = await updateCartQuantityService(tenantId, user_id, product_unique_id, quantity);
 
     res.status(200).json({
       status: "Success",
@@ -102,7 +93,6 @@ export const updateCartQuantityController = async (req, res) => {
     });
   }
 };
-
 
 export const clearCartController = async (req, res) => {
   try {

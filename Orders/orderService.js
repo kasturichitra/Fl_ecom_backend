@@ -1,3 +1,4 @@
+import CartModel from "../Cart/cartModel.js";
 import ProductModel from "../Products/productModel.js";
 import UserModel from "../Users/userModel.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
@@ -19,13 +20,30 @@ const updateStockOnOrder = async (tenantId, products) => {
       update: { $inc: { stock_quantity: -item.quantity } },
     },
   }));
-  console.log(bulkOps, "bulkOps");
-  console.log(Product, "Product");
 
   if (bulkOps.length) await Product.bulkWrite(bulkOps);
 };
 
-//  Create / update a **single** order (one payment, many items)
+const verifyOrderProducts = async (tenantId, products) => {
+  const Product = await ProductModel(tenantId);
+  const result = await Product.find({ product_unique_id: { $in: products.map((p) => p.product_unique_id) } });
+  throwIfTrue(result.length !== products.length, `Some Products are not found`);
+};
+
+const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
+  const CartDB = await CartModel(tenantId);
+
+  const productUniqueIdsToRemove = new Set(products.map((p) => p.product_unique_id));
+
+  const cart = await CartDB.findOne({ user_id });
+
+  if (cart) {
+    cart.products = cart.products.filter((item) => !productUniqueIdsToRemove.has(item.product_unique_id));
+
+    await cart.save();
+  }
+};
+
 export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -63,9 +81,10 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
   const order_id = generateNextOrderId(lastOrderId?.order_id);
 
+  const { is_from_cart, ...rest } = payload;
   // Design a ready to go order Doc to send to db
   const orderDoc = {
-    ...payload,
+    ...rest,
     order_cancel_date,
     order_create_date,
     subtotal,
@@ -78,6 +97,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   // Remove save_addres from orderDoc to prevent validation error
   delete orderDoc.save_addres;
 
+  await verifyOrderProducts(tenantId, order_products);
+
   // Do schema validation on order Doc
   const { isValid, message } = validateOrderCreate(orderDoc);
   throwIfTrue(!isValid, message);
@@ -88,12 +109,14 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       await userDoc.save();
     }
   }
-  // console.log(orderDoc, "orderDoc");
 
   const order = await OrderModelDB.create(orderDoc);
 
   // Update product stock
   await updateStockOnOrder(tenantId, order.order_products);
+
+  if (payload.is_from_cart && payload.user_id)
+    await clearProductsFromCartAfterOrder(tenantId, payload.user_id, order_products);
 
   if (order.user_id) {
     // User Notification

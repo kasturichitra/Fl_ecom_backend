@@ -3,20 +3,18 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 const cartSchema = new mongoose.Schema(
   {
-
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-
     products: [
       {
-        product_id: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Products",
+        product_unique_id: {
+          type: String,
           required: true,
+          trim: true,
         },
         quantity: {
           type: Number,
@@ -26,7 +24,6 @@ const cartSchema = new mongoose.Schema(
         },
       },
     ],
-
   },
   {
     timestamps: true,
