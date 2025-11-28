@@ -1,7 +1,9 @@
 import ProductModel from "../Products/productModel.js";
 import UserModel from "../Users/userModel.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { fcm } from "../utils/firebase-admin.js";
 import generateNextOrderId from "../utils/generateOrderId.js";
+import { getFcmToken } from "../utils/getFcmToken.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import OrdersModel from "./orderModel.js";
@@ -76,7 +78,6 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   // Remove save_addres from orderDoc to prevent validation error
   delete orderDoc.save_addres;
 
-
   // Do schema validation on order Doc
   const { isValid, message } = validateOrderCreate(orderDoc);
   throwIfTrue(!isValid, message);
@@ -96,23 +97,33 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   if (order.user_id) {
     // User Notification
-    await sendUserNotification(tenantId, order.user_id, {
+    const Notification = await sendUserNotification(tenantId, order.user_id, {
       title: "Order Placed Successfully",
-      message: `Your order  has been placed successfully!`,
+      message: `Your order ${order.order_id} has been placed successfully!`,
       type: "order",
       relatedId: order.order_id,
       relatedModel: "Order",
-      link: `/orders/${order.order_id}`,
+      link: `/order-products-detailes/${order.order_id}`,
       data: {
         orderId: order.order_id,
         total: order.total_amount,
       },
     });
+
+    // const token = await getFcmToken(tenantId, order.user_id || "69259c7026c2856821c44ced");
+
+    // await fcm.send({
+    //   token,
+    //   notification: {
+    //     title: Notification.title,
+    //     body: Notification.message,
+    //   },
+    // });
   }
 
   // Admin Notification
-  if (order.order_type === "online") {
-    await sendAdminNotification(tenantId, adminId, {
+  if (order.order_type === "Online") {
+    const Notification = await sendAdminNotification(tenantId, adminId, {
       title: "New Order Received",
       message: `New order from user ${username}. Total: ₹${order.total_amount}`,
       type: "order",
@@ -120,14 +131,25 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       relatedModel: "Order",
       senderModel: "User",
       sender: username,
-      link: `/admin/orders/${order.order_id}`,
+      link: `/order-products-detailes/${order.order_id}`,
       data: {
         orderId: order.order_id,
         userId: order.user_id,
         amount: order.total_amount,
       },
     });
-  };
+
+    // TODO: Edit here to send admin credentials to the fcm
+    // const token = await getFcmToken(tenantId, order.user_id || "69259c7026c2856821c44ced");
+
+    // await fcm.send({
+    //   token,
+    //   notification: {
+    //     title: Notification.title,
+    //     body: Notification.message,
+    //   },
+    // });
+  }
   return order;
 };
 
@@ -371,9 +393,7 @@ export const getOrderProductService = async (tenantId, orderId) => {
   // 4. Attach product object
   const mergedProducts = order.order_products.map((item) => ({
     ...item.toObject(),
-    product_details: products.find(
-      (prod) => prod.product_unique_id === item.product_unique_id
-    ) || null,
+    product_details: products.find((prod) => prod.product_unique_id === item.product_unique_id) || null,
   }));
 
   return {
@@ -381,4 +401,3 @@ export const getOrderProductService = async (tenantId, orderId) => {
     order_products: mergedProducts,
   };
 };
-

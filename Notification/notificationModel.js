@@ -53,9 +53,9 @@ const notificationSchema = new mongoose.Schema(
       default: "custom",
     },
 
-    relatedId: {//relatedId is the id of the related model
-      type: mongoose.Schema.Types.ObjectId,
-      refPath: "relatedModel",
+    relatedId: {
+      type: String, 
+      trim: true
     },
 
     relatedModel: {//relatedModel is the model of the related model
