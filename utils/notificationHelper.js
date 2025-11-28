@@ -48,6 +48,7 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
       receiverModel: "Admin",
       title: data.title,
       message: data.message,
+      link: data.link || null,
       type: data.type || "system",
       is_broadcast: true,
     });
