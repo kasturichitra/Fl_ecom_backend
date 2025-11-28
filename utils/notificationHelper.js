@@ -38,7 +38,7 @@ export const sendUserNotification = async (tenantID, userId, data) => {
 /**
  * Send notification to all admin users
  */
-export const sendAdminNotification = async (tenantID, data) => {
+export const sendAdminNotification = async (tenantID, adminId, data) => {
   try {
     const Notification = await NotificationModel(tenantID);
     const saved = await Notification.create({
@@ -54,17 +54,17 @@ export const sendAdminNotification = async (tenantID, data) => {
 
     io.to("admins").emit("newAdminNotification", saved);
 
-    const usersDB = await UserModel(tenantID);
-    const users = await usersDB.find({ role: "admin" });
-    const token = users.map((user) => user.fcm_token);
+    // const usersDB = await UserModel(tenantID);
+    // const users = await usersDB.find({ role: "admin" });
+    // const token = users.map((user) => user.fcm_token);
 
-    fcm.send({
-      token,
-      notification: {
-        title: data.title,
-        body: data.message,       
-      }
-    })
+    // fcm.send({
+    //   token,
+    //   notification: {
+    //     title: data.title,
+    //     body: data.message,       
+    //   }
+    // })
 
     return saved;
   } catch (err) {
