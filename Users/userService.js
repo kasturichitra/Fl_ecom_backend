@@ -188,7 +188,7 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
 
   // const updatedUser = await usersDB.findOne({ _id: user_id });
 
-  // fcm.send({
+  // await fcm.send({
   //   token: updatedUser.fcm_token,
   //   notification: {
   //     title: "Title",
