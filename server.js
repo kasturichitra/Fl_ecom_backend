@@ -15,6 +15,7 @@ import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
 import brandRoutes from "./Brands/brandRoutes.js";
+import cartRoutes from "./Cart/cartRoutes.js"; 
 import notificationRoutes from "./Notification/notificationRoutes.js";
 
 import morgan from "morgan";
@@ -99,6 +100,7 @@ app.use("/ticket", ticketRoute);
 app.use("/wishlists", wishlistRoute);
 app.use("/banners", bannerRoutes);
 app.use("/brands", brandRoutes);
+app.use("/cart", cartRoutes);
 app.use("/notifications", notificationRoutes);
 
 app.use("/", userRoutes);
