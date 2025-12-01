@@ -48,8 +48,14 @@ export const createProductService = async (tenantId, productData) => {
   return newProduct;
 };
 
-//This function get the data based on product_unique_id
-// Return all products when no search filters are applied
+// Utility to convert a query param into an array
+const toArray = (value) => {
+  if (!value) return null;
+  if (Array.isArray(value)) return value;
+  return value.split(",").map((v) => v.trim());
+};
+
+// MAIN SERVICE
 export const getAllProductsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -71,37 +77,43 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     maximum_age,
     min_price,
     max_price,
-    sort, // Sort shall be like sort=createdAt:desc, price:asc
-    searchTerm, // Search term
+    sort,
+    searchTerm,
     page = 1,
     limit = 10,
   } = filters;
 
-  page = parseInt(page) || 1;
-  limit = parseInt(limit) || 10;
-
-  const skip = (page - 1) * limit;
-
   const query = {};
 
-  // --- String fields with regex ---
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // --- STRING REGEX FIELDS ---
   if (product_name) query.product_name = { $regex: product_name, $options: "i" };
   if (sku) query.sku = { $regex: sku, $options: "i" };
   if (model_number) query.model_number = { $regex: model_number, $options: "i" };
 
-  // --- Exact match fields ---
+  // --- EXACT MATCH FIELDS ---
   if (gender) query.gender = gender;
   if (product_type) query.product_type = product_type;
   if (product_color) query.product_color = product_color;
   if (product_size) query.product_size = product_size;
-  if (category_unique_id) query.category_unique_id = category_unique_id;
-  if (industry_unique_id) query.industry_unique_id = industry_unique_id;
-  if (brand_unique_id) query.brand_unique_id = brand_unique_id;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
 
-  // Dynamic search on multiple fields for search term
+  // --- MULTIPLE FILTER SUPPORT ---
+  const brandIds = toArray(brand_unique_id);
+  if (brandIds) query.brand_unique_id = { $in: brandIds };
+
+  const categoryIds = toArray(category_unique_id);
+  if (categoryIds) query.category_unique_id = { $in: categoryIds };
+
+  const industryIds = toArray(industry_unique_id);
+  if (industryIds) query.industry_unique_id = { $in: industryIds };
+
+  // --- MAIN SEARCH TERM ---
   if (searchTerm) {
     query.$or = [
       { product_name: { $regex: searchTerm, $options: "i" } },
@@ -133,7 +145,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     ];
   }
 
-  // --- Range filters ---
+  // --- AGE RANGE ---
   if (minimum_age || maximum_age) {
     query.minimum_age = {};
     query.maximum_age = {};
@@ -141,16 +153,19 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     if (maximum_age) query.maximum_age.$lte = Number(maximum_age);
   }
 
+  // --- PRICE RANGE ---
   if (min_price || max_price) {
     query.price = {};
     if (min_price) query.price.$gte = Number(min_price);
     if (max_price) query.price.$lte = Number(max_price);
   }
 
+  // Sorting
   const sortObj = buildSortObject(sort);
 
   const productModelDB = await ProductModel(tenantId);
 
+  // MAIN AGGREGATION
   const data = await productModelDB.aggregate([
     { $match: query },
     {
@@ -161,25 +176,12 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
         as: "brand",
       },
     },
-    {
-      $unwind: {
-        path: "$brand",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $addFields: {
-        brand_name: "$brand.brand_name",
-      },
-    },
-    {
-      $project: {
-        brand: 0,
-      },
-    },
+    { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
+    { $addFields: { brand_name: "$brand.brand_name" } },
+    { $project: { brand: 0 } },
+    { $sort: sortObj },
     { $skip: skip },
     { $limit: limit },
-    { $sort: sortObj },
   ]);
 
   const totalCount = await productModelDB.countDocuments(query);
