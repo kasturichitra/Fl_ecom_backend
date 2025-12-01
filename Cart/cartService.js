@@ -81,8 +81,11 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
   });
 
   return {
-    ...cart.toObject(),
-    products: enrichedProducts,
+    data: {
+      ...cart.toObject(),
+      products: enrichedProducts,
+    },
+    totalCount: enrichedProducts.length,
   };
 };
 

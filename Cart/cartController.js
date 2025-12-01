@@ -33,12 +33,16 @@ export const getCartByUserIdController = async (req, res) => {
     const { user_id } = req.params;
     const tenantId = req.headers["x-tenant-id"];
 
-    const response = await getCartByUserIdService(tenantId, user_id);
+    const {
+      data, 
+      totalCount
+    } = await getCartByUserIdService(tenantId, user_id);
 
     res.status(200).json({
       status: "Success",
       message: "Cart fetched successfully",
-      data: response,
+      data, 
+      totalCount
     });
   } catch (error) {
     console.error("Get Cart By User ID Error ===>", error);
