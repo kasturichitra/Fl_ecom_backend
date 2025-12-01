@@ -41,7 +41,10 @@ export const getWishlistProductsServices = async (tenantID, user_id) => {
     { product_unique_id: { $in: wishlist.products } }
   ).lean();
 
-  return products;
+  return {
+    data: products, 
+    totalCount: wishlist.products.length, 
+  };
 };
 
 /* ---------------------------------------------

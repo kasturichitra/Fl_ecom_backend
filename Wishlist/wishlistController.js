@@ -36,12 +36,13 @@ export const getWishlistProductsController = async (req, res) => {
     const tenantID = req.headers["x-tenant-id"];
     const { id: user_id } = req.params;
 
-    const response = await getWishlistProductsServices(tenantID, user_id);
+    const { data, totalCount } = await getWishlistProductsServices(tenantID, user_id);
 
     return res.status(200).json({
       status: "Success",
       message: "Wishlist products fetched successfully",
-      data: response,
+      data,
+      totalCount,
     });
   } catch (error) {
     console.error("getWishlistProducts error ===>", error.message);
@@ -59,7 +60,6 @@ export const getWishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
     const { id: user_id } = req.params;
-
 
     const response = await getWishlistServices(tenantID, user_id);
 
