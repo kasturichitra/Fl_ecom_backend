@@ -35,7 +35,8 @@ route.put("/:id/address/:address_id", verifyToken, updateUserAddressController);
 route.put("/fcm-token/:id", storeFcmTokenController); 
 
 // Employee Create (Admin only)
-route.post("/employe", verifyToken, 
+route.post("/employe", 
+  // verifyToken, 
   // ?verifyAdmin, 
   employeCreateController);
 

@@ -12,7 +12,7 @@ export const getTenanteDB = async (tenateID) => {
     
     const connt =await mongoose.createConnection(`${mongoUri}${tenateID}_DB`, {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // useUnifiedTopology: true,
     })
 
     connt.on("connected", () => {
