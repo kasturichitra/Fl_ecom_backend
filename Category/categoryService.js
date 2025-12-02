@@ -1,5 +1,6 @@
 import { generateExcelTemplate } from "../Products/config/generateExcelTemplate.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { toTitleCase } from "../utils/conversions.js";
 import { extractExcel, transformCategoryRow, transformRow, validateRow } from "../utils/etl.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
@@ -23,6 +24,8 @@ export const createCategoryService = async (
 
   if (await CategoryDB.exists({ category_unique_id }))
     throwIfTrue(true, "Category ID already exists");
+
+  category_name = toTitleCase(category_name);
 
   return await CategoryDB.create({
     industry_unique_id,
