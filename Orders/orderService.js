@@ -95,7 +95,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   };
 
   // Remove save_addres from orderDoc to prevent validation error
-  delete orderDoc.save_addres;
+  delete orderDoc?.address.save_addres;
 
   await verifyOrderProducts(tenantId, order_products);
 
