@@ -54,7 +54,7 @@ export const getAllBrandsController = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Get All Brands Error ===>", error.message);
+    console.error("Get All Brands Error ===>", error);
     res.status(500).json({
       status: "Failed",
       message: "Error fetching brands",

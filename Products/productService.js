@@ -11,6 +11,7 @@ import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
 import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
 import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { toArray, toTitleCase } from "../utils/conversions.js";
 import BrandModel from "../Brands/brandModel.js";
 
 export const createProductService = async (tenantId, productData) => {
@@ -42,17 +43,13 @@ export const createProductService = async (tenantId, productData) => {
 
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
+  
+  productData.product_name = toTitleCase(productData.product_name);
   productData.brand_name = existingBrand.brand_name;
   productData.category_name = existingCategory.category_name;
+
   const newProduct = await productModelDB.create(productData);
   return newProduct;
-};
-
-// Utility to convert a query param into an array
-const toArray = (value) => {
-  if (!value) return null;
-  if (Array.isArray(value)) return value;
-  return value.split(",").map((v) => v.trim());
 };
 
 // MAIN SERVICE
