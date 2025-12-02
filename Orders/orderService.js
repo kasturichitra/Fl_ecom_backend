@@ -44,15 +44,21 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   }
 };
 
-export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
+export const createOrderServices = async (
+  tenantId,
+  payload,
+  adminId = "691ee270ca7678dfe3a884f7"
+) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const OrderModelDB = await OrdersModel(tenantId);
   const UserModelDB = await UserModel(tenantId);
 
-  // Handle user not found validation
-  let username = null;
+  // ================================
+  // User validation
+  // ================================
   let userDoc = null;
+  let username = null;
 
   if (payload.user_id) {
     userDoc = await UserModelDB.findById(payload.user_id);
@@ -62,27 +68,49 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     username = payload.customer_name;
   }
 
-  const { order_products = [] } = payload;
-  const currectDate = new Date();
+  // ================================
+  // Order ID generation
+  // ================================
+  const currentDate = new Date();
 
   const lastOrderId = await OrderModelDB.findOne({
     createdAt: {
-      $gte: new Date(currectDate.setHours(0, 0, 0, 0)),
-      $lt: new Date(currectDate.setHours(23, 59, 59, 999)),
+      $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
+      $lt: new Date(currentDate.setHours(23, 59, 59, 999)),
     },
   }).sort({ createdAt: -1 });
-  // Compute totals
-  const subtotal = order_products.reduce((sum, item) => sum + item.total_price, 0);
-  // const tax_amount = Number(payload.tax_amount ?? 0);
+
+  // ================================
+  // Totals
+  // ================================
+  const { order_products = [] } = payload;
+
+  const subtotal = order_products.reduce(
+    (sum, item) => sum + item.total_price,
+    0
+  );
+
   const shipping_charges = Number(payload.shipping_charges ?? 0);
   const total_amount = subtotal + shipping_charges;
 
-  const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
-  const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
+  const order_create_date = payload.order_create_date
+    ? new Date(payload.order_create_date)
+    : new Date();
+
+  const order_cancel_date = payload.order_cancel_date
+    ? new Date(payload.order_cancel_date)
+    : undefined;
+
   const order_id = generateNextOrderId(lastOrderId?.order_id);
 
+  // ================================
+  // Remove unwanted fields from payload
+  // ================================
   const { is_from_cart, ...rest } = payload;
-  // Design a ready to go order Doc to send to db
+
+  // ================================
+  // Construct final orderDoc
+  // ================================
   const orderDoc = {
     ...rest,
     order_cancel_date,
@@ -90,37 +118,65 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     subtotal,
     shipping_charges,
     total_amount,
-    // tax_amount,
     order_id,
   };
 
-  // Remove save_addres from orderDoc to prevent validation error
-  delete orderDoc?.address.save_addres;
-
-  await verifyOrderProducts(tenantId, order_products);
-
-  // Do schema validation on order Doc
-  const { isValid, message } = validateOrderCreate(orderDoc);
-  throwIfTrue(!isValid, message);
-  //save_addres means save the address in user collection
-  if (payload.save_addres) {
-    if (payload.save_addres && userDoc) {
-      userDoc.address.push(payload.address);
-      await userDoc.save();
-    }
+  // Remove save_addres inside address BEFORE validation
+  if (orderDoc?.address?.save_addres) {
+    const { save_addres, ...cleanAddress } = orderDoc.address;
+    orderDoc.address = cleanAddress;
   }
 
+  // ================================
+  // Verify order products exist
+  // ================================
+  await verifyOrderProducts(tenantId, order_products);
+
+  // ================================
+  // Schema validation
+  // ================================
+  const { isValid, message } = validateOrderCreate(orderDoc);
+  throwIfTrue(!isValid, message);
+
+  // ================================
+  // Save address ONLY if requested
+  // ================================
+  if (payload?.address?.save_addres && userDoc) {
+    const { save_addres, ...addressToSave } = payload.address;
+
+    await UserModelDB.findByIdAndUpdate(
+      payload.user_id,
+      { $push: { address: addressToSave } },
+      { new: true }
+    );
+  }
+
+  // ================================
+  // Create order
+  // ================================
   const order = await OrderModelDB.create(orderDoc);
 
-  // Update product stock
+  // ================================
+  // Update stock
+  // ================================
   await updateStockOnOrder(tenantId, order.order_products);
 
-  if (payload.is_from_cart && payload.user_id)
-    await clearProductsFromCartAfterOrder(tenantId, payload.user_id, order_products);
+  // ================================
+  // Clear cart after order
+  // ================================
+  if (is_from_cart && payload.user_id) {
+    await clearProductsFromCartAfterOrder(
+      tenantId,
+      payload.user_id,
+      order_products
+    );
+  }
 
+  // ================================
+  // Notify user
+  // ================================
   if (order.user_id) {
-    // User Notification
-    const Notification = await sendUserNotification(tenantId, order.user_id, {
+    await sendUserNotification(tenantId, order.user_id, {
       title: "Order Placed Successfully",
       message: `Your order ${order.order_id} has been placed successfully!`,
       type: "order",
@@ -132,21 +188,13 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
         total: order.total_amount,
       },
     });
-
-    // const token = await getFcmToken(tenantId, order.user_id || "69259c7026c2856821c44ced");
-
-    // await fcm.send({
-    //   token,
-    //   notification: {
-    //     title: Notification.title,
-    //     body: Notification.message,
-    //   },
-    // });
   }
 
-  // Admin Notification
+  // ================================
+  // Notify admin
+  // ================================
   if (order.order_type === "Online") {
-    const Notification = await sendAdminNotification(tenantId, adminId, {
+    await sendAdminNotification(tenantId, adminId, {
       title: "New Order Received",
       message: `New order from user ${username}. Total: ₹${order.total_amount}`,
       type: "order",
@@ -161,18 +209,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
         amount: order.total_amount,
       },
     });
-
-    // TODO: Edit here to send admin credentials to the fcm
-    // const token = await getFcmToken(tenantId, order.user_id || "69259c7026c2856821c44ced");
-
-    // await fcm.send({
-    //   token,
-    //   notification: {
-    //     title: Notification.title,
-    //     body: Notification.message,
-    //   },
-    // });
   }
+
   return order;
 };
 
