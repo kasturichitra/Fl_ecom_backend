@@ -38,6 +38,7 @@ route.put("/fcm-token/:id", storeFcmTokenController);
 route.post("/employe", 
   // verifyToken, 
   // ?verifyAdmin, 
+  upload.single("image"),
   employeCreateController);
 
 export default route;
