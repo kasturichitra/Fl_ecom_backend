@@ -76,12 +76,13 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   const { order_products = [] } = payload;
 
   // Step 1: Calculate total values for EACH product
+  // For each product, multiply unit values by quantity
   const productsWithTotals = order_products.map((item) => {
     const quantity = Number(item.quantity);
     const unit_base_price = Number(item.unit_base_price);
     const unit_discount_price = Number(item.unit_discount_price || 0);
-    const unit_tax_value = Number(item.unit_tax_value || 0);
-    const unit_final_price = Number(item.unit_final_price);
+    const unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
+    const unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
 
     return {
       ...item,
@@ -94,20 +95,22 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       total_base_price: unit_base_price * quantity,
       total_discount_price: unit_discount_price * quantity,
       total_tax_value: unit_tax_value * quantity,
-      total_final_price: unit_final_price * quantity,
+      total_final_price: unit_final_price * quantity, // = (base - discount + tax) × quantity
     };
   });
 
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
+  // These represent the aggregate values across all products in the order
   const base_price = productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0);
-
-  const tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0);
 
   const discount_price = productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0);
 
+  const tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0); // Tax on discounted amounts
+
   const shipping_charges = Number(payload.shipping_charges ?? 0);
 
-  // Total amount = sum of all product final prices + shipping
+  // Total amount = Σ(final_price of all products) + shipping
+  // where each product's final_price = (base - discount) + tax
   const total_amount = productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges;
 
   const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
@@ -180,9 +183,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     });
   }
 
-  // ================================
   // Notify admin
-  // ================================
   if (order.order_type === "Online") {
     await sendAdminNotification(tenantId, adminId, {
       title: "New Order Received",

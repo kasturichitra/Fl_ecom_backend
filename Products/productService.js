@@ -15,17 +15,35 @@ import { toArray, toTitleCase } from "../utils/conversions.js";
 import BrandModel from "../Brands/brandModel.js";
 
 const calculatePrices = (productData) => {
-  const taxPercentage = Number(productData.cgst) || 0 + Number(productData.sgst) || 0 + Number(productData.igst) || 0;
-  const taxValue = (Number(productData.base_price) * taxPercentage) / 100;
+  // Step 1: Get base price
+  const basePrice = Number(productData.base_price);
 
+  // Step 2: Calculate tax on base price
+  const cgst = Number(productData.cgst) || 0;
+  const sgst = Number(productData.sgst) || 0;
+  const igst = Number(productData.igst) || 0;
+  const taxPercentage = cgst + sgst + igst;
+  let taxValue = (basePrice * taxPercentage) / 100;
   productData.tax_value = taxValue;
-  productData.gross_price = Number(productData.base_price) + taxValue;
 
+  // Step 3: Calculate gross price = base + tax
+  const grossPrice = basePrice + taxValue;
+  productData.gross_price = grossPrice;
+
+  // Step 4: Calculate discount on base price
   const discountPercentage = Number(productData.discount_percentage) || 0;
-  const discountValue = (Number(productData.gross_price) * discountPercentage) / 100;
+  const discountAmount = (basePrice * discountPercentage) / 100;
+  productData.discount_price = discountAmount;
 
-  productData.discount_price = discountValue;
-  productData.final_price = Math.ceil(Number(productData.gross_price) - discountValue);
+  const discountedPrice = basePrice - discountAmount;
+  productData.discounted_price = discountedPrice;
+
+  // Step 5: Calculate final price which is the price after discount * tax
+  taxValue = (discountedPrice * taxPercentage) / 100;
+  productData.tax_value = taxValue;
+
+  const finalPrice = discountedPrice + taxValue;
+  productData.final_price = finalPrice;
 
   return productData;
 };
@@ -502,10 +520,6 @@ export const createBulkProductsService = async (tenantId, filePath) => {
     const BrandModelDB = await BrandModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
-      // Mandatory check for category and brand before creating product
-      // const existingBrand = await BrandModel(tenantId).findOne({ brand_unique_id: valid[i].brand_unique_id });
-      // if (!existingBrand) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message: "Brand not found" }] });
-
       const existingCategory = await CategoryModelDB.findOne({
         category_unique_id: valid[i].category_unique_id,
       });

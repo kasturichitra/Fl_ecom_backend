@@ -82,32 +82,38 @@ const productSchema = new mongoose.Schema(
 
     //  Pricing
 
-    // Base price can also be referred as manufacturing price which is simply the cost of the product
+    // Base price (MRP) - original price before tax or discount
     base_price: {
       type: Number,
       required: true,
       min: 0,
     },
 
-    // Gross price is also mrp price which is base price + taxes
+    // Gross price = base + tax (price with tax, before discount)
     gross_price: {
       type: Number,
     },
 
-    // Final price is the price which is base price + taxes + discounts
+    // Discounted price = base - discount (price after discount, before tax)
+    discounted_price: {
+      type: Number,
+    },
+
+    // Final price = gross - discount (final sellable price)
     final_price: {
       type: Number,
       required: true,
       min: 0,
     },
 
-    // Discount related info
+    // Discount percentage (applied on gross price)
     discount_percentage: {
       type: Number,
       default: 0,
       min: 0,
       max: 100,
     },
+    // Discount amount (calculated from discount_percentage × gross_price)
     discount_price: {
       type: Number,
       min: 0,
@@ -124,7 +130,7 @@ const productSchema = new mongoose.Schema(
       type: String,
     },
 
-    // GST and  tax related info
+    // GST and tax related info (tax percentages)
     cgst: {
       type: Number,
       min: 0,
@@ -137,6 +143,7 @@ const productSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    // Tax value (calculated on base_price: base × tax_percentage)
     tax_value: {
       type: Number,
       min: 0,

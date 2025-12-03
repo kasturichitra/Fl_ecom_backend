@@ -57,23 +57,23 @@ const orderProductSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
-  // Price refers to rate of the product like MRP
+  // Base price (MRP) per unit
   unit_base_price: {
     type: Number,
     required: true,
     min: 0,
   },
-  // Discount price refers to the discount on each product
+  // Discount amount per unit (subtracted from base price)
   unit_discount_price: {
     type: Number,
     default: 0,
   },
-  // Tax value refers to the tax on each product
+  // Tax value per unit (applied AFTER discount on the discounted amount)
   unit_tax_value: {
     type: Number,
     default: 0,
   },
-  // Total price is (base_price + tax_value - discount_price)
+  // Final price per unit: (base_price - discount_price) + tax_value (tax applied on discounted amount)
   unit_final_price: {
     type: Number,
     required: true,
