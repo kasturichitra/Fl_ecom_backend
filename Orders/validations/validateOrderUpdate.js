@@ -3,7 +3,9 @@ import Joi from "joi";
 const addressSchemaUpdate = Joi.object({
   house_number: Joi.string(),
   street: Joi.string(),
+  landmark: Joi.string(),
   city: Joi.string(),
+  district: Joi.string(),
   state: Joi.string(),
   postal_code: Joi.string(),
   country: Joi.string(),
@@ -20,21 +22,41 @@ const orderProductSchemaUpdate = Joi.object({
     "number.base": "Quantity must be a number.",
     "number.min": "Quantity must be at least 1.",
   }),
-  price: Joi.number().min(0).messages({
-    "number.base": "Price must be a number.",
-    "number.min": "Price cannot be negative.",
+
+  // Unit-level pricing
+  unit_base_price: Joi.number().min(0).messages({
+    "number.base": "Unit base price must be a number.",
+    "number.min": "Unit base price cannot be negative.",
   }),
-  discount_price: Joi.number().min(0).messages({
-    "number.base": "Discount price must be a number.",
-    "number.min": "Discount price cannot be negative.",
+  unit_discount_price: Joi.number().min(0).messages({
+    "number.base": "Unit discount price must be a number.",
+    "number.min": "Unit discount price cannot be negative.",
   }),
-  total_price: Joi.number().min(0).messages({
-    "number.base": "Total price must be a number.",
-    "number.min": "Total price cannot be negative.",
+  unit_tax_value: Joi.number().min(0).messages({
+    "number.base": "Unit tax value must be a number.",
+    "number.min": "Unit tax value cannot be negative.",
   }),
-  tax_amount: Joi.number().min(0).messages({
-    "number.base": "Tax amount must be a number.",
-    "number.min": "Tax amount cannot be negative.",
+  unit_final_price: Joi.number().min(0).messages({
+    "number.base": "Unit final price must be a number.",
+    "number.min": "Unit final price cannot be negative.",
+  }),
+
+  // Total-level pricing
+  total_base_price: Joi.number().min(0).messages({
+    "number.base": "Total base price must be a number.",
+    "number.min": "Total base price cannot be negative.",
+  }),
+  total_discount_price: Joi.number().min(0).messages({
+    "number.base": "Total discount price must be a number.",
+    "number.min": "Total discount price cannot be negative.",
+  }),
+  total_tax_value: Joi.number().min(0).messages({
+    "number.base": "Total tax value must be a number.",
+    "number.min": "Total tax value cannot be negative.",
+  }),
+  total_final_price: Joi.number().min(0).messages({
+    "number.base": "Total final price must be a number.",
+    "number.min": "Total final price cannot be negative.",
   }),
 });
 
@@ -72,9 +94,12 @@ const orderUpdateSchema = Joi.object({
 
   address: addressSchemaUpdate,
 
-  subtotal: Joi.number().min(0),
-  shipping_charges: Joi.number().min(0),
+  base_price: Joi.number().min(0),
+  tax_value: Joi.number().min(0),
+  discount_price: Joi.number().min(0),
   total_amount: Joi.number().min(0),
+
+  shipping_charges: Joi.number().min(0),
 
   currency: Joi.string(),
 });

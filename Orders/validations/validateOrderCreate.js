@@ -55,23 +55,43 @@ const orderProductSchema = Joi.object({
     "number.base": "Quantity must be a number.",
     "number.min": "Quantity must be at least 1.",
   }),
-  price: Joi.number().min(0).required().messages({
-    "any.required": "Price is required.",
-    "number.base": "Price must be a number.",
-    "number.min": "Price cannot be negative.",
+
+  // Unit-level pricing (required from payload)
+  unit_base_price: Joi.number().min(0).required().messages({
+    "any.required": "Unit base price is required.",
+    "number.base": "Unit base price must be a number.",
+    "number.min": "Unit base price cannot be negative.",
   }),
-  discount_price: Joi.number().min(0).messages({
-    "number.base": "Discount price must be a number.",
-    "number.min": "Discount price cannot be negative.",
+  unit_discount_price: Joi.number().min(0).optional().messages({
+    "number.base": "Unit discount price must be a number.",
+    "number.min": "Unit discount price cannot be negative.",
   }),
-  total_price: Joi.number().min(0).required().messages({
-    "any.required": "Total price is required.",
-    "number.base": "Total price must be a number.",
-    "number.min": "Total price cannot be negative.",
+  unit_tax_value: Joi.number().min(0).optional().messages({
+    "number.base": "Unit tax value must be a number.",
+    "number.min": "Unit tax value cannot be negative.",
   }),
-  tax_amount: Joi.number().min(0).messages({
-    "number.base": "Tax amount must be a number.",
-    "number.min": "Tax amount cannot be negative.",
+  unit_final_price: Joi.number().min(0).required().messages({
+    "any.required": "Unit final price is required.",
+    "number.base": "Unit final price must be a number.",
+    "number.min": "Unit final price cannot be negative.",
+  }),
+
+  // Total-level pricing (calculated in backend, optional in payload)
+  total_base_price: Joi.number().min(0).optional().messages({
+    "number.base": "Total base price must be a number.",
+    "number.min": "Total base price cannot be negative.",
+  }),
+  total_discount_price: Joi.number().min(0).optional().messages({
+    "number.base": "Total discount price must be a number.",
+    "number.min": "Total discount price cannot be negative.",
+  }),
+  total_tax_value: Joi.number().min(0).optional().messages({
+    "number.base": "Total tax value must be a number.",
+    "number.min": "Total tax value cannot be negative.",
+  }),
+  total_final_price: Joi.number().min(0).optional().messages({
+    "number.base": "Total final price must be a number.",
+    "number.min": "Total final price cannot be negative.",
   }),
 });
 
@@ -121,18 +141,22 @@ export const orderValidationSchema = Joi.object({
     "any.required": "Order products are required.",
   }),
 
-  // tax_amount: Joi.number().min(0).default(0).messages({
-  //   "number.base": "Tax amount must be a number.",
-  //   "number.min": "Tax amount cannot be negative.",
-  // }),
-
-  subtotal: Joi.number().min(0).required().messages({
-    "number.base": "Subtotal must be a number.",
-    "number.min": "Subtotal cannot be negative.",
-    "any.required": "Subtotal is required.",
+  base_price: Joi.number().min(0).optional().messages({
+    "number.base": "Base price must be a number.",
+    "number.min": "Base price cannot be negative.",
   }),
 
-  total_amount: Joi.number().min(0).required().messages({
+  tax_value: Joi.number().min(0).optional().messages({
+    "number.base": "Tax value must be a number.",
+    "number.min": "Tax value cannot be negative.",
+  }),
+
+  discount_price: Joi.number().min(0).optional().messages({
+    "number.base": "Discount price must be a number.",
+    "number.min": "Discount price cannot be negative.",
+  }),
+
+  total_amount: Joi.number().min(0).optional().messages({
     "number.base": "Total amount must be a number.",
     "number.min": "Total amount cannot be negative.",
     "any.required": "Total amount is required.",
