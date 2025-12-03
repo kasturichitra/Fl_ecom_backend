@@ -81,22 +81,23 @@ const productSchema = new mongoose.Schema(
     },
 
     //  Pricing
-    price: {
+
+    // Base price can also be referred as manufacturing price which is simply the cost of the product
+    base_price: {
       type: Number,
       required: true,
       min: 0,
     },
-    // Optional price fields
-    base_price: {
+
+    // Gross price is also mrp price which is base price + taxes
+    gross_price: {
       type: Number,
-      min: 0,
     },
-    sale_price: {
+
+    // Final price is the price which is base price + taxes + discounts
+    final_price: {
       type: Number,
-      min: 0,
-    },
-    cost_price: {
-      type: Number,
+      required: true,
       min: 0,
     },
 
@@ -124,14 +125,6 @@ const productSchema = new mongoose.Schema(
     },
 
     // GST and  tax related info
-    product_gst: {
-      type: Number,
-      default: 0,
-    },
-    gst_number: {
-      type: String,
-      trim: true,
-    },
     cgst: {
       type: Number,
       min: 0,
@@ -150,11 +143,6 @@ const productSchema = new mongoose.Schema(
     },
 
     //  Stock & Inventory
-    stock_availability: {
-      type: Boolean,
-      required: true,
-      default: true,
-    },
     stock_quantity: {
       type: Number,
       required: true,
@@ -162,14 +150,16 @@ const productSchema = new mongoose.Schema(
     },
     min_order_limit: {
       type: Number,
-      required: true,
+      default: 1,
       min: 1,
     },
     max_order_limit: {
       type: Number,
+      min: 1,
     },
     low_stock_threshold: {
       type: Number,
+      default: 5,
     },
 
     // Product Variants / Attributes
@@ -182,10 +172,6 @@ const productSchema = new mongoose.Schema(
     //   type: Number,
     //   min: 0,
     // },
-    country_of_origin: {
-      type: String,
-      trim: true,
-    },
     tag: {
       type: String,
       trim: true,
