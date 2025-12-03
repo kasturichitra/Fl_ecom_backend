@@ -172,9 +172,9 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   // --- PRICE RANGE ---
   if (min_price || max_price) {
-    query.price = {};
-    if (min_price) query.price.$gte = Number(min_price);
-    if (max_price) query.price.$lte = Number(max_price);
+    query.final_price = {};
+    if (min_price) query.final_price.$gte = Number(min_price);
+    if (max_price) query.final_price.$lte = Number(max_price);
   }
 
   // Sorting
@@ -538,6 +538,8 @@ export const createBulkProductsService = async (tenantId, filePath) => {
       }
 
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
+
+      valid[i] = calculatePrices(valid[i]);
 
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });

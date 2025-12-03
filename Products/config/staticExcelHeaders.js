@@ -8,7 +8,7 @@ export const staticExcelHeaders = [
     header: "Brand Unique ID *",
     key: "brand_unique_id",
     width: 20,
-  }, 
+  },
   {
     header: "Product Unique ID *",
     key: "product_unique_id",
@@ -21,9 +21,9 @@ export const staticExcelHeaders = [
     width: 20,
   },
   {
-    header: "Price *",
-    key: "price",
-    width: 10,
+    header: "Product Color",
+    key: "product_color",
+    width: 20,
   },
   {
     header: "Stock Quantity *",
@@ -31,9 +31,14 @@ export const staticExcelHeaders = [
     width: 10,
   },
   {
-    header: "Product Color",
-    key: "product_color",
-    width: 20,
+    header: "Base Price *",
+    key: "base_price",
+    width: 10,
+  },
+  {
+    header: "Discount Percentage",
+    key: "discount_percentage",
+    width: 10,
   },
   {
     header: "CGST",
