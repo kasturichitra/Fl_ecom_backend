@@ -14,6 +14,22 @@ import { buildSortObject } from "../utils/buildSortObject.js";
 import { toArray, toTitleCase } from "../utils/conversions.js";
 import BrandModel from "../Brands/brandModel.js";
 
+const calculatePrices = (productData) => {
+  const taxPercentage = Number(productData.cgst) || 0 + Number(productData.sgst) || 0 + Number(productData.igst) || 0;
+  const taxValue = (Number(productData.base_price) * taxPercentage) / 100;
+
+  productData.tax_value = taxValue;
+  productData.gross_price = Number(productData.base_price) + taxValue;
+
+  const discountPercentage = Number(productData.discount_percentage) || 0;
+  const discountValue = (Number(productData.gross_price) * discountPercentage) / 100;
+
+  productData.discount_price = discountValue;
+  productData.final_price = Number(productData.gross_price) - discountValue;
+
+  return productData;
+};
+
 export const createProductService = async (tenantId, productData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -41,12 +57,16 @@ export const createProductService = async (tenantId, productData) => {
 
   throwIfTrue(existingProduct, "Product with unique id already exists");
 
-  const { isValid, message } = validateProductData(productData);
-  throwIfTrue(!isValid, message);
-  
   productData.product_name = toTitleCase(productData.product_name);
   productData.brand_name = existingBrand.brand_name;
   productData.category_name = existingCategory.category_name;
+
+  productData = calculatePrices(productData);
+
+  console.log("Product data before going to validation", productData);
+
+  const { isValid, message } = validateProductData(productData);
+  throwIfTrue(!isValid, message);
 
   const newProduct = await productModelDB.create(productData);
   return newProduct;

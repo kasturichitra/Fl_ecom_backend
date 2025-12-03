@@ -17,6 +17,14 @@ const productValidationSchema = Joi.object({
     "string.base": "Product Unique Id must be a string",
   }),
 
+  brand_name: Joi.string().optional().messages({
+    "string.base": "Brand name must be a string.",
+  }),
+
+  category_name: Joi.string().optional().messages({
+    "string.base": "Category name must be a string.",
+  }),
+
   product_name: Joi.string().trim().required().messages({
     "any.required": "Product name is required.",
     "string.empty": "Product name cannot be empty.",
@@ -37,11 +45,6 @@ const productValidationSchema = Joi.object({
     })
     .optional(),
 
-  price: Joi.number().min(0).required().messages({
-    "any.required": "Price is required.",
-    "number.min": "Price must be 0 or greater.",
-  }),
-
   stock_quantity: Joi.number().min(0).required().messages({
     "any.required": "Stock quantity is required.",
     "number.min": "Stock quantity cannot be negative.",
@@ -58,10 +61,12 @@ const productValidationSchema = Joi.object({
     })
     .optional(),
 
-  brand_unique_id: Joi.string().messages({
-    "string.base": "Product brand ID must be a string.",
-    "any.required": "Product brand ID is required.",
-  }).required(),
+  brand_unique_id: Joi.string()
+    .messages({
+      "string.base": "Product brand ID must be a string.",
+      "any.required": "Product brand ID is required.",
+    })
+    .required(),
 
   product_slug: Joi.string().optional(),
   product_description: Joi.string().optional(),
@@ -72,9 +77,21 @@ const productValidationSchema = Joi.object({
   model_number: Joi.string().optional(),
   sku: Joi.string().optional(),
 
-  base_price: Joi.number().min(0).optional(),
-  sale_price: Joi.number().min(0).optional(),
-  cost_price: Joi.number().min(0).optional(),
+  base_price: Joi.number().min(0).required().messages({
+    "any.required": "Base price is required.",
+    "number.min": "Base price must be 0 or greater.",
+  }),
+
+  gross_price: Joi.number().min(0).optional().messages({
+    "number.base": "Gross price must be a number.",
+    "number.min": "Gross price must be 0 or greater.",
+  }),
+
+  final_price: Joi.number().min(0).optional().messages({
+    "number.base": "Final price must be a number.",
+    "number.min": "Final price must be 0 or greater.",
+  }),
+
   discount_percentage: Joi.number().min(0).max(100).optional(),
   discount_price: Joi.number().min(0).optional(),
 
@@ -82,20 +99,14 @@ const productValidationSchema = Joi.object({
   discount_type: Joi.string().optional(),
   discount_coupon: Joi.string().optional(),
 
-  product_gst: Joi.number().min(0).optional(),
-  gst_number: Joi.string().optional(),
   cgst: Joi.number().min(0).optional(),
   sgst: Joi.number().min(0).optional(),
   igst: Joi.number().min(0).optional(),
   tax_value: Joi.number().min(0).optional(),
 
-  stock_availability: Joi.boolean().default(true),
   low_stock_threshold: Joi.number().optional(),
 
   gender: Joi.string().valid("Men", "Women", "Unisex", "Kids", "Other").default("Unisex"),
-
-  age: Joi.number().min(0).optional(),
-  country_of_origin: Joi.string().optional(),
   tag: Joi.string().optional(),
   minimum_age: Joi.number().min(0).optional(),
   maximum_age: Joi.number().min(0).optional(),
