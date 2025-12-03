@@ -58,23 +58,45 @@ const orderProductSchema = new mongoose.Schema({
     min: 1,
   },
   // Price refers to rate of the product like MRP
-  price: {
+  unit_base_price: {
     type: Number,
     required: true,
     min: 0,
   },
   // Discount price refers to the discount on each product
-  discount_price: {
+  unit_discount_price: {
     type: Number,
     default: 0,
   },
-  // Tax amount refers to the tax on each product
-  tax_amount: {
+  // Tax value refers to the tax on each product
+  unit_tax_value: {
     type: Number,
     default: 0,
   },
-  // Total price is (price - discount_price) * quantity
-  total_price: {
+  // Total price is (base_price + tax_value - discount_price)
+  unit_final_price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  // Total base price is base price * quantity
+  total_base_price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  // Total discount price is discount price * quantity
+  total_discount_price: {
+    type: Number,
+    default: 0,
+  },
+  // Total tax value is tax value * quantity
+  total_tax_value: {
+    type: Number,
+    default: 0,
+  },
+  // Total final price is final price * quantity
+  total_final_price: {
     type: Number,
     required: true,
     min: 0,
@@ -144,12 +166,13 @@ const orderSchema = new mongoose.Schema(
       },
     ],
 
-    tax_amount: { type: Number, default: 0 },
-
     address: addressSchema,
-    subtotal: { type: Number, required: true, min: 0 },
-    shipping_charges: { type: Number, default: 0 },
+    base_price: { type: Number, required: true, min: 0 },
+    tax_value: { type: Number, default: 0 },
+    discount_price: { type: Number, default: 0 },
     total_amount: { type: Number, required: true, min: 0 },
+
+    shipping_charges: { type: Number, default: 0 },
     currency: { type: String, default: "INR" },
   },
   { timestamps: true }

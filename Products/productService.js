@@ -25,7 +25,7 @@ const calculatePrices = (productData) => {
   const discountValue = (Number(productData.gross_price) * discountPercentage) / 100;
 
   productData.discount_price = discountValue;
-  productData.final_price = Number(productData.gross_price) - discountValue;
+  productData.final_price = Math.ceil(Number(productData.gross_price) - discountValue);
 
   return productData;
 };
@@ -499,6 +499,7 @@ export const createBulkProductsService = async (tenantId, filePath) => {
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
     const CategoryModelDB = await CategoryModel(tenantId);
+    const BrandModelDB = await BrandModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
       // Mandatory check for category and brand before creating product
@@ -515,6 +516,22 @@ export const createBulkProductsService = async (tenantId, filePath) => {
             {
               field: "",
               message: `Category not found with id: ${valid[i].category_unique_id}`,
+            },
+          ],
+        });
+        continue;
+      }
+
+      const existingBrand = await BrandModelDB.findOne({
+        brand_unique_id: valid[i].brand_unique_id,
+      });
+      if (!existingBrand) {
+        invalid.push({
+          rowNumber: i + 1,
+          errors: [
+            {
+              field: "",
+              message: `Brand not found with id: ${valid[i].brand_unique_id}`,
             },
           ],
         });
@@ -538,6 +555,8 @@ export const createBulkProductsService = async (tenantId, filePath) => {
       }
 
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
+      valid[i].brand_name = existingBrand.brand_name;
+      valid[i].category_name = existingCategory.category_name;
 
       valid[i] = calculatePrices(valid[i]);
 

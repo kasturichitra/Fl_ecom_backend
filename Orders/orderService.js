@@ -44,19 +44,13 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   }
 };
 
-export const createOrderServices = async (
-  tenantId,
-  payload,
-  adminId = "691ee270ca7678dfe3a884f7"
-) => {
+export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const OrderModelDB = await OrdersModel(tenantId);
   const UserModelDB = await UserModel(tenantId);
 
-  // ================================
   // User validation
-  // ================================
   let userDoc = null;
   let username = null;
 
@@ -68,9 +62,7 @@ export const createOrderServices = async (
     username = payload.customer_name;
   }
 
-  // ================================
   // Order ID generation
-  // ================================
   const currentDate = new Date();
 
   const lastOrderId = await OrderModelDB.findOne({
@@ -80,42 +72,62 @@ export const createOrderServices = async (
     },
   }).sort({ createdAt: -1 });
 
-  // ================================
-  // Totals
-  // ================================
+  // Calculate Order Totals from Products
   const { order_products = [] } = payload;
 
-  const subtotal = order_products.reduce(
-    (sum, item) => sum + item.total_price,
-    0
-  );
+  // Step 1: Calculate total values for EACH product
+  const productsWithTotals = order_products.map((item) => {
+    const quantity = Number(item.quantity);
+    const unit_base_price = Number(item.unit_base_price);
+    const unit_discount_price = Number(item.unit_discount_price || 0);
+    const unit_tax_value = Number(item.unit_tax_value || 0);
+    const unit_final_price = Number(item.unit_final_price);
+
+    return {
+      ...item,
+      quantity,
+      unit_base_price,
+      unit_discount_price,
+      unit_tax_value,
+      unit_final_price,
+      // Calculate totals by multiplying unit values by quantity
+      total_base_price: unit_base_price * quantity,
+      total_discount_price: unit_discount_price * quantity,
+      total_tax_value: unit_tax_value * quantity,
+      total_final_price: unit_final_price * quantity,
+    };
+  });
+
+  // Step 2: Calculate ORDER-LEVEL totals by summing from all products
+  const base_price = productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0);
+
+  const tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0);
+
+  const discount_price = productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0);
 
   const shipping_charges = Number(payload.shipping_charges ?? 0);
-  const total_amount = subtotal + shipping_charges;
 
-  const order_create_date = payload.order_create_date
-    ? new Date(payload.order_create_date)
-    : new Date();
+  // Total amount = sum of all product final prices + shipping
+  const total_amount = productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges;
 
-  const order_cancel_date = payload.order_cancel_date
-    ? new Date(payload.order_cancel_date)
-    : undefined;
+  const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
+
+  const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
   const order_id = generateNextOrderId(lastOrderId?.order_id);
 
-  // ================================
   // Remove unwanted fields from payload
-  // ================================
-  const { is_from_cart, ...rest } = payload;
+  const { is_from_cart, order_products: _removed, ...rest } = payload;
 
-  // ================================
   // Construct final orderDoc
-  // ================================
   const orderDoc = {
     ...rest,
+    order_products: productsWithTotals, // Use calculated products with totals
     order_cancel_date,
     order_create_date,
-    subtotal,
+    base_price,
+    tax_value,
+    discount_price,
     shipping_charges,
     total_amount,
     order_id,
@@ -127,54 +139,32 @@ export const createOrderServices = async (
     orderDoc.address = cleanAddress;
   }
 
-  // ================================
   // Verify order products exist
-  // ================================
   await verifyOrderProducts(tenantId, order_products);
 
-  // ================================
   // Schema validation
-  // ================================
   const { isValid, message } = validateOrderCreate(orderDoc);
   throwIfTrue(!isValid, message);
 
-  // ================================
   // Save address ONLY if requested
-  // ================================
   if (payload?.address?.save_addres && userDoc) {
     const { save_addres, ...addressToSave } = payload.address;
 
-    await UserModelDB.findByIdAndUpdate(
-      payload.user_id,
-      { $push: { address: addressToSave } },
-      { new: true }
-    );
+    await UserModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
   }
 
-  // ================================
   // Create order
-  // ================================
   const order = await OrderModelDB.create(orderDoc);
 
-  // ================================
   // Update stock
-  // ================================
   await updateStockOnOrder(tenantId, order.order_products);
 
-  // ================================
   // Clear cart after order
-  // ================================
   if (is_from_cart && payload.user_id) {
-    await clearProductsFromCartAfterOrder(
-      tenantId,
-      payload.user_id,
-      order_products
-    );
+    await clearProductsFromCartAfterOrder(tenantId, payload.user_id, order_products);
   }
 
-  // ================================
   // Notify user
-  // ================================
   if (order.user_id) {
     await sendUserNotification(tenantId, order.user_id, {
       title: "Order Placed Successfully",
