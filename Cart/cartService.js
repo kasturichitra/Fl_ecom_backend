@@ -60,15 +60,13 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
     {
       product_name: 1,
       product_unique_id: 1,
-      price: 1,
+      base_price: 1,
+      tax_value: 1,
+      discount_price: 1,
+      final_price: 1,
       product_color: 1,
       stock_quantity: 1,
-      max_order_limit: 1, 
-      discount_percentage: 1,
-      cgst: 1,
-      sgst: 1,
-      igst: 1,
-      tax_value: 1,
+      max_order_limit: 1,
       product_image: 1,
     }
   );
