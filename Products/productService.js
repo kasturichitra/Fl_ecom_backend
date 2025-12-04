@@ -33,16 +33,16 @@ const calculatePrices = (productData) => {
   // Step 4: Calculate discount on base price
   const discountPercentage = Number(productData.discount_percentage) || 0;
   const discountAmount = (basePrice * discountPercentage) / 100;
-  productData.discount_price = discountAmount;
+  productData.discount_price = Math.ceil(discountAmount);
 
   const discountedPrice = basePrice - discountAmount;
-  productData.discounted_price = discountedPrice;
+  productData.discounted_price = Math.ceil(discountedPrice);
 
   // Step 5: Calculate final price which is the price after discount * tax
   taxValue = (discountedPrice * taxPercentage) / 100;
-  productData.tax_value = taxValue;
+  productData.tax_value = Math.ceil(taxValue);
 
-  const finalPrice = discountedPrice + taxValue;
+  const finalPrice = Math.ceil(discountedPrice + taxValue);
   productData.final_price = finalPrice;
 
   return productData;
