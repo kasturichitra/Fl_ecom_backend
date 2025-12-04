@@ -126,7 +126,10 @@ export const updateCartQuantityService = async (tenantID, user_id, product_uniqu
 
   // Handle out of stock error and max order limit error
   const max_order_limit = existingProduct.max_order_limit;
-  throwIfTrue(max_order_limit && quantity > max_order_limit, "Quantity exceeds max order limit");
+  throwIfTrue(
+    max_order_limit && quantity > max_order_limit,
+    `Quantity can't exceed max order limit : ${max_order_limit}`
+  );
   throwIfTrue(existingProduct.stock_quantity < quantity, "Not enough stock available");
 
   cart.products[productIndex].quantity = quantity;

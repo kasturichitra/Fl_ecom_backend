@@ -49,6 +49,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   const OrderModelDB = await OrdersModel(tenantId);
   const UserModelDB = await UserModel(tenantId);
+  const ProductModelDB = await ProductModel(tenantId);
 
   // User validation
   let userDoc = null;
@@ -77,27 +78,47 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   // Step 1: Calculate total values for EACH product
   // For each product, multiply unit values by quantity
-  const productsWithTotals = order_products.map((item) => {
-    const quantity = Number(item.quantity);
-    const unit_base_price = Number(item.unit_base_price);
-    const unit_discount_price = Number(item.unit_discount_price || 0);
-    const unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
-    const unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
+  const productsWithTotals = await Promise.all(
+    order_products.map(async (item) => {
+      const quantity = Number(item.quantity);
+      const unit_base_price = Number(item.unit_base_price);
+      const unit_discount_price = Number(item.unit_discount_price || 0);
+      const unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
+      const unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
 
-    return {
-      ...item,
-      quantity,
-      unit_base_price,
-      unit_discount_price,
-      unit_tax_value,
-      unit_final_price,
-      // Calculate totals by multiplying unit values by quantity
-      total_base_price: unit_base_price * quantity,
-      total_discount_price: unit_discount_price * quantity,
-      total_tax_value: unit_tax_value * quantity,
-      total_final_price: unit_final_price * quantity, // = (base - discount + tax) × quantity
-    };
-  });
+      // Check if product exists
+      const existingProduct = await ProductModelDB.findOne({ product_unique_id: item.product_unique_id });
+      throwIfTrue(!existingProduct, `Product not found with id: ${item.product_unique_id}`);
+
+      // Check if order quantity exceeds available stock
+      throwIfTrue(
+        existingProduct.stock_quantity < quantity,
+        `Insufficient stock for product "${existingProduct.product_name}"`
+      );
+
+      // Check if order quantity exceeds max_order_limit
+      if (existingProduct.max_order_limit) {
+        throwIfTrue(
+          quantity > existingProduct.max_order_limit,
+          `Order quantity exceeds maximum limit for product "${existingProduct.product_name}". Maximum allowed: ${existingProduct.max_order_limit}, Requested: ${quantity}`
+        );
+      }
+
+      return {
+        ...item,
+        quantity,
+        unit_base_price,
+        unit_discount_price,
+        unit_tax_value,
+        unit_final_price,
+        // Calculate totals by multiplying unit values by quantity
+        total_base_price: unit_base_price * quantity,
+        total_discount_price: unit_discount_price * quantity,
+        total_tax_value: unit_tax_value * quantity,
+        total_final_price: unit_final_price * quantity, // = (base - discount + tax) × quantity
+      };
+    })
+  );
 
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
   // These represent the aggregate values across all products in the order

@@ -1,3 +1,4 @@
+import { errorResponse } from "../utils/responseHandler.js";
 import {
   createOrderServices,
   getAllUserOrdersServices,
@@ -20,12 +21,7 @@ export const createOrderController = async (req, res) => {
       data: order,
     });
   } catch (err) {
-    console.error("Order creation failed:", err);
-
-    return res.status(500).json({
-      status: "Failed",
-      message: err.message || "Internal server error",
-    });
+    res.status(500).json(errorResponse(err.message, err));
   }
 };
 
@@ -108,11 +104,10 @@ export const updateOrderController = async (req, res) => {
   }
 };
 
-
 export const getOrderProductController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id:orderId } = req.params;
+    const { id: orderId } = req.params;
 
     // Logic to get products for the given orderId
     const products = await getOrderProductService(tenantId, orderId);
@@ -121,8 +116,7 @@ export const getOrderProductController = async (req, res) => {
       message: "Order products fetched successfully",
       data: products,
     });
-  }
-  catch (error) {
+  } catch (error) {
     console.error("Get order products failed:", error.message);
     return res.status(500).json({
       status: "failed",
@@ -131,4 +125,3 @@ export const getOrderProductController = async (req, res) => {
     });
   }
 };
-
