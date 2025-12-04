@@ -113,12 +113,21 @@ export const updateCartQuantityService = async (tenantID, user_id, product_uniqu
   throwIfTrue(!quantity || quantity < 1, "Valid quantity is required");
 
   const cartModelDB = await CartModel(tenantID);
+  const productModelDB = await ProductModel(tenantID);
 
   const cart = await cartModelDB.findOne({ user_id });
   throwIfTrue(!cart, "Cart not found for this user");
 
+  const existingProduct = await productModelDB.findOne({ product_unique_id });
+  throwIfTrue(!existingProduct, "Product not found");
+
   const productIndex = cart.products.findIndex((item) => item.product_unique_id === product_unique_id);
   throwIfTrue(productIndex === -1, "Product not found in cart");
+
+  // Handle out of stock error and max order limit error
+  const max_order_limit = existingProduct.max_order_limit;
+  throwIfTrue(max_order_limit && quantity > max_order_limit, "Quantity exceeds max order limit");
+  throwIfTrue(existingProduct.stock_quantity < quantity, "Not enough stock available");
 
   cart.products[productIndex].quantity = quantity;
 
