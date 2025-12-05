@@ -1,4 +1,6 @@
+import UserModel from "../Users/userModel.js";
 import { BOT_REPLIES } from "../utils/chatBotreplies.js";
+import { sendEmailToAdmin } from "../utils/sendEmail.js";
 import {
   createTicketService,
   getAllTicketsService,
@@ -16,25 +18,13 @@ const sendError = (res, code, msg) =>
 export const createTicketController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { user_id, order_id, issue_type, title, description, priority, assigned_to } = req.body;
+    const userModelDB = await UserModel(tenantID)
+    const response = await createTicketService(tenantID, req.body);
+    const existAdmin = await userModelDB.findOne({ role: "admin" })
 
-    // Basic validation
-    if (!user_id || !issue_type || !title || !description) {
-      return sendError(res, 400, "Missing required fields: user_id, issue_type, title, description");
+    if (existAdmin.email) {
+      sendEmailToAdmin(existAdmin.email, response)
     }
-
-    const ticketData = {
-      user_id,
-      order_id,
-      issue_type,
-      title,
-      description,
-      priority: priority || "Medium",
-      assigned_to,
-      status: "Open"
-    };
-
-    const response = await createTicketService(tenantID, ticketData);
 
     return res.status(201).json({
       status: "success",
@@ -49,56 +39,11 @@ export const createTicketController = async (req, res) => {
 
 
 // ---------------------- Add Message to Ticket ----------------------
-export const addMessageController = async (req, res) => {
+export const addMessageToTicketController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params;
-    const { sender_id, sender_role, message } = req.body;
 
-    if (!sender_id || !sender_role || !message)
-      return sendError(res, 400, "sender_id, sender_role, and message are required");
-
-    const messageData = {
-      sender_id,
-      sender_role,
-      message,
-      timestamp: new Date(),
-      read: false
-    };
-
-    // Save User Message
-    const updatedTicket = await addMessageToTicketService(tenantID, id, messageData);
-
-    if (!updatedTicket)
-      return sendError(res, 404, "Ticket not found");
-
-    // Emit user message
-    req.io?.to(`ticket_${id}`).emit("receiveTicketMessage", messageData);
-
-
-    // ============================
-    //  AUTO BOT SMART MATCH REPLY
-    // ============================
-
-    const userMsg = message.toLowerCase().trim();
-
-    // Find best matching BOT message (closest match)
-    const matchedKey = Object.keys(BOT_REPLIES).find(key => {
-      return userMsg.includes(key.toLowerCase());
-    });
-
-    if (matchedKey) {
-      const botMessage = {
-        sender_id: "system",
-        sender_role: "support",
-        message: BOT_REPLIES[matchedKey],
-        timestamp: new Date(),
-        read: false
-      };
-
-      await addMessageToTicketService(tenantID, id, botMessage);
-      req.io?.to(`ticket_${id}`).emit("receiveTicketMessage", botMessage);
-    }
+    const updatedTicket = await addMessageToTicketService(tenantID, req.body);
 
     return res.status(200).json({
       status: "success",
@@ -107,11 +52,10 @@ export const addMessageController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Add Message error:", error.message);
-    return sendError(res, 500, error.message);
+    console.error("Error adding message to ticket:", error);
+    return sendError(res, 500, error.message || "Internal Server Error");
   }
 };
-
 // ---------------------- Get All Tickets ----------------------
 export const getAllTicketsController = async (req, res) => {
   try {

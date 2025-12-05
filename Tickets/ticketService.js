@@ -5,38 +5,41 @@ import TicketModel from "./ticketModel.js";
 // ----------------- CREATE TICKET -----------------
 export const createTicketService = async (tenantID, ticketData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!ticketData.user_id, "User ID is required");
+  throwIfTrue(!ticketData.issue_type, "Issue Type is required");
+  throwIfTrue(!ticketData.title, "Title is required");
+  throwIfTrue(!ticketData.description, "Description is required");
   const ticketDB = await TicketModel(tenantID);
 
   const ticketNumber = await generateTicketNumber(ticketDB);
 
   ticketData.ticket_number = ticketNumber;
+  ticketData.status = "Open"
+  ticketData.priority = ticketData.priority || "Medium"
 
   console.log(ticketData, 'cjecking the ticket data');
   return ticketDB.create(ticketData);
 };
 
 // ----------------- ADD MESSAGE TO TICKET -----------------
-export const addMessageToTicketService = async (tenantID, ticketId, messageData) => {
+export const addMessageToTicketService = async (tenantID, ticket_number, messageData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!ticketId, "Ticket ID is required");
+  throwIfTrue(!ticket_number, "Ticket Number is required");
 
-  const ticketDB = await TicketModel(tenantID);
+  const Ticket = await TicketModel(tenantID);
 
   let updatedTicket = null;
 
-  // Check if it's a valid ObjectId
-  if (ticketId.match(/^[0-9a-fA-F]{24}$/)) {
-    updatedTicket = await ticketDB.findByIdAndUpdate(
-      ticketId,
+  if (!updatedTicket) {
+    updatedTicket = await Ticket.findByIdAndUpdate(
+      ticket_number,
       { $push: { conversation: messageData } },
       { new: true }
     );
-  } else {
-    updatedTicket = await ticketDB.findOneAndUpdate(
-      { ticket_number: ticketId },
-      { $push: { conversation: messageData } },
-      { new: true }
-    );
+  }
+
+  if (!updatedTicket) {
+    throw new Error("Ticket not found");
   }
 
   return updatedTicket;

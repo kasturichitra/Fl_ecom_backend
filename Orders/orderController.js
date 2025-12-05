@@ -5,6 +5,7 @@ import {
   getAllOrdersService,
   updateOrderService,
   getOrderProductService,
+  getOrderSingleProductService,
 } from "./orderService.js";
 
 export const createOrderController = async (req, res) => {
@@ -111,6 +112,30 @@ export const getOrderProductController = async (req, res) => {
 
     // Logic to get products for the given orderId
     const products = await getOrderProductService(tenantId, orderId);
+    return res.status(200).json({
+      status: "success",
+      message: "Order products fetched successfully",
+      data: products,
+    });
+  } catch (error) {
+    console.error("Get order products failed:", error.message);
+    return res.status(500).json({
+      status: "failed",
+      message: "Failed to fetch order products",
+      error: error.message,
+    });
+  }
+};
+
+
+
+export const getOrderSingleProductController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const {order_id,product_unique_id} = req.query;
+
+    // Logic to get products for the given orderId
+    const products = await getOrderSingleProductService(tenantId, order_id,product_unique_id);
     return res.status(200).json({
       status: "success",
       message: "Order products fetched successfully",
