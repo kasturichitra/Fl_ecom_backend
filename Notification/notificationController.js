@@ -12,8 +12,41 @@ import { getAllNotificationService, markNotificationAsReadService } from "./noti
 //     res.status(500).json(errorResponse(error.message, error));
 //   }
 // };
+export const getAllNotificationController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    if (!tenantID) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Tenant ID is required",
+      });
+    }
 
-export const getAllNotificationController = async (tenantId, role, userId, page, limit, sort) => {};
+    const { role, userId, page = 1, limit = 10, sort } = req.query;
+
+    const respones = await getAllNotificationService(
+      tenantID,
+      role,
+      userId,
+      Number(page),
+      Number(limit),
+      sort
+    );
+
+    res.status(200).json(
+      successResponse("All Notifications", {
+        data: respones.notifications,
+        totalCount: respones.totalCount,
+        currentPage: respones.currentPage,
+        totalPages: respones.totalPages,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+
 
 export const markNotificationAsReadController = async (req, res) => {
   try {
