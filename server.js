@@ -3,7 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { port_number } from "./env.js";
-
+import chatSocket from "./utils/chatSocket.js";
 // Routes
 import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
@@ -15,7 +15,7 @@ import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
 import brandRoutes from "./Brands/brandRoutes.js";
-import cartRoutes from "./Cart/cartRoutes.js"; 
+import cartRoutes from "./Cart/cartRoutes.js";
 import notificationRoutes from "./Notification/notificationRoutes.js";
 
 import morgan from "morgan";
@@ -48,7 +48,11 @@ export const io = new Server(server, {
   },
 });
 
+
+
 export const connectedUsers = new Map();
+
+chatSocket(io);
 
 io.on("connection", (socket) => {
   console.log("✔ Socket connected:", socket.id);
