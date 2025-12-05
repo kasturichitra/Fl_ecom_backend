@@ -1,4 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
+import { NotificationModel } from "./notificationModel.js";
 import { getAllNotificationService, markNotificationAsReadService } from "./notificationService.js";
 
 // export const getAllNotificationController = async (req, res) => {
@@ -12,51 +13,7 @@ import { getAllNotificationService, markNotificationAsReadService } from "./noti
 //   }
 // };
 
-export const getAllNotificationService = async (tenantId, role, userId, page, limit, sort) => {
-    throwIfTrue(!tenantId, "Tenant ID is required");
-
-    page = Math.max(1, +page || 1);
-    limit = Math.max(1, +limit || 10);
-
-    const skip = (page - 1) * limit;
-
-    const NotificationModelDB = await NotificationModel(tenantId);
-
-    let filter = {};
-
-    if (role === "User") {
-        filter = {
-            receiverModel: "User",
-            read: false,
-            $or: [
-                { receiver: userId },
-                { is_broadcast: true }
-            ]
-        };
-    }
-    if (role === "Admin") {
-        filter = {
-            receiverModel: "Admin",
-            read: false
-        };
-    }
-
-    const sortObj = buildSortObject(sort);
-
-    const [notifications, totalCount] = await Promise.all([
-        NotificationModelDB.find(filter).sort(sortObj).skip(skip).limit(limit),
-        NotificationModelDB.countDocuments(filter)
-    ]);
-
-    return {
-        notifications,
-        totalCount,
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit)
-    };
-};
-
-
+export const getAllNotificationController = async (tenantId, role, userId, page, limit, sort) => {};
 
 export const markNotificationAsReadController = async (req, res) => {
   try {
