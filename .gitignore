@@ -61,3 +61,6 @@ SubCategory
 uploads
 README.md
 settings
+
+
+nginx.conf.*
