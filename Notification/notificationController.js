@@ -1,4 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
+import { NotificationModel } from "./notificationModel.js";
 import { getAllNotificationService, markNotificationAsReadService } from "./notificationService.js";
 
 // export const getAllNotificationController = async (req, res) => {
@@ -11,49 +12,38 @@ import { getAllNotificationService, markNotificationAsReadService } from "./noti
 //     res.status(500).json(errorResponse(error.message, error));
 //   }
 // };
-
-export const getAllNotificationService = async (tenantId, role, userId, page, limit, sort) => {
-    throwIfTrue(!tenantId, "Tenant ID is required");
-
-    page = Math.max(1, +page || 1);
-    limit = Math.max(1, +limit || 10);
-
-    const skip = (page - 1) * limit;
-
-    const NotificationModelDB = await NotificationModel(tenantId);
-
-    let filter = {};
-
-    if (role === "User") {
-        filter = {
-            receiverModel: "User",
-            read: false,
-            $or: [
-                { receiver: userId },
-                { is_broadcast: true }
-            ]
-        };
-    }
-    if (role === "Admin") {
-        filter = {
-            receiverModel: "Admin",
-            read: false
-        };
+export const getAllNotificationController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    if (!tenantID) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Tenant ID is required",
+      });
     }
 
-    const sortObj = buildSortObject(sort);
+    const { role, userId, page = 1, limit = 10, sort } = req.query;
 
-    const [notifications, totalCount] = await Promise.all([
-        NotificationModelDB.find(filter).sort(sortObj).skip(skip).limit(limit),
-        NotificationModelDB.countDocuments(filter)
-    ]);
+    const respones = await getAllNotificationService(
+      tenantID,
+      role,
+      userId,
+      Number(page),
+      Number(limit),
+      sort
+    );
 
-    return {
-        notifications,
-        totalCount,
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit)
-    };
+    res.status(200).json(
+      successResponse("All Notifications", {
+        data: respones.notifications,
+        totalCount: respones.totalCount,
+        currentPage: respones.currentPage,
+        totalPages: respones.totalPages,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
 };
 
 
