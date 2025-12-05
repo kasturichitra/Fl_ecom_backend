@@ -25,9 +25,11 @@ export const getAllNotificationController = async (req, res) => {
 
     const response = await getAllNotificationService(tenantID, role, userId, sort);
 
+    // console.log(response, "response");
+
     res.status(200).json(
       successResponse("All notifications fetched successfully", {
-        data: response.notifications,     // array
+        data: response.notifications.push("data"),     // array
         totalCount: response.totalCount,  // number
         currentPage: response.currentPage || 1,
         totalPages: response.totalPages || 1,
