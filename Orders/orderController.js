@@ -1,4 +1,4 @@
-import { errorResponse } from "../utils/responseHandler.js";
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   createOrderServices,
   getAllUserOrdersServices,
@@ -15,11 +15,7 @@ export const createOrderController = async (req, res) => {
 
     const order = await createOrderServices(tenantId, data);
 
-    return res.status(201).json({
-      status: "Success",
-      message: "Order created successfully",
-      data: order,
-    });
+    res.status(201).json(successResponse("Order created successfully", { data: order }));
   } catch (err) {
     res.status(500).json(errorResponse(err.message, err));
   }
@@ -33,19 +29,14 @@ export const getAllUserOrdersController = async (req, res) => {
 
     const orders = await getAllUserOrdersServices(tenantId, userID);
 
-    res.status(200).json({
-      status: "success",
-      message: "Orders fetched successfully",
-      total: orders.length,
-      data: orders,
-    });
+    res.status(200).json(
+      successResponse("Orders fetched successfully", {
+        total: orders.length,
+        data: orders,
+      })
+    );
   } catch (error) {
-    console.error("Order search failed ===>", error.message);
-    res.status(500).json({
-      status: "failed",
-      message: "Order search error",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -56,19 +47,14 @@ export const getAllOrdersController = async (req, res) => {
 
     const orders = await getAllOrdersService(tenantId, filters);
 
-    return res.status(200).json({
-      status: "success",
-      message: "Orders fetched successfully",
-      total: orders.length,
-      data: orders,
-    });
+    res.status(200).json(
+      successResponse("Orders fetched successfully", {
+        total: orders.length,
+        data: orders,
+      })
+    );
   } catch (error) {
-    console.error("Global order search failed:", error.message);
-    return res.status(500).json({
-      status: "failed",
-      message: "Search error",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -86,21 +72,13 @@ export const updateOrderController = async (req, res) => {
     const updateData = req.body;
 
     const updatedOrder = await updateOrderService(tenantId, id, updateData);
-
-    return res.status(200).json({
-      status: "success",
-      message: "Order updated successfully",
-      data: updatedOrder,
-    });
+    res.status(200).json(
+      successResponse("Order updated successfully", {
+        data: updatedOrder,
+      })
+    );
   } catch (error) {
-    console.error("Order update error:", error.message);
-
-    const statusCode = error.message.includes("not found") || error.message.includes("Invalid") ? 404 : 400;
-
-    return res.status(statusCode).json({
-      status: "failed",
-      message: error.message || "Failed to update order",
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -111,17 +89,12 @@ export const getOrderProductController = async (req, res) => {
 
     // Logic to get products for the given orderId
     const products = await getOrderProductService(tenantId, orderId);
-    return res.status(200).json({
-      status: "success",
-      message: "Order products fetched successfully",
-      data: products,
-    });
+    res.status(200).json(
+      successResponse("Order products fetched successfully", {
+        data: products,
+      })
+    );
   } catch (error) {
-    console.error("Get order products failed:", error.message);
-    return res.status(500).json({
-      status: "failed",
-      message: "Failed to fetch order products",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

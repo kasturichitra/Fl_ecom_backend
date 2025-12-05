@@ -1,4 +1,5 @@
 import parseFormData from "../utils/parseFormDataIntoJsonData.js";
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { createBrandService, getAllBrandsService, getBrandByIdService, updateBrandService } from "./brandService.js";
 
 // Create Brand
@@ -21,18 +22,21 @@ export const createBrandController = async (req, res) => {
 
     const response = await createBrandService(tenantId, parsedData);
 
-    res.status(201).json({
-      status: "Success",
-      message: "Brand created successfully",
-      data: response,
-    });
+    // res.status(201).json({
+    //   status: "Success",
+    //   message: "Brand created successfully",
+    //   data: response,
+    // });
+
+    res.status(201).json(successResponse("Brand created successfully", { data: response }));
   } catch (error) {
-    console.error("Create Brand Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error creating brand",
-      error: error.message,
-    });
+    // console.error("Create Brand Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Error creating brand",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -44,22 +48,25 @@ export const getAllBrandsController = async (req, res) => {
 
     const { totalCount, page, limit, totalPages, data } = await getAllBrandsService(tenantId, filters);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Fetched brands successfully",
-      totalCount,
-      page,
-      limit,
-      totalPages,
-      data,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Fetched brands successfully",
+    //   totalCount,
+    //   page,
+    //   limit,
+    //   totalPages,
+    //   data,
+    // });
+
+    res.status(200).json(successResponse("Fetched brands successfully", { totalCount, page, limit, totalPages, data }));
   } catch (error) {
-    console.error("Get All Brands Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching brands",
-      error: error.message,
-    });
+    // console.error("Get All Brands Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Error fetching brands",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -71,18 +78,21 @@ export const getBrandByIdController = async (req, res) => {
 
     const response = await getBrandByIdService(tenantId, id);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Brand fetched successfully",
-      data: response,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Brand fetched successfully",
+    //   data: response,
+    // });
+
+    res.status(200).json(successResponse("Brand fetched successfully", { data: response }));
   } catch (error) {
-    console.error("Get Brand By ID Error ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching brand",
-      error: error.message,
-    });
+    // console.error("Get Brand By ID Error ===>", error.message);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Error fetching brand",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -106,17 +116,21 @@ export const updateBrandController = async (req, res) => {
 
     const response = await updateBrandService(tenantId, id, updateBrand);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Brand updated successfully",
-      data: response,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Brand updated successfully",
+    //   data: response,
+    // });
+
+    res.status(200).json(successResponse("Brand updated successfully", { data: response }));
   } catch (error) {
-    console.error("Update Brand Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to update brand",
-      error: error.message,
-    });
+    // console.error("Update Brand Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Failed to update brand",
+    //   error: error.message,
+    // });
+
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

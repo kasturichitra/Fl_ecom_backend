@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   addToCartService,
   getCartByUserIdService,
@@ -13,18 +14,21 @@ export const addToCartController = async (req, res) => {
 
     const response = await addToCartService(tenantId, data);
 
-    res.status(201).json({
-      status: "Success",
-      message: "Product added to cart successfully",
-      data: response,
-    });
+    // res.status(201).json({
+    //   status: "Success",
+    //   message: "Product added to cart successfully",
+    //   data: response,
+    // });
+
+    res.status(201).json(successResponse("Product added to cart successfully", { data: response }));
   } catch (error) {
-    console.error("Add to Cart Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error adding product to cart",
-      error: error.message,
-    });
+    // console.error("Add to Cart Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Error adding product to cart",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -38,19 +42,22 @@ export const getCartByUserIdController = async (req, res) => {
       totalCount
     } = await getCartByUserIdService(tenantId, user_id);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Cart fetched successfully",
-      data, 
-      totalCount
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Cart fetched successfully",
+    //   data, 
+    //   totalCount
+    // });
+
+    res.status(200).json(successResponse("Cart fetched successfully", { data, totalCount }));
   } catch (error) {
-    console.error("Get Cart By User ID Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching cart",
-      error: error.message,
-    });
+    // console.error("Get Cart By User ID Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Error fetching cart",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -61,18 +68,21 @@ export const removeFromCartController = async (req, res) => {
 
     const response = await removeFromCartService(tenantId, user_id, product_unique_id);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Product removed from cart successfully",
-      data: response,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Product removed from cart successfully",
+    //   data: response,
+    // });
+
+    res.status(200).json(successResponse("Product removed from cart successfully", { data: response }));
   } catch (error) {
-    console.error("Remove from Cart Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to remove product from cart",
-      error: error.message,
-    });
+    // console.error("Remove from Cart Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Failed to remove product from cart",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -83,18 +93,21 @@ export const updateCartQuantityController = async (req, res) => {
 
     const response = await updateCartQuantityService(tenantId, user_id, product_unique_id, quantity);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Cart quantity updated successfully",
-      data: response,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Cart quantity updated successfully",
+    //   data: response,
+    // });
+
+    res.status(200).json(successResponse("Cart quantity updated successfully", { data: response }));
   } catch (error) {
-    console.error("Update Cart Quantity Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to update cart quantity",
-      error: error.message,
-    });
+    // console.error("Update Cart Quantity Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Failed to update cart quantity",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -105,17 +118,20 @@ export const clearCartController = async (req, res) => {
 
     const response = await clearCartService(tenantId, user_id);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Cart cleared successfully",
-      data: response,
-    });
+    // res.status(200).json({
+    //   status: "Success",
+    //   message: "Cart cleared successfully",
+    //   data: response,
+    // });
+
+    res.status(200).json(successResponse("Cart cleared successfully", { data: response }));
   } catch (error) {
-    console.error("Clear Cart Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to clear cart",
-      error: error.message,
-    });
+    // console.error("Clear Cart Controller Error ===>", error);
+    // res.status(500).json({
+    //   status: "Failed",
+    //   message: "Failed to clear cart",
+    //   error: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

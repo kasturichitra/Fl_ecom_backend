@@ -1,3 +1,4 @@
+import { successResponse, errorResponse } from "../utils/responseHandler.js";
 import {
   addAddressService,
   employeCreateService,
@@ -20,9 +21,9 @@ export const registerUserController = async (req, res) => {
 
     const user = await registerUserService(tenantId, username, email, password, phone_number);
 
-    res.status(201).json({ status: "success", message: "User registered successfully", user });
+    res.status(201).json(successResponse("User registered successfully", { data: user }));
   } catch (error) {
-    res.status(400).json({ status: "failed", message: error.message });
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
@@ -32,7 +33,7 @@ export const loginUserController = async (req, res) => {
     const { email, password } = req.body;
 
     const userData = await loginUserService(tenantId, email, password);
-    res.json(userData);
+    res.status(200).json(successResponse("Login successful", { data: userData }));
   } catch (error) {
     res.status(401).json({ message: error.message });
   }
@@ -44,9 +45,11 @@ export const getAllUsersController = async (req, res) => {
     const filters = req.query;
 
     const { totalCount, currentPage, totalPages, limit, data } = await getAllUsersService(tenantId, filters);
-    res.status(200).json({ status: "Success", totalCount, currentPage, totalPages, limit, data });
+    res
+      .status(200)
+      .json(successResponse("Users fetched successfully", { totalCount, currentPage, totalPages, limit, data }));
   } catch (error) {
-    res.status(400).json({ status: "Failed", message: error.message });
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
@@ -56,9 +59,9 @@ export const getUserByIdController = async (req, res) => {
     const { id } = req.params;
 
     const user = await getUserByIdService(tenantId, id);
-    res.status(200).json({ status: "Success", data: user });
+    res.status(200).json(successResponse("User fetched successfully", { data: user }));
   } catch (error) {
-    res.status(400).json({ status: "Failed", message: error.message });
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
@@ -74,9 +77,9 @@ export const updateUserController = async (req, res) => {
     if (req.file) updateData.image = req.file.path;
 
     const updatedUser = await updateUserService(tenantId, id, updateData);
-    res.status(200).json({ status: "Success", data: updatedUser });
+    res.status(200).json(successResponse("User updated successfully", { data: updatedUser }));
   } catch (error) {
-    res.status(400).json({ status: "Failed", message: error.message });
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
@@ -86,17 +89,12 @@ export const addAddressController = async (req, res) => {
     const { user_id } = req.params;
 
     if (!tenantId || !user_id)
-      return res.status(400).json({ status: "Failed", message: "Tenant ID & User ID required" });
+      return res.status(400).json(errorResponse("Tenant ID & User ID required"));
 
     const updatedUser = await addAddressService(tenantId, user_id, req.body);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Address added successfully",
-      data: updatedUser,
-    });
+    res.status(200).json(successResponse("Address added successfully", { data: updatedUser }));
   } catch (error) {
-    res.status(500).json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -106,14 +104,9 @@ export const updateUserAddressController = async (req, res) => {
     const { id, address_id } = req.params;
 
     const updatedUser = await updateUserAddressService(tenantId, id, address_id, req.body.address || req.body);
-
-    res.status(200).json({
-      status: "success",
-      message: "Address updated successfully",
-      user: updatedUser,
-    });
+    res.status(200).json(successResponse("Address updated successfully", { data: updatedUser }));
   } catch (error) {
-    res.status(400).json({ status: "failed", message: error.message });
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
@@ -121,18 +114,9 @@ export const employeCreateController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const response = await employeCreateService(tenantId, req.body);
-
-    res.status(201).json({
-      status: "Success",
-      message: "Employee created successfully",
-      data: response,
-    });
+    res.status(201).json(successResponse("Employee created successfully", { data: response }));
   } catch (error) {
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to create employee",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -142,9 +126,8 @@ export const storeFcmTokenController = async (req, res) => {
     const { id: user_id } = req.params;
     const { fcm_token } = req.body;
     const response = await storeFcmTokenService(tenantId, user_id, fcm_token);
-    res.status(200).json({ status: "Success", data: response });
+    res.status(200).json(successResponse("Fcm token stored successfully", { data: response }));
   } catch (error) {
-    console.error("Error in storeFcmTokenController ===>", error);
-    res.status(500).json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

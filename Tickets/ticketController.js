@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   createTicketService,
   getAllTicketsService,
@@ -29,15 +30,9 @@ export const createTicketController = async (req, res) => {
     };
 
     const response = await createTicketService(tenantID, ticketData);
-
-    return res.status(201).json({
-      status: "success",
-      message: "Ticket created successfully",
-      data: response,
-    });
+    res.status(201).json(successResponse("Ticket created successfully", { data: response }));
   } catch (error) {
-    console.error("Ticket creation error:", error.message);
-    return sendError(res, 500, error.message);
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -48,16 +43,9 @@ export const getAllTicketsController = async (req, res) => {
     if (!tenantID) return sendError(res, 400, "Tenant ID is required in headers");
 
     const response = await getAllTicketsService(tenantID);
-
-    return res.status(200).json({
-      status: "success",
-      message: "Tickets fetched successfully",
-      total: response.length,
-      data: response,
-    });
+    res.status(200).json(successResponse("Tickets fetched successfully", { total: response.length, data: response }));
   } catch (error) {
-    console.error("Get Ticket Error:", error.message);
-    return sendError(res, 500, error.message);
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -77,15 +65,9 @@ export const updateTicketController = async (req, res) => {
 
     if (!updatedTicket)
       return sendError(res, 404, "Ticket not found");
-
-    return res.status(200).json({
-      status: "success",
-      message: "Ticket updated successfully",
-      data: updatedTicket,
-    });
+    res.status(200).json(successResponse("Ticket updated successfully", { data: updatedTicket }));
   } catch (error) {
-    console.error("Ticket update error:", error.message);
-    return sendError(res, 500, error.message);
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 

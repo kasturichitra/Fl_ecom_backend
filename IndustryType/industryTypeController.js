@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   createIndustryTypeServices,
   deleteIndustryTypeServices,
@@ -22,15 +23,9 @@ export const createIndustryTypeController = async (req, res) => {
     };
 
     const data = await createIndustryTypeServices(tenantID, payload);
-
-    res.status(201).json({
-      status: "Success",
-      message: "Industry Type created successfully",
-      data,
-    });
+    res.status(201).json(successResponse("Industry Type created successfully", { data }));
   } catch (error) {
-    res.status(error.message.includes("required") || error.message.includes("exists") ? 400 : 500)
-       .json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 // ===============================
@@ -56,17 +51,16 @@ export const getIndustrysSearchController = async (req, res) => {
        req.query.sort
     );
 
-    res.json({
-      status: "Success",
-      message: "Industry search data fetched successfully",
-      data: result.industryData,
-      totalCount: result.totalCount,
-      currentPage: result.currentPage,
-      totalPages: result.totalPages,
-    });
+    res.status(200).json(
+      successResponse("Industry search data fetched successfully", {
+        data: result.industryData,
+        totalCount: result.totalCount,
+        currentPage: result.currentPage,
+        totalPages: result.totalPages,
+      })
+    );
   } catch (error) {
-    console.log("Industry Search Error ====>", error);
-    res.status(500).json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 // ===============================
@@ -94,10 +88,9 @@ export const updateIndustryTypeController = async (req, res) => {
 
     const data = await updateIndustrytypeServices(tenantID, id, updates);
 
-    res.json({ status: "Success", message: "Industry Type updated successfully", data });
+    res.status(200).json(successResponse("Industry Type updated successfully", { data }));
   } catch (error) {
-    res.status(error.message.includes("not found") || error.message.includes("required") ? 404 : 500)
-       .json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -110,15 +103,9 @@ export const deleteIndustrytypeController = async (req, res) => {
     if (!tenantID) return res.status(400).json({ status: "Failed", message: "Tenant ID is required" });
 
     const data = await deleteIndustryTypeServices(tenantID, req.params.id);
-
-    res.json({
-      status: "Success",
-      message: "Industry Type deleted successfully",
-      data,
-    });
+    res.status(200).json(successResponse("Industry Type deleted successfully", { data }));
   } catch (error) {
-    res.status(error.message.includes("not found") ? 404 : 500)
-       .json({ status: "Failed", message: error.message });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 

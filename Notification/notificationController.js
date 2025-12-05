@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { getAllNotificationService, markNotificationAsReadService } from "./notificationService.js";
 
 export const getAllNotificationController = async (req, res) => {
@@ -5,16 +6,19 @@ export const getAllNotificationController = async (req, res) => {
     const tenantID = req.headers["x-tenant-id"];
     const { role, userId, sort } = req.query;
     const respones = await getAllNotificationService(tenantID, role, userId, sort);
-    return res.status(200).json({
-      success: true,
-      message: "All Notifications",
-      respones,
-    });
+    // return res.status(200).json({
+    //   success: true,
+    //   message: "All Notifications",
+    //   respones,
+    // });
+
+    res.status(200).json(successResponse("All Notifications", { data: respones }));
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    // return res.status(500).json({
+    //   success: false,
+    //   message: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -23,15 +27,18 @@ export const markNotificationAsReadController = async (req, res) => {
     const tenantID = req.headers["x-tenant-id"];
     const payload = req.body;
     const response = await markNotificationAsReadService(tenantID, payload);
-    return res.status(200).json({
-      success: true,
-      message: "Notifications marked as read",
-      response,
-    });
+    // return res.status(200).json({
+    //   success: true,
+    //   message: "Notifications marked as read",
+    //   response,
+    // });
+
+    res.status(200).json(successResponse("Notifications marked as read", { data: response }));
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    // return res.status(500).json({
+    //   success: false,
+    //   message: error.message,
+    // });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

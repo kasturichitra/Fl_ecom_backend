@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../../utils/responseHandler.js";
 import {
   createReviewService,
   getAllReviewsService,
@@ -19,18 +20,10 @@ export const createReviewController = async (req, res) => {
     };
 
     const response = await createReviewService(tenantId, data);
-    res.status(201).json({
-      status: "Success",
-      message: "Review created successfully",
-      data: response,
-    });
+
+    res.status(201).json(successResponse("Review created successfully", { data: response }));
   } catch (error) {
-    console.error("Create Review Controller Error ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error creating review",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -63,18 +56,9 @@ export const getAllReviewsController = async (req, res) => {
     const filters = req.query;
     const tenantId = req.headers["x-tenant-id"];
     const response = await getAllReviewsService(tenantId, filters);
-    res.status(200).json({
-      status: "Success",
-      message: "Fetched Reviews successfully",
-      data: response,
-    });
+    res.status(200).json(successResponse("Fetched Reviews successfully", { data: response }));
   } catch (error) {
-    console.log("Get Reviews are Failed====>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching reviews",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -84,19 +68,9 @@ export const getReviewByIdController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
 
     const response = await getReviewByIdService(tenantId, product_unique_id);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Review fetched successfully",
-      data: response,
-    });
+    res.status(200).json(successResponse("Review fetched successfully", { data: response }));
   } catch (error) {
-    console.error("Get review by ID failed ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching review",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -111,18 +85,8 @@ export const updateReviewController = async (req, res) => {
     console.log("Request body is ===>", req.body);
 
     const response = await updateReviewService(tenantId, id, updateReview);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Review updated successfully",
-      data: response,
-    });
+    res.status(200).json(successResponse("Review updated successfully", { data: response }));
   } catch (error) {
-    console.error("Update review controller error ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to update review",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };

@@ -1,3 +1,4 @@
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   createBannerService,
   deleteBannerService,
@@ -30,10 +31,11 @@ export const createBannerController = async (req, res) => {
     } = req.body;
 
     if (!banner_title || !start_date || !end_date) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "banner_title, start_date and end_date are required",
-      });
+      // return res.status(400).json({
+      //   status: "Failed",
+      //   message: "banner_title, start_date and end_date are required",
+      // });
+      return res.status(400).json(errorResponse("banner_title, start_date and end_date are required"));
     }
 
     const bannerData = {
@@ -50,17 +52,20 @@ export const createBannerController = async (req, res) => {
 
     const newBanner = await createBannerService(tenantID, bannerData);
 
-    return res.status(201).json({
-      status: "Success",
-      message: "Offer banner created successfully",
-      data: newBanner,
-    });
+    // return res.status(201).json({
+    //   status: "Success",
+    //   message: "Offer banner created successfully",
+    //   data: newBanner,
+    // });
+
+    return res.status(201).json(successResponse("Banner created successfully", { data: newBanner }));
   } catch (error) {
-    console.error("Error creating banner:", error);
-    return res.status(500).json({
-      status: "Failed",
-      message: error.message || "Internal server error",
-    });
+    // console.error("Error creating banner:", error);
+    // return res.status(500).json({
+    //   status: "Failed",
+    //   message: error.message || "Internal server error",
+    // });
+    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
   }
 };
 
@@ -69,10 +74,11 @@ export const getAllBannersController = async (req, res) => {
     const tenantID = req.headers["x-tenant-id"];
 
     if (!tenantID) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Tenant ID is required in headers",
-      });
+      // return res.status(400).json({
+      //   status: "Failed",
+      //   message: "Tenant ID is required in headers",
+      // });
+      return res.status(400).json(errorResponse("Tenant ID is required in headers"));
     }
 
     const banners = await getAllBannersService(tenantID);
@@ -85,17 +91,20 @@ export const getAllBannersController = async (req, res) => {
     //     : null,
     // }));
 
-    return res.status(200).json({
-      status: "Success",
-      message: "Banners fetched successfully",
-      data: banners,
-    });
+    // return res.status(200).json({
+    //   status: "Success",
+    //   message: "Banners fetched successfully",
+    //   data: banners,
+    // });
+
+    return res.status(200).json(successResponse("Banners fetched successfully", { data: banners }));
   } catch (error) {
-    console.error("Error fetching banners:", error);
-    return res.status(500).json({
-      status: "Failed",
-      message: error.message || "Internal server error",
-    });
+    // console.error("Error fetching banners:", error);
+    // return res.status(500).json({
+    //   status: "Failed",
+    //   message: error.message || "Internal server error",
+    // });
+    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
   }
 };
 
@@ -105,10 +114,11 @@ export const updateBannerController = async (req, res) => {
     const { id } = req.params; // banner _id
 
     if (!tenantID || !id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Tenant ID and Banner ID are required",
-      });
+      // return res.status(400).json({
+      //   status: "Failed",
+      //   message: "Tenant ID and Banner ID are required",
+      // });
+      return res.status(400).json(errorResponse("Tenant ID and Banner ID are required"));
     }
 
     const {
@@ -137,17 +147,20 @@ export const updateBannerController = async (req, res) => {
 
     const updatedBanner = await updateBannerService(tenantID, id, updatedData, newImageFilename);
 
-    return res.status(200).json({
-      status: "Success",
-      message: "Banner updated successfully",
-      data: updatedBanner,
-    });
+    // return res.status(200).json({
+    //   status: "Success",
+    //   message: "Banner updated successfully",
+    //   data: updatedBanner,
+    // });
+
+    return res.status(200).json(successResponse("Banner updated successfully", { data: updatedBanner }));
   } catch (error) {
-    console.error("Error updating banner:", error);
-    return res.status(500).json({
-      status: "Failed",
-      message: error.message || "Internal server error",
-    });
+    // console.error("Error updating banner:", error);
+    // return res.status(500).json({
+    //   status: "Failed",
+    //   message: error.message || "Internal server error",
+    // });
+    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
   }
 };
 
@@ -157,24 +170,28 @@ export const deleteBannerController = async (req, res) => {
     const { id } = req.params; // banner ID
 
     if (!tenantID || !id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Tenant ID and Banner ID are required",
-      });
+      // return res.status(400).json({
+      //   status: "Failed",
+      //   message: "Tenant ID and Banner ID are required",
+      // });
+      return res.status(400).json(errorResponse("Tenant ID and Banner ID are required"));
     }
 
     const deletedBanner = await deleteBannerService(tenantID, id);
 
-    return res.status(200).json({
-      status: "Success",
-      message: "Banner deleted successfully",
-      data: deletedBanner,
-    });
+    // return res.status(200).json({
+    //   status: "Success",
+    //   message: "Banner deleted successfully",
+    //   data: deletedBanner,
+    // });
+
+    return res.status(200).json(successResponse("Banner deleted successfully", { data: deletedBanner }));
   } catch (error) {
-    console.error("Error deleting banner:", error);
-    return res.status(500).json({
-      status: "Failed",
-      message: error.message || "Internal server error",
-    });
+    // console.error("Error deleting banner:", error);
+    // return res.status(500).json({
+    //   status: "Failed",
+    //   message: error.message || "Internal server error",
+    // });
+    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
   }
 };
