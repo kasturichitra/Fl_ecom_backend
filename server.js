@@ -3,7 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { port_number } from "./env.js";
-
+import chatSocket from "./utils/chatSocket.js";
 // Routes
 import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
@@ -49,7 +49,11 @@ export const io = new Server(server, {
   },
 });
 
+
+
 export const connectedUsers = new Map();
+
+chatSocket(io);
 
 io.on("connection", (socket) => {
   console.log("✔ Socket connected:", socket.id);

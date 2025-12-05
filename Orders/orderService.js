@@ -474,3 +474,30 @@ export const getOrderProductService = async (tenantId, orderId) => {
     order_products: mergedProducts,
   };
 };
+
+
+export const getOrderSingleProductService = async (tenantId, order_id, product_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!order_id, "Valid Order ID is required");
+
+  const Order = await OrdersModel(tenantId);
+
+  const orderDoc = await Order.findOne({ order_id });
+  if (!orderDoc) throw new Error("Order not found");
+
+  const order = orderDoc.toObject();
+
+  const matchedProduct = order.order_products.find(
+    (p) => p.product_unique_id === product_unique_id
+  );
+
+  if (!matchedProduct) throw new Error("Product not found in this order");
+
+  // Remove the full array and add single product field
+  delete order.order_products;
+  order.product = matchedProduct;
+
+  return order;
+};
+
+
