@@ -11,7 +11,7 @@ export const successResponse = (message, data = {}) => {
     ...data,
   };
 
-  console.info("✅ Success:", message, data);
+  // console.info("✅ Success:", message, data);
 
   return response;
 };

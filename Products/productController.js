@@ -9,6 +9,7 @@ import {
   getProductByUniqueIdService,
   updateProductService,
 } from "./productService.js";
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 
 export const createProductController = async (req, res) => {
   try {
@@ -37,19 +38,9 @@ export const createProductController = async (req, res) => {
     };
 
     const createdProduct = await createProductService(tenantId, inputData);
-
-    res.status(201).json({
-      status: "Success",
-      message: "Product created successfully",
-      data: createdProduct,
-    });
+    res.status(201).json(successResponse("Product created successfully", { data: createdProduct }));
   } catch (error) {
-    console.error("Product creation failed in controller ===>", error);
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      // error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -58,20 +49,9 @@ export const getAllProductsController = async (req, res) => {
     const filters = req.query;
     const tenantId = req.headers["x-tenant-id"];
     const { data, totalCount } = await getAllProductsService(tenantId, filters);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Products fetched successfully by search filters",
-      totalCount,
-      data,
-    });
+    res.status(200).json(successResponse("Products fetched successfully by search filters", { totalCount, data }));
   } catch (error) {
-    console.error("Product Search Controller Error ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error fetching products",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -82,26 +62,13 @@ export const getProductByIdController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
 
     if (!id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "products_unique_ID is required in URL",
-      });
+      return res.status(400).json(errorResponse("products_unique_ID is required in URL"));
     }
 
     const response = await getProductByUniqueIdService(tenantId, id);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Product fetched successfully",
-      data: response,
-    });
+    res.status(200).json(successResponse("Product fetched successfully", { data: response }));
   } catch (error) {
-    console.error("Error in getByIdProductsController ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Failed to fetch product",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -111,10 +78,7 @@ export const updateProductController = async (req, res) => {
     const productData = req.body;
     const tenantId = req.headers["x-tenant-id"];
     if (!id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "products_unique_ID is required in URL",
-      });
+      return res.status(400).json(errorResponse("products_unique_ID is required in URL"));
     }
 
     if (req.files) {
@@ -128,19 +92,9 @@ export const updateProductController = async (req, res) => {
     }
 
     const response = await updateProductService(tenantId, id, productData);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Product updated successfully",
-      data: response,
-    });
+    res.status(200).json(successResponse("Product updated successfully", { data: response }));
   } catch (error) {
-    console.error("Product update failed in controller:", error);
-    res.status(500).json({
-      status: "Failed",
-      message: "Product update failed",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -150,10 +104,7 @@ export const deleteProductController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
 
     if (!id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Product unique ID is required in URL",
-      });
+      return res.status(400).json(errorResponse("Product unique ID is required in URL"));
     }
 
     const existingProduct = await deleteProductService(tenantId, id);
@@ -188,19 +139,9 @@ export const deleteProductController = async (req, res) => {
     if (Array.isArray(existingProduct.product_images)) {
       existingProduct.product_images.forEach(deleteFileIfExists);
     }
-
-    res.status(200).json({
-      status: "Success",
-      message: "Product deleted successfully",
-      data: existingProduct,
-    });
+    res.status(200).json(successResponse("Product deleted successfully", { data: existingProduct }));
   } catch (error) {
-    console.error("Delete Product Controller Error ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error deleting product",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -217,12 +158,7 @@ export const downloadExcelTemplateController = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error("Error in downloadExcelTemplateController ===>", error.message);
-    res.status(500).json({
-      status: "Failed",
-      message: "Error downloading Excel template",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
 };
 
@@ -232,21 +168,11 @@ export const createBulkProductsController = async (req, res) => {
     // const { id: category_unique_id } = req.params;
 
     const response = await createBulkProductsService(tenantId, req.file.path);
-
-    res.status(201).json({
-      status: "Success",
-      message: "Bulk products created successfully",
-      data: response,
-    });
+    res.status(201).json(successResponse("Bulk products created successfully", { data: response }));
   } catch (error) {
-    console.error("Error in createBulkProductsController ===>", error); 
-    res.status(500).json({
-      status: "Failed",
-      message: "Error creating bulk products",
-      error: error.message,
-    });
+    res.status(500).json(errorResponse(error.message, error));
   }
-}
+};
 // MongoDb id generated by db
 // export const getProductByIdController = async (req, res) => {
 //   try {
