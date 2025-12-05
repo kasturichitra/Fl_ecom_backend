@@ -12,32 +12,48 @@ import { getAllNotificationService, markNotificationAsReadService } from "./noti
 //   }
 // };
 
-export const getAllNotificationController = async (req, res) => {
-  try {
-    const tenantID = req.headers["x-tenant-id"];
-    if (!tenantID) {
-      return res
-        .status(400)
-        .json({ status: "Failed", message: "Tenant ID is required" });
+export const getAllNotificationService = async (tenantId, role, userId, page, limit, sort) => {
+    throwIfTrue(!tenantId, "Tenant ID is required");
+
+    page = Math.max(1, +page || 1);
+    limit = Math.max(1, +limit || 10);
+
+    const skip = (page - 1) * limit;
+
+    const NotificationModelDB = await NotificationModel(tenantId);
+
+    let filter = {};
+
+    if (role === "User") {
+        filter = {
+            receiverModel: "User",
+            read: false,
+            $or: [
+                { receiver: userId },
+                { is_broadcast: true }
+            ]
+        };
+    }
+    if (role === "Admin") {
+        filter = {
+            receiverModel: "Admin",
+            read: false
+        };
     }
 
-    const { role, userId, sort } = req.query;
+    const sortObj = buildSortObject(sort);
 
-    const response = await getAllNotificationService(tenantID, role, userId, sort);
+    const [notifications, totalCount] = await Promise.all([
+        NotificationModelDB.find(filter).sort(sortObj).skip(skip).limit(limit),
+        NotificationModelDB.countDocuments(filter)
+    ]);
 
-    // console.log(response, "response");
-
-    res.status(200).json(
-      successResponse("All notifications fetched successfully", {
-        data: response.notifications,     // array
-        totalCount: response.totalCount,  // number
-        currentPage: response.currentPage || 1,
-        totalPages: response.totalPages || 1,
-      })
-    );
-  } catch (error) {
-    res.status(500).json(errorResponse(error.message, error));
-  }
+    return {
+        notifications,
+        totalCount,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit)
+    };
 };
 
 
