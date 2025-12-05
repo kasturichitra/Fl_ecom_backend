@@ -23,20 +23,21 @@ export const getAllNotificationController = async (req, res) => {
 
     const { role, userId, sort } = req.query;
 
-    const respones = await getAllNotificationService(tenantID, role, userId, sort);
+    const response = await getAllNotificationService(tenantID, role, userId, sort);
 
     res.status(200).json(
-      successResponse("All Notifications", {
-        data: respones,
-        totalCount: respones.totalCount,
-        currentPage: respones.currentPage || 1, // added field
-        totalPages: respones.totalPages || 1,   // added field
+      successResponse("All notifications fetched successfully", {
+        data: response.notifications,     // array
+        totalCount: response.totalCount,  // number
+        currentPage: response.currentPage || 1,
+        totalPages: response.totalPages || 1,
       })
     );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
+
 
 
 export const markNotificationAsReadController = async (req, res) => {
