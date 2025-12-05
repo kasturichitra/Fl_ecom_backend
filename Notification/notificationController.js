@@ -1,26 +1,43 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { getAllNotificationService, markNotificationAsReadService } from "./notificationService.js";
 
+// export const getAllNotificationController = async (req, res) => {
+//   try {
+//     const tenantID = req.headers["x-tenant-id"];
+//     const { role, userId, sort } = req.query;
+//     const respones = await getAllNotificationService(tenantID, role, userId, sort);
+//     res.status(200).json(successResponse("All Notifications", { data: respones, totalCount: respones.totalCount }));
+//   } catch (error) {
+//     res.status(500).json(errorResponse(error.message, error));
+//   }
+// };
+
 export const getAllNotificationController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { role, userId, sort } = req.query;
-    const respones = await getAllNotificationService(tenantID, role, userId, sort);
-    // return res.status(200).json({
-    //   success: true,
-    //   message: "All Notifications",
-    //   respones,
-    // });
+    if (!tenantID) {
+      return res
+        .status(400)
+        .json({ status: "Failed", message: "Tenant ID is required" });
+    }
 
-    res.status(200).json(successResponse("All Notifications", { data: respones }));
+    const { role, userId, sort } = req.query;
+
+    const respones = await getAllNotificationService(tenantID, role, userId, sort);
+
+    res.status(200).json(
+      successResponse("All Notifications", {
+        data: respones,
+        totalCount: respones.totalCount,
+        currentPage: respones.currentPage || 1, // added field
+        totalPages: respones.totalPages || 1,   // added field
+      })
+    );
   } catch (error) {
-    // return res.status(500).json({
-    //   success: false,
-    //   message: error.message,
-    // });
     res.status(500).json(errorResponse(error.message, error));
   }
 };
+
 
 export const markNotificationAsReadController = async (req, res) => {
   try {
