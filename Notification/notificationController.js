@@ -29,7 +29,7 @@ export const getAllNotificationController = async (req, res) => {
 
     res.status(200).json(
       successResponse("All notifications fetched successfully", {
-        data: response.notifications.push("data"),     // array
+        data: response.notifications,     // array
         totalCount: response.totalCount,  // number
         currentPage: response.currentPage || 1,
         totalPages: response.totalPages || 1,
