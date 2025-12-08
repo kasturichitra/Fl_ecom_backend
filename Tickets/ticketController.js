@@ -78,12 +78,9 @@ export const getAllTicketsController = async (req, res) => {
 export const getTicketByIdController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params;
+    const { id: ticket_number } = req.params;
 
-    if (!tenantID) return sendError(res, 400, "Tenant ID is required in headers");
-    if (!id) return sendError(res, 400, "Ticket ID is required in params");
-
-    const response = await getTicketByIdService(tenantID, id);
+    const response = await getTicketByIdService(tenantID, ticket_number);
 
     if (!response) return sendError(res, 404, "Ticket not found");
 
