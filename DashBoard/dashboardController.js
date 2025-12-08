@@ -4,6 +4,7 @@ import {
   getOrdersTrendService,
   getTopBrandsByCategoryService,
   getTopProductsByCategoryService,
+  getUsersTrendService,
 } from "./DashBoardService.js";
 
 export const getTopBrandsByCategory = async (req, res) => {
@@ -40,6 +41,19 @@ export const getOrdersTrendController = async (req, res) => {
     res.status(500).json(errorResponse("Error fetching orders trend:", error));
   }
 };
+
+export const getUsersTrendController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getUsersTrendService(tenantID, filters);
+
+    res.status(200).json(successResponse("Users trend fetched successfully", { data }));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching users trend:", error));
+  }
+}
 
 export const getOrdersByStatusController = async (req, res) => {
   try {

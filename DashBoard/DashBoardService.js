@@ -1,4 +1,5 @@
 import OrdersModel from "../Orders/orderModel.js";
+import UserModel from "../Users/userModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
@@ -73,12 +74,12 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 
   // Add date range filters if provided
   if (from || to) {
-    matchCriteria.order_create_date = {};
+    matchCriteria.createdAt = {};
     if (from) {
-      matchCriteria.order_create_date.$gte = new Date(from);
+      matchCriteria.createdAt.$gte = new Date(from);
     }
     if (to) {
-      matchCriteria.order_create_date.$lte = new Date(to);
+      matchCriteria.createdAt.$lte = new Date(to);
     }
   }
 
@@ -90,7 +91,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
     // Group by month
     {
       $group: {
-        _id: { $month: "$order_create_date" },
+        _id: { $month: "$createdAt" },
         count: { $sum: 1 },
         value: { $sum: "$total_amount" },
       },
@@ -135,6 +136,78 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 
   return allMonths;
 };
+
+export const getUsersTrendService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { period, from, to } = filters;
+
+  const UserModelDB = await UserModel(tenantId);
+
+  let matchCriteria = {
+    role: "user",
+  };
+
+  if (from || to) {
+    matchCriteria.createdAt = {};
+    if (from) {
+      matchCriteria.createdAt.$gte = new Date(from);
+    }
+    if (to) {
+      matchCriteria.createdAt.$lte = new Date(to);
+    }
+  }
+
+  const pipeline = [
+    // Match the filter criteria
+    ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
+
+    // Group by month
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        count: { $sum: 1 },
+        // value: { $sum: "$total_amount" },
+      },
+    },
+
+    // Project to rename _id to month
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        count: 1,
+        // value: 1,
+      },
+    },
+
+    // Sort by month
+    {
+      $sort: { month: 1 },
+    },
+  ];
+
+  const aggregationResult = await UserModelDB.aggregate(pipeline);
+
+  const allMonths = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    count: 0,
+    // value: 0,
+  }));
+
+  aggregationResult.forEach((result) => {
+    const monthIndex = result.month - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      allMonths[monthIndex] = {
+        month: result.month,
+        count: result.count,
+      };
+    }
+  });
+
+  return allMonths;
+};
+
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
@@ -228,6 +301,7 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const result = await Orders.aggregate(pipeline);
   return result;
 };
+
 export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
   const { category_unique_id } = filters;
