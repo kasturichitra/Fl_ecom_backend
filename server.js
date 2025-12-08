@@ -18,6 +18,7 @@ import brandRoutes from "./Brands/brandRoutes.js";
 import cartRoutes from "./Cart/cartRoutes.js";
 import notificationRoutes from "./Notification/notificationRoutes.js";
 import configRoutes from "./Configs/configRoutes.js";
+import dashboardRoutes from "./DashBoard/dashboardRoutes.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
@@ -108,6 +109,7 @@ app.use("/brands", brandRoutes);
 app.use("/cart", cartRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/configs", configRoutes);
+app.use("/dashboard", dashboardRoutes); 
 
 app.use("/", userRoutes);
 
