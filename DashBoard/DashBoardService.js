@@ -59,7 +59,7 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   return dashboardResult;
 };
 
-export const getOrdersTrend = async (tenantId, filters = {}) => {
+export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   let { period, from, to } = filters;
