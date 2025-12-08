@@ -64,7 +64,7 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
 export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { period, from, to } = filters;
+  let { period, year, from, to } = filters;
 
   // Get the Orders model for this tenant
   const OrderModelDB = await OrdersModel(tenantId);
@@ -72,8 +72,17 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   // Build the match criteria
   let matchCriteria = {};
 
-  // Add date range filters if provided
-  if (from || to) {
+  // Add year filter if provided
+  if (year) {
+    const yearInt = parseInt(year);
+    matchCriteria.createdAt = {
+      $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
+    };
+  }
+
+  // Add date range filters if provided (only if year is not specified)
+  else if (from || to) {
     matchCriteria.createdAt = {};
     if (from) {
       matchCriteria.createdAt.$gte = new Date(from);
@@ -140,7 +149,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 export const getUsersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { period, from, to } = filters;
+  let { period, year, from, to } = filters;
 
   const UserModelDB = await UserModel(tenantId);
 
@@ -148,7 +157,16 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     role: "user",
   };
 
-  if (from || to) {
+  // Add year filter if provided
+  if (year) {
+    const yearInt = parseInt(year);
+    matchCriteria.createdAt = {
+      $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
+    };
+  }
+  // Add date range filters if provided (only if year is not specified)
+  else if (from || to) {
     matchCriteria.createdAt = {};
     if (from) {
       matchCriteria.createdAt.$gte = new Date(from);
@@ -207,7 +225,6 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
   return allMonths;
 };
-
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
