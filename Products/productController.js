@@ -167,7 +167,8 @@ export const createBulkProductsController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     // const { id: category_unique_id } = req.params;
 
-    const response = await createBulkProductsService(tenantId, req.file.path);
+    const { category_unique_id } = req.body;
+    const response = await createBulkProductsService(tenantId, category_unique_id, req.file.path);
     res.status(201).json(successResponse("Bulk products created successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));

@@ -1,19 +1,19 @@
 export const staticExcelHeaders = [
-  {
-    header: "Category Unique ID *",
-    key: "category_unique_id",
-    width: 20,
-  },
+  // {
+  //   header: "Category Unique ID *",
+  //   key: "category_unique_id",
+  //   width: 20,
+  // },
   {
     header: "Brand Unique ID *",
     key: "brand_unique_id",
     width: 20,
   },
-  {
-    header: "Product Unique ID *",
-    key: "product_unique_id",
-    width: 20,
-  },
+  // {
+  //   header: "Product Unique ID *",
+  //   key: "product_unique_id",
+  //   width: 20,
+  // },
   { header: "Product Name *", key: "product_name", width: 20 },
   {
     header: "Product Description",
