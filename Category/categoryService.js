@@ -2,6 +2,7 @@ import { generateExcelTemplate } from "../Products/config/generateExcelTemplate.
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { toTitleCase } from "../utils/conversions.js";
 import { extractExcel, transformCategoryRow, transformRow, validateRow } from "../utils/etl.js";
+import generateUniqueId from "../utils/generateUniqueId.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
 import { staticCategoryExcelHeaders } from "./staticExcelCategory.js";
@@ -17,7 +18,7 @@ export const createCategoryService = async (
   attributes = []
 ) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  if (!industry_unique_id || !category_name || !category_unique_id || !category_image || !created_by)
+  if (!industry_unique_id || !category_name || !category_image || !created_by)
     throwIfTrue(true, "All industry_unique_id,category_name,category_unique_id,category_image,created_by fields are required");
 
   const CategoryDB = await CategoryModel(tenantId);
@@ -26,6 +27,8 @@ export const createCategoryService = async (
     throwIfTrue(true, "Category ID already exists");
 
   category_name = toTitleCase(category_name);
+
+  category_unique_id = await generateUniqueId(CategoryDB, "CAT", "category_unique_id");
 
   return await CategoryDB.create({
     industry_unique_id,
