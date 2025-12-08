@@ -5,7 +5,7 @@ import {
   getTopBrandsByCategoryService,
   getTopProductsByCategoryService,
   getUsersTrendService,
-} from "./DashBoardService.js";
+} from "./dashboardService.js";
 
 export const getTopBrandsByCategory = async (req, res) => {
   try {
