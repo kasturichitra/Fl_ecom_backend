@@ -9,8 +9,9 @@ import {
 export const getTopBrandsByCategory = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const data = await getTopBrandsByCategoryService(tenantID);
-    res.status(200).json(successResponse("Top brands by category fetched successfully", data));
+    const filters = req.query;
+    const data = await getTopBrandsByCategoryService(tenantID, filters);
+    res.status(200).json(successResponse("Top brands by category fetched successfully", { data }));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching top brands:", error));
   }
@@ -19,8 +20,9 @@ export const getTopBrandsByCategory = async (req, res) => {
 export const getTopProductsByCategory = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    const data = await getTopProductsByCategoryService(tenantID);
-    res.status(200).json(successResponse("Top products by category fetched successfully", data));
+    const filters = req.query;
+    const data = await getTopProductsByCategoryService(tenantID, filters);
+    res.status(200).json(successResponse("Top products by category fetched successfully", { data }));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching top products:", error));
   }

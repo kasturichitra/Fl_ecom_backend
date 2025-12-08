@@ -136,8 +136,10 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   return allMonths;
 };
 
-export const getTopBrandsByCategoryService = async (tenantID) => {
+export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
+  const { category_unique_id } = filters;
+
   const pipeline = [
     // 1. Filter only delivered orders
     {
@@ -157,7 +159,12 @@ export const getTopBrandsByCategoryService = async (tenantID) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+              $expr: {
+                $and: [
+                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
+                  ...(category_unique_id ? [{ $eq: ["$category_unique_id", category_unique_id] }] : []),
+                ],
+              },
             },
           },
           {
@@ -221,8 +228,10 @@ export const getTopBrandsByCategoryService = async (tenantID) => {
   const result = await Orders.aggregate(pipeline);
   return result;
 };
-export const getTopProductsByCategoryService = async (tenantID) => {
+export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
+  const { category_unique_id } = filters;
+
   const pipeline = [
     // 1. Filter only delivered orders
     {
@@ -242,7 +251,12 @@ export const getTopProductsByCategoryService = async (tenantID) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+              $expr: {
+                $and: [
+                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
+                  ...(category_unique_id ? [{ $eq: ["$category_unique_id", category_unique_id] }] : []),
+                ],
+              },
             },
           },
           {
@@ -302,6 +316,7 @@ export const getTopProductsByCategoryService = async (tenantID) => {
       $sort: { category_name: 1 },
     },
   ];
+
   const result = await Orders.aggregate(pipeline);
   return result;
 };
