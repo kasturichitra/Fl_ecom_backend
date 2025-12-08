@@ -1,16 +1,9 @@
 import OrdersModel from "../Orders/orderModel";
 
-const GetOrdersDashBoard = async (tenantId, filters = {}) => {
+export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let {
-    from,
-    to,
-    payment_status,
-    order_type,
-    cash_on_delivery,
-    payment_method,
-  } = filters;
+  let { from, to, payment_status, order_type, cash_on_delivery, payment_method } = filters;
 
   const OrderModelDB = await OrdersModel(tenantId);
 
@@ -23,11 +16,7 @@ const GetOrdersDashBoard = async (tenantId, filters = {}) => {
 
   if (cash_on_delivery !== undefined) {
     baseQuery.cash_on_delivery =
-      cash_on_delivery === "true"
-        ? true
-        : cash_on_delivery === "false"
-        ? false
-        : cash_on_delivery;
+      cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
   }
 
   if (from && to) {
@@ -38,14 +27,7 @@ const GetOrdersDashBoard = async (tenantId, filters = {}) => {
   }
 
   // Required order_status values
-  const statusList = [
-    "Pending",
-    "Processing",
-    "Shipped",
-    "Delivered",
-    "Cancelled",
-    "Returned",
-  ];
+  const statusList = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"];
 
   // Initialize dashboard result
   const dashboardResult = {};
@@ -77,4 +59,229 @@ const GetOrdersDashBoard = async (tenantId, filters = {}) => {
   return dashboardResult;
 };
 
-export default GetOrdersDashBoard;
+export const getOrdersTrend = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { period, from, to } = filters;
+
+  // Get the Orders model for this tenant
+  const OrderModelDB = await OrdersModel(tenantId);
+
+  // Build the match criteria
+  let matchCriteria = {};
+
+  // Add date range filters if provided
+  if (from || to) {
+    matchCriteria.order_create_date = {};
+    if (from) {
+      matchCriteria.order_create_date.$gte = new Date(from);
+    }
+    if (to) {
+      matchCriteria.order_create_date.$lte = new Date(to);
+    }
+  }
+
+  // Aggregation pipeline to group by month
+  const pipeline = [
+    // Match the filter criteria
+    ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
+
+    // Group by month and year
+    {
+      $group: {
+        _id: { $month: "$order_create_date" },
+        count: { $sum: 1 },
+        value: { $sum: "$total_amount" },
+      },
+    },
+
+    // Project to rename _id to month
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        count: 1,
+        value: 1,
+      },
+    },
+
+    // Sort by month
+    {
+      $sort: { month: 1 },
+    },
+  ];
+
+  const ordersTrend = await OrderModelDB.aggregate(pipeline);
+
+  return ordersTrend;
+};
+
+export const getTopBrandsByCategoryService = async (tenantID) => {
+  const Orders = await OrdersModel(tenantID);
+  const pipeline = [
+    // 1. Filter only delivered orders
+    {
+      $match: {
+        order_status: "Delivered",
+      },
+    },
+    // 2. Unwind order_products
+    {
+      $unwind: "$order_products",
+    },
+    // 3. Lookup product details
+    {
+      $lookup: {
+        from: "products",
+        let: { productUniqueId: "$order_products.product_unique_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+            },
+          },
+          {
+            $project: {
+              category_unique_id: 1,
+              brand_unique_id: 1,
+              category_name: 1,
+              brand_name: 1,
+            },
+          },
+        ],
+        as: "productDetails",
+      },
+    },
+    // 4. Unwind productDetails
+    {
+      $unwind: "$productDetails",
+    },
+    // 5. Group by Category AND Brand to get total count
+    {
+      $group: {
+        _id: {
+          category_id: "$productDetails.category_unique_id",
+          brand_id: "$productDetails.brand_unique_id",
+        },
+        category_name: { $first: "$productDetails.category_name" },
+        brand_name: { $first: "$productDetails.brand_name" },
+        count: { $sum: "$order_products.quantity" },
+      },
+    },
+    // 6. Sort by count descending
+    {
+      $sort: { count: -1 },
+    },
+    // 7. Group by Category to collect brands
+    {
+      $group: {
+        _id: "$_id.category_id",
+        category_name: { $first: "$category_name" },
+        brands: {
+          $push: {
+            brand_name: "$brand_name",
+            count: "$count",
+          },
+        },
+      },
+    },
+    // 8. Slice top 5 and Project
+    {
+      $project: {
+        _id: 0,
+        category_name: 1,
+        brands: { $slice: ["$brands", 5] },
+      },
+    },
+    // 9. Sort by Category Name
+    {
+      $sort: { category_name: 1 },
+    },
+  ];
+  const result = await Orders.aggregate(pipeline);
+  return result;
+};
+export const getTopProductsByCategoryService = async (tenantID) => {
+  const Orders = await OrdersModel(tenantID);
+  const pipeline = [
+    // 1. Filter only delivered orders
+    {
+      $match: {
+        order_status: "Delivered",
+      },
+    },
+    // 2. Unwind order_products
+    {
+      $unwind: "$order_products",
+    },
+    // 3. Lookup product details
+    {
+      $lookup: {
+        from: "products",
+        let: { productUniqueId: "$order_products.product_unique_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+            },
+          },
+          {
+            $project: {
+              category_unique_id: 1,
+              product_name: 1,
+              category_name: 1,
+            },
+          },
+        ],
+        as: "productDetails",
+      },
+    },
+    // 4. Unwind productDetails
+    {
+      $unwind: "$productDetails",
+    },
+    // 5. Group by Category AND Product to get total count
+    {
+      $group: {
+        _id: {
+          category_id: "$productDetails.category_unique_id",
+          product_name: "$productDetails.product_name",
+        },
+        category_name: { $first: "$productDetails.category_name" },
+        product_name: { $first: "$productDetails.product_name" },
+        count: { $sum: "$order_products.quantity" },
+      },
+    },
+    // 6. Sort by count descending
+    {
+      $sort: { count: -1 },
+    },
+    // 7. Group by Category to collect products
+    {
+      $group: {
+        _id: "$_id.category_id",
+        category_name: { $first: "$category_name" },
+        products: {
+          $push: {
+            product_name: "$product_name",
+            count: "$count",
+          },
+        },
+      },
+    },
+    // 8. Slice top 5 and Project
+    {
+      $project: {
+        _id: 0,
+        category_name: 1,
+        products: { $slice: ["$products", 5] },
+      },
+    },
+    // 9. Sort by Category Name
+    {
+      $sort: { category_name: 1 },
+    },
+  ];
+  const result = await Orders.aggregate(pipeline);
+  return result;
+};
