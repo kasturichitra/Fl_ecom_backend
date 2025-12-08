@@ -54,23 +54,23 @@ export const getAllTicketsService = async (tenantID, query = {}) => {
 };
 
 // ----------------- GET TICKET BY ID -----------------
-export const getTicketByIdService = async (tenantID, ticketId) => {
+export const getTicketByIdService = async (tenantID, ticket_number) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!ticketId, "Ticket ID is required");
+  throwIfTrue(!ticket_number, "Ticket Number is required");
 
-  const ticketDB = await TicketModel(tenantID);
+  const ticketDB = await TicketModel(tenantID); 
 
   // Try to find by _id first, if fails or not found, try by ticket_number
-  if (ticketId.match(/^[0-9a-fA-F]{24}$/)) {
-    const ticket = await ticketDB.findById(ticketId);
-    if (ticket) return ticket;
-  }
+  // if (ticket_number.match(/^[0-9a-fA-F]{24}$/)) {
+  //   const ticket = await ticketDB.findById(ticket_number);
+  //   if (ticket) return ticket;
+  // }
 
-  return ticketDB.findOne({ ticket_number: ticketId });
+  return ticketDB.findOne({ ticket_number: ticket_number });
 };
 
 // ----------------- UPDATE TICKET -----------------
-export const updateTicketService = async (tenantID, ticketId, updateData) => {
+export const updateTicketService = async (tenantID, ticket_number, updateData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!ticketId, "Ticket ID is required");
 

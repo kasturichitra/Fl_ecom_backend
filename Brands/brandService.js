@@ -7,6 +7,7 @@ import { validateBrandUpdate } from "./validations/validateBrandUpdate.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { CategoryModel } from "../Category/categoryModel.js";
 import { toTitleCase } from "../utils/conversions.js";
+import generateUniqueId from "../utils/generateUniqueId.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData) => {
@@ -17,11 +18,10 @@ export const createBrandService = async (tenantID, brandData) => {
 
   const brandModelDB = await BrandModel(tenantID);
 
-  // Check if unique ID already exists
-  const existingBrand = await brandModelDB.findOne({
-    brand_unique_id: brandData.brand_unique_id,
-  });
-  throwIfTrue(existingBrand, `Brand already exists with unique ID ${brandData.brand_unique_id}`);
+  const brand_unique_id = await generateUniqueId(brandModelDB, "BRD", "brand_unique_id");
+
+  brandData.brand_unique_id = brand_unique_id;
+  // console.log("brandData", brandData);
 
   brandData.brand_name = toTitleCase(brandData.brand_name);
   const response = await brandModelDB.create(brandData);
