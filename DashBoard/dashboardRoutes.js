@@ -6,6 +6,6 @@ const router = Router();
 
 router.get("/topbrands", getTopBrandsByCategory);
 router.get("/topproducts", getTopProductsByCategory);
-router.get("/trend", getOrdersTrendController); 
+router.get("/orders/trend", getOrdersTrendController); 
 
 export default router;
