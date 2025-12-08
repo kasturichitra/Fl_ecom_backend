@@ -1,4 +1,5 @@
-import OrdersModel from "../Orders/orderModel";
+import OrdersModel from "../Orders/orderModel.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -59,7 +60,7 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   return dashboardResult;
 };
 
-export const getOrdersTrend = async (tenantId, filters = {}) => {
+export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   let { period, from, to } = filters;
@@ -86,7 +87,7 @@ export const getOrdersTrend = async (tenantId, filters = {}) => {
     // Match the filter criteria
     ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
 
-    // Group by month and year
+    // Group by month
     {
       $group: {
         _id: { $month: "$order_create_date" },
@@ -111,9 +112,28 @@ export const getOrdersTrend = async (tenantId, filters = {}) => {
     },
   ];
 
-  const ordersTrend = await OrderModelDB.aggregate(pipeline);
+  const aggregationResult = await OrderModelDB.aggregate(pipeline);
 
-  return ordersTrend;
+  // Initialize all 12 months with default values
+  const allMonths = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    count: 0,
+    value: 0,
+  }));
+
+  // Merge aggregation results with default values
+  aggregationResult.forEach((item) => {
+    const monthIndex = item.month - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      allMonths[monthIndex] = {
+        month: item.month,
+        count: item.count,
+        value: item.value,
+      };
+    }
+  });
+
+  return allMonths;
 };
 
 export const getTopBrandsByCategoryService = async (tenantID) => {
