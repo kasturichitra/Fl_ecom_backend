@@ -15,7 +15,7 @@ function buildHeaderMap(sheet, excelHeaders) {
     if (!excelHeader) return;
 
     // STATIC MATCH
-    const match = excelHeaders.find(h => h.header === excelHeader);
+    const match = excelHeaders.find((h) => h.header === excelHeader);
     if (match) {
       headerMap[match.key] = colNumber;
       return;
@@ -65,7 +65,7 @@ export async function extractExcel(filePath, excelHeaders) {
 export function validateRow(rawRow, excelHeaders) {
   const errors = [];
 
-  excelHeaders.forEach(h => {
+  excelHeaders.forEach((h) => {
     const val = rawRow[h.key];
 
     // REQUIRED logic
@@ -86,23 +86,33 @@ export function validateRow(rawRow, excelHeaders) {
    3. TRANSFORM — clean, minimal, metadata-driven
 ========================================================= */
 export function transformRow(rawRow, excelHeaders) {
-  console.log(rawRow,'rawRow');
-  
+  console.log(rawRow, "rawRow");
+
   const transformed = {};
   const productAttributes = [];
 
   // STATIC HEADERS (only those passed by user)
-  excelHeaders.forEach(h => {
+  // STATIC HEADERS (only those passed by user)
+  excelHeaders.forEach((h) => {
     let val = rawRow[h.key];
 
-    // skip empty/null
-    if (val === null || val === undefined) return;
-    if (typeof val === "string" && val.trim() === "") return;
+    // Skip empty
+    if (val === null || val === undefined || val === "") return;
 
     if (typeof val === "string") val = val.trim();
 
-    // If field type is number -> cast
-    if (h.type === "number" && !isNaN(val)) val = Number(val);
+    // 🔥 SPECIAL CASE: brand selection "Name (ID)"
+    if (h.key === "brand_unique_id" && typeof val === "string") {
+      const match = val.match(/\(([^)]+)\)/); // extract text inside parentheses
+      if (match) {
+        val = match[1]; // → BRD-001
+      }
+    }
+
+    // TYPE: number
+    if (h.type === "number" && !isNaN(val)) {
+      val = Number(val);
+    }
 
     transformed[h.key] = val;
   });
@@ -115,17 +125,12 @@ export function transformRow(rawRow, excelHeaders) {
     if (typeof val === "string") val = val.trim();
     if (!isNaN(val)) val = Number(val);
 
-    const attribute_code = key
-      .slice(5)
-      .trim()
-      .replace(/\s+/g, "_")
-      .toLowerCase();
+    const attribute_code = key.slice(5).trim().replace(/\s+/g, "_").toLowerCase();
 
     productAttributes.push({ attribute_code, value: val });
   });
 
-  console.log(productAttributes,'productAttributes');
-  
+  console.log(productAttributes, "productAttributes");
 
   if (productAttributes.length) {
     transformed.product_attributes = productAttributes;
@@ -134,7 +139,6 @@ export function transformRow(rawRow, excelHeaders) {
   return transformed;
 }
 
-
 export function transformCategoryRow(rawRow, excelHeaders) {
   const transformed = {};
   const attributes = {};
@@ -142,7 +146,7 @@ export function transformCategoryRow(rawRow, excelHeaders) {
   console.log("Raw row coming in: ", rawRow);
 
   // 1. STATIC HEADERS
-  excelHeaders.forEach(h => {
+  excelHeaders.forEach((h) => {
     let val = rawRow[h.key];
     if (val === null || val === undefined || val === "") return;
 
@@ -155,7 +159,7 @@ export function transformCategoryRow(rawRow, excelHeaders) {
     if (!key.toLowerCase().startsWith("attr")) return;
     if (val === null || val === undefined || val === "") return;
 
-    const [group, field] = key.split("_");  // attr1_name → ["attr1", "name"]
+    const [group, field] = key.split("_"); // attr1_name → ["attr1", "name"]
 
     if (!attributes[group]) attributes[group] = {};
 

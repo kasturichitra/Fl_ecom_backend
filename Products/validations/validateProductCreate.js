@@ -92,6 +92,8 @@ const productValidationSchema = Joi.object({
     "number.min": "Final price must be 0 or greater.",
   }),
 
+  discounted_price: Joi.number().min(0).optional(),
+
   discount_percentage: Joi.number().min(0).max(100).optional(),
   discount_price: Joi.number().min(0).optional(),
 
