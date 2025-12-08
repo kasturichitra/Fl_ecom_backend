@@ -494,11 +494,21 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
     width: 30,
   }));
 
-  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders], category_unique_id);
+  const BrandModelDB = await BrandModel(tenantId);
+  const brandsForCategory = await BrandModelDB.find({ categories: { $in: categoryData?._id } });
+
+  console.log("brandsForCategory", brandsForCategory);
+
+  const brandExcelDropDownData = await brandsForCategory.map((brand) => `${brand.brand_name} (${brand.brand_unique_id})`);
+  console.log("brandExcelDropDownData", brandExcelDropDownData);
+
+  const brandExcelDropDownListString = `"${brandExcelDropDownData.join(",")}"`;
+
+  const response = generateExcelTemplate([...staticExcelHeaders, ...dynamicHeaders], brandExcelDropDownListString);
   return response;
 };
 
-export const createBulkProductsService = async (tenantId, filePath) => {
+export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
@@ -517,28 +527,16 @@ export const createBulkProductsService = async (tenantId, filePath) => {
     }
   }
 
+  const CategoryModelDB = await CategoryModel(tenantId);
+
+  const existingCategory = await CategoryModelDB.findOne({ category_unique_id });
+  throwIfTrue(!existingCategory, `Category not found with id: ${category_unique_id}`);
+
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
-    const CategoryModelDB = await CategoryModel(tenantId);
     const BrandModelDB = await BrandModel(tenantId);
 
     for (let i = 0; i < valid.length; i++) {
-      const existingCategory = await CategoryModelDB.findOne({
-        category_unique_id: valid[i].category_unique_id,
-      });
-      if (!existingCategory) {
-        invalid.push({
-          rowNumber: i + 1,
-          errors: [
-            {
-              field: "",
-              message: `Category not found with id: ${valid[i].category_unique_id}`,
-            },
-          ],
-        });
-        continue;
-      }
-
       const existingBrand = await BrandModelDB.findOne({
         brand_unique_id: valid[i].brand_unique_id,
       });
@@ -555,30 +553,37 @@ export const createBulkProductsService = async (tenantId, filePath) => {
         continue;
       }
 
-      const existingProduct = await ProductModelDB.findOne({
-        product_unique_id: valid[i].product_unique_id,
-      });
-      if (existingProduct) {
-        invalid.push({
-          rowNumber: i + 1,
-          errors: [
-            {
-              field: "",
-              message: `Product already exists with id: ${valid[i].product_unique_id}`,
-            },
-          ],
-        });
-        continue;
-      }
+      // const existingProduct = await ProductModelDB.findOne({
+      //   product_unique_id: valid[i].product_unique_id,
+      // });
+      // if (existingProduct) {
+      //   invalid.push({
+      //     rowNumber: i + 1,
+      //     errors: [
+      //       {
+      //         field: "",
+      //         message: `Product already exists with id: ${valid[i].product_unique_id}`,
+      //       },
+      //     ],
+      //   });
+      //   continue;
+      // }
+
+      const product_unique_id = await generateProductUniqueId(ProductModelDB, existingBrand.brand_unique_id);
+      valid[i].product_unique_id = product_unique_id;
 
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
+      valid[i].category_unique_id = existingCategory.category_unique_id;
       valid[i].brand_name = existingBrand.brand_name;
       valid[i].category_name = existingCategory.category_name;
 
       valid[i] = calculatePrices(valid[i]);
 
       const { isValid, message } = validateProductData(valid[i]);
-      if (!isValid) invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
+      if (!isValid) {
+        invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
+        continue;
+      }
 
       await ProductModelDB.create(valid[i]);
     }

@@ -9,7 +9,6 @@ const generateProductUniqueId = async (DB, brand_unique_id) => {
     console.log("Brand unique id", brand_unique_id);
 
   const prefix = latestElement["brand_name"].toUpperCase().split(3);
-  console.log("Prefix", prefix);
 
   if (!latestElement) {
     const startNumber = "0001";
