@@ -13,6 +13,8 @@ import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { toArray, toTitleCase } from "../utils/conversions.js";
 import BrandModel from "../Brands/brandModel.js";
+import generateUniqueId from "../utils/generateUniqueId.js";
+import generateProductUniqueId from "./utils/generateProductUniqueId.js";
 
 const calculatePrices = (productData) => {
   // Step 1: Get base price
@@ -69,11 +71,11 @@ export const createProductService = async (tenantId, productData) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  const existingProduct = await productModelDB.findOne({
-    product_unique_id: productData.product_unique_id,
-  });
+  // const existingProduct = await productModelDB.findOne({
+  //   product_unique_id: productData.product_unique_id,
+  // });
 
-  throwIfTrue(existingProduct, "Product with unique id already exists");
+  // throwIfTrue(existingProduct, "Product with unique id already exists");
 
   productData.product_name = toTitleCase(productData.product_name);
   productData.brand_name = existingBrand.brand_name;
@@ -81,7 +83,8 @@ export const createProductService = async (tenantId, productData) => {
 
   productData = calculatePrices(productData);
 
-  console.log("Product data before going to validation", productData);
+  const product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
+  productData.product_unique_id = product_unique_id;
 
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
