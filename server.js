@@ -11,13 +11,14 @@ import categoryRoute from "./Category/categoryRoute.js";
 import productRoute from "./Products/productRoutes.js";
 import productsReviewsRoute from "./Products/ProductsReviews/productReviewRoutes.js";
 import orderRoute from "./Orders/orderRoutes.js";
-import ticketRoute from "./Tickets/ticketRoutes.js";
+// import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
 import brandRoutes from "./Brands/brandRoutes.js";
 import cartRoutes from "./Cart/cartRoutes.js";
 import notificationRoutes from "./Notification/notificationRoutes.js";
 import configRoutes from "./Configs/configRoutes.js";
+import dashboardRoutes from "./Dashboard/dashboardRoutes.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
@@ -101,13 +102,14 @@ app.use("/category", categoryRoute);
 app.use("/products", productRoute);
 app.use("/reviews", productsReviewsRoute);
 app.use("/orders", orderRoute);
-app.use("/ticket", ticketRoute);
+// app.use("/ticket", ticketRoute);
 app.use("/wishlists", wishlistRoute);
 app.use("/banners", bannerRoutes);
 app.use("/brands", brandRoutes);
 app.use("/cart", cartRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/configs", configRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 app.use("/", userRoutes);
 
