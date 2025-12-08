@@ -4,6 +4,7 @@ import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import IndustryTypeModel from "./industryTypeModel.js";
 import { toTitleCase } from "../utils/conversions.js";
+import generateUniqueId from "../utils/generateUniqueId.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
@@ -19,10 +20,13 @@ export const createIndustryTypeServices = async (tenantID, data, user_id = "6925
       throw new Error("Industry Type with this ID already exists");
   }
 
+  const industry_unique_id = await generateUniqueId(IndustryModel, "IND", "industry_unique_id");
+
   const industry_name = toTitleCase(data.industry_name);
   return await IndustryModel.create({
     ...data,
     industry_name, 
+    industry_unique_id,
     description: data.description?.trim() || "",
     is_active: data.is_active ?? true,
     image_url: data.image_url ?? null,
