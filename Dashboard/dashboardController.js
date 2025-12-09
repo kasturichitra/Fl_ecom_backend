@@ -55,7 +55,7 @@ export const getUsersTrendController = async (req, res) => {
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching users trend:", error));
   }
-}
+};
 
 export const getOrdersByStatusController = async (req, res) => {
   try {
@@ -64,7 +64,7 @@ export const getOrdersByStatusController = async (req, res) => {
 
     const data = await getOrdersByStatus(tenantID, filters);
 
-    res.status(200).json(successResponse("Orders by status fetched successfully", data));
+    res.status(200).json(successResponse("Orders by status fetched successfully", { data }));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching orders by status:", error));
   }
