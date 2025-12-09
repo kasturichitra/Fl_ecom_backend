@@ -60,6 +60,134 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   return dashboardResult;
 };
 
+export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { from, to, order_status, order_type, cash_on_delivery } = filters;
+
+  const OrderModelDB = await OrdersModel(tenantId);
+
+  // Apply filters
+  const baseQuery = {};
+
+  if (order_status) baseQuery.order_status = order_status;
+  if (order_type) baseQuery.order_type = order_type;
+
+  if (cash_on_delivery !== undefined) {
+    baseQuery.cash_on_delivery =
+      cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  }
+
+  if (from && to) {
+    baseQuery.createdAt = {
+      $gte: new Date(from),
+      $lte: new Date(to),
+    };
+  }
+
+  // List of all supported payment methods
+  const methodList = ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"];
+
+  // Initialize result object
+  const paymentMethodResult = {};
+  methodList.forEach((method) => {
+    paymentMethodResult[method.toLowerCase().replace(/ /g, "_")] = {
+      count: 0,
+      value: 0,
+    };
+  });
+
+  // AGGREGATE BY PAYMENT METHOD
+  const stats = await OrderModelDB.aggregate([
+    { $match: baseQuery },
+    {
+      $group: {
+        _id: "$payment_method",
+        count: { $sum: 1 },
+        value: { $sum: "$total_amoun" }, // change if needed
+      },
+    },
+  ]);
+
+  // Map DB results
+  stats.forEach((item) => {
+    const key = item._id?.toLowerCase().replace(/ /g, "_");
+    if (paymentMethodResult[key]) {
+      paymentMethodResult[key].count = item.count;
+      paymentMethodResult[key].value = item.value;
+    }
+  });
+
+  return paymentMethodResult;
+};
+
+export const getOrdersByOrderType = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { from, to, payment_status, payment_method, cash_on_delivery, order_status } = filters;
+
+  const OrderModelDB = await OrdersModel(tenantId);
+
+  // Build query
+  const baseQuery = {};
+
+  if (payment_status) baseQuery.payment_status = payment_status;
+  if (payment_method) baseQuery.payment_method = payment_method;
+  if (order_status) baseQuery.order_status = order_status;
+
+  if (cash_on_delivery !== undefined) {
+    baseQuery.cash_on_delivery =
+      cash_on_delivery === "true"
+        ? true
+        : cash_on_delivery === "false"
+        ? false
+        : cash_on_delivery;
+  }
+
+  if (from && to) {
+    baseQuery.createdAt = {
+      $gte: new Date(from),
+      $lte: new Date(to),
+    };
+  }
+
+  // Available order types
+  const orderTypeList = ["Online", "Offline"];
+
+  // Setup dashboard response
+  const orderTypeResult = {};
+  orderTypeList.forEach((type) => {
+    orderTypeResult[type.toLowerCase()] = {
+      count: 0,
+      value: 0,
+    };
+  });
+
+  // Aggregate by order_type
+  const stats = await OrderModelDB.aggregate([
+    { $match: baseQuery },
+    {
+      $group: {
+        _id: "$order_type",
+        count: { $sum: 1 },
+        value: { $sum: "$total_amount" }, // change if needed
+      },
+    },
+  ]);
+
+  // Fill output
+  stats.forEach((item) => {
+    const key = item._id?.toLowerCase();
+    if (orderTypeResult[key]) {
+      orderTypeResult[key].count = item.count;
+      orderTypeResult[key].value = item.value;
+    }
+  });
+
+  return orderTypeResult;
+};
+
+
 export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 

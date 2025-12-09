@@ -1,5 +1,7 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
+  getOrdersByOrderType,
+  getOrdersByPaymentMethod,
   getOrdersByStatus,
   getOrdersTrendService,
   getTopBrandsByCategoryService,
@@ -49,5 +51,31 @@ export const getOrdersByStatusController = async (req, res) => {
     res.status(200).json(successResponse("Orders by status fetched successfully", data));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching orders by status:", error));
+  }
+};
+
+export const getOrdersByPaymentMethodController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getOrdersByPaymentMethod(tenantID, filters);
+
+    res.status(200).json(successResponse("Orders by payment method fetched successfully", data));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching orders by payment method:", error));
+  }
+};
+
+export const getOrdersByOrderTypeController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getOrdersByOrderType(tenantID, filters);
+
+    res.status(200).json(successResponse("Orders by order type fetched successfully", data));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching orders by order type:", error));
   }
 };
