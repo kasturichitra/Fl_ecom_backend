@@ -105,7 +105,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
       $group: {
         _id: "$payment_method",
         count: { $sum: 1 },
-        value: { $sum: "$total_amoun" }, // change if needed
+        value: { $sum: "$total_amount" }, // change if needed
       },
     },
   ]);
