@@ -185,7 +185,7 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
     }
   });
 
-  return orderTypeResult;
+  return { data: orderTypeResult };
 };
 
 
