@@ -119,7 +119,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     }
   });
 
-  return paymentMethodResult;
+  return { data: paymentMethodResult };
 };
 
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
