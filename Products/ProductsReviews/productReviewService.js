@@ -17,10 +17,7 @@ export const createReviewService = async (tenantId, reviewsData) => {
   const existingProduct = await productModelDB.findOne({
     product_unique_id: reviewsData.product_unique_id,
   });
-  throwIfTrue(
-    !existingProduct,
-    `Product not found with given unique id ${reviewsData.product_unique_id}`
-  );
+  throwIfTrue(!existingProduct, `Product not found with given unique id ${reviewsData.product_unique_id}`);
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);
   let response = await productReviewsModelDB.create(reviewsData);
@@ -33,10 +30,7 @@ export const createReviewService = async (tenantId, reviewsData) => {
   });
 
   if (order) {
-    response = await productReviewsModelDB.updateOne(
-      { _id: response._id },
-      { $set: { is_verified_purchase: true } }
-    );
+    response = await productReviewsModelDB.updateOne({ _id: response._id }, { $set: { is_verified_purchase: true } });
   }
 
   return response;
@@ -80,11 +74,7 @@ export const getAllReviewsService = async (tenantId, filters) => {
   const sortObj = buildSortObject(sort);
 
   console.log("Query before going to db ===>", query);
-  const reviews = await productReviewsModelDB
-    .find(query)
-    .sort(sortObj)
-    .skip(skip)
-    .limit(Number(limit));
+  const reviews = await productReviewsModelDB.find(query).sort(sortObj).skip(skip).limit(Number(limit));
 
   const totalCount = await productReviewsModelDB.countDocuments(query);
 
@@ -121,6 +111,47 @@ export const getReviewByIdService = async (tenantId, product_unique_id) => {
   return response;
 };
 
+export const getRatingSummaryService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { product_unique_id } = filters;
+
+  const ReviewDB = await ProductReviewModel(tenantId);
+
+  const data = await ReviewDB.aggregate([
+    { $match: { product_unique_id } },
+
+    {
+      $group: {
+        _id: "$rating",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const summary = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let total = 0;
+  let sum = 0;
+
+  data.forEach((r) => {
+    summary[r._id] = r.count;
+    total += r.count;
+    sum += r._id * r.count;
+  });
+
+  const avg = total === 0 ? 0 : sum / total;
+
+  return {
+    one: summary[1],
+    two: summary[2],
+    three: summary[3],
+    four: summary[4],
+    five: summary[5],
+    total_reviews: total,
+    average_rating: avg,
+  };
+};
+
 //This function will update reviews based on Id
 export const updateReviewService = async (tenantId, id, updateReview) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -130,11 +161,7 @@ export const updateReviewService = async (tenantId, id, updateReview) => {
   throwIfTrue(!isValid, message);
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);
-  const response = await productReviewsModelDB.findByIdAndUpdate(
-    id,
-    updateReview,
-    { new: true, runValidators: true }
-  );
+  const response = await productReviewsModelDB.findByIdAndUpdate(id, updateReview, { new: true, runValidators: true });
 
   return response;
 };

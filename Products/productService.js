@@ -217,6 +217,32 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
     { $addFields: { brand_name: "$brand.brand_name" } },
     { $project: { brand: 0 } },
+
+    // --- Lookup reviews ---
+    {
+      $lookup: {
+        from: "productsreviews",
+        localField: "product_unique_id",
+        foreignField: "product_unique_id",
+        as: "reviews",
+      },
+    },
+
+    // --- Add average rating field ---
+    {
+      $addFields: {
+        average_rating: { $avg: "$reviews.rating" },
+        total_reviews: { $size: "$reviews" },
+      },
+    },
+
+    // Optionally remove heavy review array
+    {
+      $project: {
+        reviews: 0,
+      },
+    },
+
     { $sort: sortObj },
     { $skip: skip },
     { $limit: limit },
@@ -391,11 +417,36 @@ export const getProductByUniqueIdService = async (tenantId, product_unique_id) =
 
   const productModelDB = await ProductModel(tenantId);
 
-  const response = await productModelDB.findOne({
-    product_unique_id,
-  });
+  const product = await productModelDB.aggregate([
+    { $match: { product_unique_id } },
 
-  return response;
+    // Join reviews
+    {
+      $lookup: {
+        from: "productsreviews",
+        localField: "product_unique_id",
+        foreignField: "product_unique_id",
+        as: "reviews",
+      },
+    },
+
+    // Add average rating
+    {
+      $addFields: {
+        average_rating: { $avg: "$reviews.rating" },
+        total_reviews: { $size: "$reviews" },
+      },
+    },
+
+    // Remove review list if you don't want full review array here
+    {
+      $project: {
+        reviews: 0,
+      },
+    },
+  ]);
+
+  return product[0] || null;
 };
 
 export const updateProductService = async (tenantId, product_unique_id, updateData) => {
@@ -499,7 +550,9 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
 
   console.log("brandsForCategory", brandsForCategory);
 
-  const brandExcelDropDownData = await brandsForCategory.map((brand) => `${brand.brand_name} (${brand.brand_unique_id})`);
+  const brandExcelDropDownData = await brandsForCategory.map(
+    (brand) => `${brand.brand_name} (${brand.brand_unique_id})`
+  );
   console.log("brandExcelDropDownData", brandExcelDropDownData);
 
   const brandExcelDropDownListString = `"${brandExcelDropDownData.join(",")}"`;

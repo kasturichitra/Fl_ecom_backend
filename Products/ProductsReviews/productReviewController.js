@@ -2,6 +2,7 @@ import { errorResponse, successResponse } from "../../utils/responseHandler.js";
 import {
   createReviewService,
   getAllReviewsService,
+  getRatingSummaryService,
   getReviewByIdService,
   // getReviewsBySearchServices,
   updateReviewService,
@@ -69,6 +70,17 @@ export const getReviewByIdController = async (req, res) => {
 
     const response = await getReviewByIdService(tenantId, product_unique_id);
     res.status(200).json(successResponse("Review fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getRatingSummaryController = async (req, res) => {
+  try {
+    const filters = req.query;
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await getRatingSummaryService(tenantId, filters);
+    res.status(200).json(successResponse("Fetched Rating Summary successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

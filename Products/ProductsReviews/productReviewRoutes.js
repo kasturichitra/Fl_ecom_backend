@@ -3,7 +3,7 @@ import {
   createReviewController,
   getAllReviewsController,
   getReviewByIdController,
-  // getReviewsBySearchController,
+  getRatingSummaryController,
   updateReviewController,
 } from "./productReviewController.js";
 import getUploadMiddleware from "../../utils/multerConfig.js";
@@ -13,6 +13,7 @@ const upload = getUploadMiddleware("reviews");
 
 route.post("/", upload.single("image"), createReviewController);
 route.get("/", getAllReviewsController);
+route.get("/summary", getRatingSummaryController);
 route.get("/:id", getReviewByIdController);
 route.put("/:id", upload.none(), updateReviewController);
 
