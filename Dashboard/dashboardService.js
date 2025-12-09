@@ -44,7 +44,7 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
       $group: {
         _id: "$order_status",
         count: { $sum: 1 },
-        value: { $sum: "$grand_total" }, // change field if needed
+        value: { $sum: "$total_amount" }, // change field if needed
       },
     },
   ]);
