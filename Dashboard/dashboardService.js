@@ -1,4 +1,5 @@
 import OrdersModel from "../Orders/orderModel.js";
+import UserModel from "../Users/userModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
@@ -191,7 +192,7 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
 export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { period, from, to } = filters;
+  let { period, year, from, to } = filters;
 
   // Get the Orders model for this tenant
   const OrderModelDB = await OrdersModel(tenantId);
@@ -199,14 +200,23 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   // Build the match criteria
   let matchCriteria = {};
 
-  // Add date range filters if provided
-  if (from || to) {
-    matchCriteria.order_create_date = {};
+  // Add year filter if provided
+  if (year) {
+    const yearInt = parseInt(year);
+    matchCriteria.createdAt = {
+      $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
+    };
+  }
+
+  // Add date range filters if provided (only if year is not specified)
+  else if (from || to) {
+    matchCriteria.createdAt = {};
     if (from) {
-      matchCriteria.order_create_date.$gte = new Date(from);
+      matchCriteria.createdAt.$gte = new Date(from);
     }
     if (to) {
-      matchCriteria.order_create_date.$lte = new Date(to);
+      matchCriteria.createdAt.$lte = new Date(to);
     }
   }
 
@@ -215,10 +225,10 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
     // Match the filter criteria
     ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
 
-    // Group by month and year
+    // Group by month
     {
       $group: {
-        _id: { $month: "$order_create_date" },
+        _id: { $month: "$createdAt" },
         count: { $sum: 1 },
         value: { $sum: "$total_amount" },
       },
@@ -240,13 +250,114 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-  const ordersTrend = await OrderModelDB.aggregate(pipeline);
+  const aggregationResult = await OrderModelDB.aggregate(pipeline);
 
-  return ordersTrend;
+  // Initialize all 12 months with default values
+  const allMonths = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    count: 0,
+    value: 0,
+  }));
+
+  // Merge aggregation results with default values
+  aggregationResult.forEach((item) => {
+    const monthIndex = item.month - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      allMonths[monthIndex] = {
+        month: item.month,
+        count: item.count,
+        value: item.value,
+      };
+    }
+  });
+
+  return allMonths;
 };
 
-export const getTopBrandsByCategoryService = async (tenantID) => {
+export const getUsersTrendService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { period, year, from, to } = filters;
+
+  const UserModelDB = await UserModel(tenantId);
+
+  let matchCriteria = {
+    role: "user",
+  };
+
+  // Add year filter if provided
+  if (year) {
+    const yearInt = parseInt(year);
+    matchCriteria.createdAt = {
+      $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
+    };
+  }
+  // Add date range filters if provided (only if year is not specified)
+  else if (from || to) {
+    matchCriteria.createdAt = {};
+    if (from) {
+      matchCriteria.createdAt.$gte = new Date(from);
+    }
+    if (to) {
+      matchCriteria.createdAt.$lte = new Date(to);
+    }
+  }
+
+  const pipeline = [
+    // Match the filter criteria
+    ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
+
+    // Group by month
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        count: { $sum: 1 },
+        // value: { $sum: "$total_amount" },
+      },
+    },
+
+    // Project to rename _id to month
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        count: 1,
+        // value: 1,
+      },
+    },
+
+    // Sort by month
+    {
+      $sort: { month: 1 },
+    },
+  ];
+
+  const aggregationResult = await UserModelDB.aggregate(pipeline);
+
+  const allMonths = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    count: 0,
+    // value: 0,
+  }));
+
+  aggregationResult.forEach((result) => {
+    const monthIndex = result.month - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      allMonths[monthIndex] = {
+        month: result.month,
+        count: result.count,
+      };
+    }
+  });
+
+  return allMonths;
+};
+
+export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
+  const { category_unique_id } = filters;
+
   const pipeline = [
     // 1. Filter only delivered orders
     {
@@ -266,7 +377,12 @@ export const getTopBrandsByCategoryService = async (tenantID) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+              $expr: {
+                $and: [
+                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
+                  ...(category_unique_id ? [{ $eq: ["$category_unique_id", category_unique_id] }] : []),
+                ],
+              },
             },
           },
           {
@@ -330,8 +446,11 @@ export const getTopBrandsByCategoryService = async (tenantID) => {
   const result = await Orders.aggregate(pipeline);
   return result;
 };
-export const getTopProductsByCategoryService = async (tenantID) => {
+
+export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
+  const { category_unique_id } = filters;
+
   const pipeline = [
     // 1. Filter only delivered orders
     {
@@ -351,7 +470,12 @@ export const getTopProductsByCategoryService = async (tenantID) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$product_unique_id", "$$productUniqueId"] },
+              $expr: {
+                $and: [
+                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
+                  ...(category_unique_id ? [{ $eq: ["$category_unique_id", category_unique_id] }] : []),
+                ],
+              },
             },
           },
           {
@@ -411,6 +535,7 @@ export const getTopProductsByCategoryService = async (tenantID) => {
       $sort: { category_name: 1 },
     },
   ];
+
   const result = await Orders.aggregate(pipeline);
   return result;
 };
