@@ -358,29 +358,54 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
   const { category_unique_id } = filters;
 
+  // normalize the ID – prevent "" or " "
+  const categoryId = category_unique_id?.trim?.() || "";
+
   const pipeline = [
-    // 1. Filter only delivered orders
+    // 1. Only Delivered Orders
     {
       $match: {
         order_status: "Delivered",
       },
     },
-    // 2. Unwind order_products
+
+    // 2. Unwind order products
     {
       $unwind: "$order_products",
     },
-    // 3. Lookup product details
+
+    // 3. Lookup Products
     {
       $lookup: {
         from: "products",
-        let: { productUniqueId: "$order_products.product_unique_id" },
+        let: {
+          productUniqueId: "$order_products.product_unique_id",
+          selectedCategory: String(categoryId),
+        },
         pipeline: [
           {
             $match: {
               $expr: {
                 $and: [
-                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
-                  ...(category_unique_id ? [{ $eq: ["$category_unique_id", category_unique_id] }] : []),
+                  // Match products based on product_unique_id
+                  { 
+                    $eq: [
+                      "$product_unique_id",
+                      "$$productUniqueId"
+                    ] 
+                  },
+
+                  // Only filter category when user selected one
+                  ...(categoryId !== ""
+                    ? [
+                        {
+                          $eq: [
+                            { $toString: "$category_unique_id" }, // convert DB value → string
+                            "$$selectedCategory"                 // already string
+                          ]
+                        }
+                      ]
+                    : []),
                 ],
               },
             },
@@ -397,11 +422,13 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
         as: "productDetails",
       },
     },
+
     // 4. Unwind productDetails
     {
       $unwind: "$productDetails",
     },
-    // 5. Group by Category AND Brand to get total count
+
+    // 5. Group by category + brand
     {
       $group: {
         _id: {
@@ -413,11 +440,11 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
         count: { $sum: "$order_products.quantity" },
       },
     },
-    // 6. Sort by count descending
-    {
-      $sort: { count: -1 },
-    },
-    // 7. Group by Category to collect brands
+
+    // 6. Sort by count DESC
+    { $sort: { count: -1 } },
+
+    // 7. Group brands under category
     {
       $group: {
         _id: "$_id.category_id",
@@ -430,7 +457,8 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
         },
       },
     },
-    // 8. Slice top 5 and Project
+
+    // 8. Keep only top 5 brands
     {
       $project: {
         _id: 0,
@@ -438,14 +466,14 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
         brands: { $slice: ["$brands", 5] },
       },
     },
-    // 9. Sort by Category Name
-    {
-      $sort: { category_name: 1 },
-    },
+
+    // 9. Sort alphabetically
+    { $sort: { category_name: 1 } },
   ];
-  const result = await Orders.aggregate(pipeline);
-  return result;
+
+  return await Orders.aggregate(pipeline);
 };
+
 
 export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
