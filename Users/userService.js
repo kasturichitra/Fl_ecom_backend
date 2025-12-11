@@ -167,7 +167,6 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
   return res;
 };
 
-
 export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
 
@@ -178,10 +177,38 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   const index = user.address.findIndex((a) => a._id.toString() === address_id);
   throwIfTrue(index === -1, "Address not found");
 
-  user.address[index] = { ...user.address[index]._doc, ...addressData };
+  if (addressData.default === true) {
+    // Make all other addresses non-default
+    user.address.forEach((addr, i) => {
+      if (i !== index) addr.default = false;
+    });
+  }
+  // If default not passed OR false → previous defaults remain unchanged
 
-  return await user.save();
+  user.address[index] = {
+    ...user.address[index]._doc,
+    ...addressData,
+  };
+
+  const updatedUser = await user.save();
+
+  return updatedUser;
 };
+
+// export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
+//   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
+
+//   const usersDB = await UserModel(tenantId);
+//   const user = await usersDB.findById(user_id);
+//   throwIfTrue(!user, "User not found");
+
+//   const index = user.address.findIndex((a) => a._id.toString() === address_id);
+//   throwIfTrue(index === -1, "Address not found");
+
+//   user.address[index] = { ...user.address[index]._doc, ...addressData };
+
+//   return await user.save();
+// };
 
 export const employeCreateService = async (tenantId, userData) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
