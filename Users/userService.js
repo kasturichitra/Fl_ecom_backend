@@ -142,6 +142,10 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
 export const addAddressService = async (tenantId, user_id, addressData) => {
   throwIfTrue(!tenantId || !user_id || !addressData, "All fields required");
 
+  if (typeof addressData !== "object" || Array.isArray(addressData)) {
+    throw new Error("addressData must be a single object, not an array");
+  }
+
   const usersDB = await UserModel(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
@@ -153,12 +157,10 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
     });
   }
 
-  // Push the new address
   user.address.push(addressData);
 
   const updatedUser = await user.save();
 
-  // Remove password
   const res = updatedUser.toObject();
   delete res.password;
 

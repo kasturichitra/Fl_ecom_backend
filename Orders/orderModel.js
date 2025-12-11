@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 export const addressSchema = new mongoose.Schema({
-  name:{
+  first_name:{
     type: String,
     trim: true,
     required: true,
@@ -65,7 +65,7 @@ export const addressSchema = new mongoose.Schema({
     enum: ["Home", "Office", "Other"],
     default: "Home",
   },
-});
+},{ _id: false });
 
 const orderProductSchema = new mongoose.Schema({
   product_unique_id: {
