@@ -19,6 +19,7 @@ import cartRoutes from "./Cart/cartRoutes.js";
 import notificationRoutes from "./Notification/notificationRoutes.js";
 import configRoutes from "./Configs/configRoutes.js";
 import dashboardRoutes from "./Dashboard/dashboardRoutes.js";
+import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 
 
 import morgan from "morgan";
@@ -111,6 +112,7 @@ app.use("/cart", cartRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/configs", configRoutes);
 app.use("/dashboard", dashboardRoutes);
+app.use("/saleTrends", saleTrendRoutes);
 
 
 app.use("/", userRoutes);

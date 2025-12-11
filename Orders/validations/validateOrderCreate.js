@@ -39,6 +39,30 @@ const addressSchema = Joi.object({
     "string.base": "Country must be a string.",
     "any.required": "Country is required.",
   }),
+
+  first_name: Joi.string().trim().required().messages({
+    "string.base": "First name must be a string.",
+    "any.required": "First name is required.",
+  }),
+
+  last_name: Joi.string().trim().required().messages({
+    "string.base": "Last name must be a string.",
+    "any.required": "Last name is required.",
+  }),
+
+  mobile_number: Joi.string().trim().required().messages({
+    "string.base": "Mobile number must be a string.",
+    "any.required": "Mobile number is required.",
+  }),
+
+  default: Joi.boolean().optional().messages({
+    "boolean.base": "Default must be a boolean.",
+  }),
+
+  address_type: Joi.string().valid("Home", "Office", "Other").optional().messages({
+    "string.base": "Address type must be a string.",
+    "any.only": "Address type must be Home, Office, or Other.",
+  }),
 });
 
 const orderProductSchema = Joi.object({

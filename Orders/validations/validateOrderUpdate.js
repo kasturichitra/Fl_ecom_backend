@@ -9,6 +9,11 @@ const addressSchemaUpdate = Joi.object({
   state: Joi.string(),
   postal_code: Joi.string(),
   country: Joi.string(),
+  first_name: Joi.string(),
+  last_name: Joi.string(),
+  mobile_number: Joi.string(),
+  default: Joi.boolean(),
+  address_type: Joi.string().valid("Home", "Office", "Other"),
 });
 
 const orderProductSchemaUpdate = Joi.object({
