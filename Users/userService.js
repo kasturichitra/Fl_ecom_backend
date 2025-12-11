@@ -127,7 +127,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch {}
+    } catch { }
   }
 
   Object.assign(user, updateData);
@@ -197,6 +197,22 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   return updatedUser;
 };
 
+
+export const deleteUserAddressService = async (tenantId, user_id, address_id) => {
+  throwIfTrue(!tenantId || !user_id || !address_id, "Required fields missing");
+
+  const usersDB = await UserModel(tenantId);
+  const user = await usersDB.findById(user_id);
+  throwIfTrue(!user, "User not found");
+
+  const address = user.address.id(address_id);
+  throwIfTrue(!address, "Address not found");
+
+  address.deleteOne(); // Mongoose subdocument remove
+
+  const updatedUser = await user.save();
+  return updatedUser;
+};
 
 // export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
 //   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
