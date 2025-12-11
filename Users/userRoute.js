@@ -23,27 +23,40 @@ route.post("/register", registerUserController);
 route.post("/login", loginUserController);
 
 route.get("/user", getAllUsersController);
-route.get("/user/:id", getUserByIdController)
+route.get("/user/:id", getUserByIdController);
 
 // User Update
-route.put("/:id", verifyToken, upload.single("image"), updateUserController);
+route.put(
+  "/user/:id",
+  //  verifyToken,
+  upload.single("image"),
+  updateUserController
+);
 
 // Address
-route.post("/:user_id/address", verifyToken, addAddressController);
-route.put("/:id/address/:address_id", verifyToken, updateUserAddressController);
+route.post(
+  "/user/:user_id/address",
+  // verifyToken,
+  addAddressController
+);
+route.put(
+  "/user/:id/address/:address_id",
+  // verifyToken,
+  updateUserAddressController
+);
 
-route.put("/fcm-token/:id", storeFcmTokenController); 
+route.put("/user/fcm-token/:id", storeFcmTokenController);
 
 // Employee Create (Admin only)
-route.post("/employe", 
-  // verifyToken, 
-  // ?verifyAdmin, 
+route.post(
+  "/employe",
+  // verifyToken,
+  // ?verifyAdmin,
   upload.single("image"),
-  employeCreateController);
+  employeCreateController
+);
 
 export default route;
-
-
 
 // import express from "express";
 // import {
