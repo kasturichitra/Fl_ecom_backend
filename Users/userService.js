@@ -172,26 +172,29 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
-  const index = user.address.findIndex((a) => a._id.toString() === address_id);
-  throwIfTrue(index === -1, "Address not found");
+  const address = user.address.id(address_id);
+  throwIfTrue(!address, "Address not found");
 
+  // --------------------------
+  // 🔥 Handle default=true logic
+  // --------------------------
   if (addressData.default === true) {
-    // Make all other addresses non-default
-    user.address.forEach((addr, i) => {
-      if (i !== index) addr.default = false;
+    user.address.forEach(a => {
+      a.default = false;
     });
   }
-  // If default not passed OR false → previous defaults remain unchanged
 
-  user.address[index] = {
-    ...user.address[index]._doc,
-    ...addressData,
-  };
+  // --------------------------
+  // 🔥 Update fields correctly (this avoids creating new address)
+  // --------------------------
+  Object.keys(addressData).forEach(key => {
+    address[key] = addressData[key];
+  });
 
   const updatedUser = await user.save();
-
   return updatedUser;
 };
+
 
 // export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
 //   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
