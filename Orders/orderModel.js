@@ -2,6 +2,21 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 export const addressSchema = new mongoose.Schema({
+  name:{
+    type: String,
+    trim: true,
+    required: true,
+  },
+  last_name:{
+    type: String,
+    trim: true,
+    required: true,
+  },
+  mobile_number:{
+    type: String,
+    trim: true,
+    required: true,
+  },
   house_number: {
     type: String,
     trim: true,
