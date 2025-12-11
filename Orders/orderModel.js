@@ -65,7 +65,7 @@ export const addressSchema = new mongoose.Schema({
     enum: ["Home", "Office", "Other"],
     default: "Home",
   },
-},{ _id: false });
+});
 
 const orderProductSchema = new mongoose.Schema({
   product_unique_id: {

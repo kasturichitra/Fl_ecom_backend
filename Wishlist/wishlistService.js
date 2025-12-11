@@ -1,6 +1,7 @@
 import ProductModel from "../Products/productModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import WishlistModel from "./wishlistModel.js";
+import CartModel from "../Cart/cartModel.js";
 
 /* ---------------------------------------------
    CREATE / ADD PRODUCT TO WISHLIST
@@ -11,6 +12,19 @@ export const createWishlistServices = async (tenantID, user_id, product_id) => {
   throwIfTrue(!product_id, "Product ID is required");
 
   const wishlistDB = await WishlistModel(tenantID);
+  const cartDB = await CartModel(tenantID);
+
+  // Check if product is already in wishlist
+  const existingWishlist = await wishlistDB.findOne({ user_id, products: product_id });
+  throwIfTrue(existingWishlist, "Product is already in wishlist");
+
+  // Check if the product exist in cart and remove it from cart
+  const existingCart = await cartDB.findOne({ user_id, "products.product_unique_id": product_id });
+  // if (existingCart) await cartDB.findOneAndDelete({ user_id, "products.product_unique_id": product_id });
+  if (existingCart) {
+    existingCart.products = existingCart.products.filter((item) => item.product_unique_id !== product_id);
+    await existingCart.save();
+  }
 
   // Find and update in a single DB operation
   const wishlist = await wishlistDB.findOneAndUpdate(
@@ -37,13 +51,11 @@ export const getWishlistProductsServices = async (tenantID, user_id) => {
   if (!wishlist?.products?.length) return [];
 
   // Fast query by using only required fields
-   const products = await productDB.find(
-    { product_unique_id: { $in: wishlist.products } }
-  ).lean();
+  const products = await productDB.find({ product_unique_id: { $in: wishlist.products } }).lean();
 
   return {
-    data: products, 
-    totalCount: wishlist.products.length, 
+    data: products,
+    totalCount: wishlist.products.length,
   };
 };
 
@@ -72,18 +84,43 @@ export const removeWishlistServices = async (tenantID, user_id, product_id) => {
 
   const wishlistDB = await WishlistModel(tenantID);
 
-  const updated = await wishlistDB.findOneAndUpdate(
-    { user_id },
-    { $pull: { products: product_id } },
-    { new: true }
-  );
+  const updated = await wishlistDB.findOneAndUpdate({ user_id }, { $pull: { products: product_id } }, { new: true });
 
   throwIfTrue(!updated, "Wishlist not found for this user");
 
   return updated;
 };
 
+/* ---------------------------------------------
+   MOVE WISHLIST TO CART
+----------------------------------------------*/
 
+export const moveWishlistToCartServices = async (tenantID, user_id) => {
+  throwIfTrue(!tenantID, "Tenant ID is required");
+  throwIfTrue(!user_id, "User ID is required");
+
+  const wishlistDB = await WishlistModel(tenantID);
+  const cartDB = await CartModel(tenantID);
+
+  const wishlist = await wishlistDB.findOne({ user_id });
+  throwIfTrue(!wishlist, "Wishlist not found for this user");
+
+  const cart = await cartDB.findOne({ user_id });
+  throwIfTrue(!cart, "Cart not found for this user");
+
+  const cartProducts = wishlist.products.map((item) => ({ product_unique_id: item, quantity: 1 }));
+  cart.products.push(...cartProducts);
+  wishlist.products = [];
+
+  await wishlist.save();
+  await cart.save();
+
+  return cart;
+};
+
+/* ---------------------------------------------
+   CLEAR WISHLIST
+----------------------------------------------*/
 
 export const clearWishlistServices = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
@@ -91,7 +128,7 @@ export const clearWishlistServices = async (tenantID, user_id) => {
 
   const wishlistDB = await WishlistModel(tenantID);
 
-  const wishlist= await wishlistDB.findOne({ user_id });
+  const wishlist = await wishlistDB.findOne({ user_id });
 
   throwIfTrue(!wishlist, "Wishlist not found for this user");
 

@@ -5,6 +5,7 @@ import {
   removeWishlistServices,
   createWishlistServices,
   clearWishlistServices,
+  moveWishlistToCartServices,
 } from "./wishlistService.js";
 
 /* ---------------------------------------------
@@ -69,6 +70,24 @@ export const removeWishlistController = async (req, res) => {
   }
 };
 
+/* ---------------------------------------------
+   MOVE WISHLIST TO CART
+----------------------------------------------*/
+export const moveWishlistToCartController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const { id: user_id } = req.params;
+
+    const response = await moveWishlistToCartServices(tenantID, user_id);
+    res.status(200).json(successResponse("Wishlist moved to cart successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+/* ---------------------------------------------
+   CLEAR WISHLIST
+----------------------------------------------*/
 export const clearWishlistController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];

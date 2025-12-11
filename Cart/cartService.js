@@ -1,6 +1,7 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
 import CartModel from "./cartModel.js";
 import ProductModel from "../Products/productModel.js";
+import WishlistModel from "../Wishlist/wishlistModel.js";
 
 export const addToCartService = async (tenantID, cartData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
@@ -9,6 +10,7 @@ export const addToCartService = async (tenantID, cartData) => {
   throwIfTrue(!cartData?.quantity || cartData?.quantity < 1, "Valid quantity is required");
 
   const cartModelDB = await CartModel(tenantID);
+  const wishlistDB = await WishlistModel(tenantID);
 
   let cart = await cartModelDB.findOne({ user_id: cartData.user_id });
 
@@ -35,6 +37,13 @@ export const addToCartService = async (tenantID, cartData) => {
         },
       ],
     });
+  }
+
+  // Remove only the products that are added to cart from wishlist
+  const existingWishlist = await wishlistDB.findOne({ user_id: cartData.user_id, products: cartData.product_unique_id });
+  if (existingWishlist) {
+    existingWishlist.products = existingWishlist.products.filter((item) => item !== cartData.product_unique_id);
+    await existingWishlist.save();
   }
 
   return cart;
