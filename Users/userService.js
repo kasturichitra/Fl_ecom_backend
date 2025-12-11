@@ -146,14 +146,25 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
+  // If new address is default: true → make all existing addresses default:false
+  if (addressData.default === true) {
+    user.address.forEach(addr => {
+      addr.default = false;
+    });
+  }
+
+  // Push the new address
   user.address.push(addressData);
+
   const updatedUser = await user.save();
 
+  // Remove password
   const res = updatedUser.toObject();
   delete res.password;
 
   return res;
 };
+
 
 export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
