@@ -56,6 +56,15 @@ export const addressSchema = new mongoose.Schema({
     trim: true,
     required: true,
   },
+  default:{
+    type: Boolean,
+    default: false,
+  },
+  address_type:{
+    type: String,
+    enum: ["Home", "Office", "Other"],
+    default: "Home",
+  },
 });
 
 const orderProductSchema = new mongoose.Schema({
