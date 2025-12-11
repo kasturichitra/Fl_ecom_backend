@@ -9,6 +9,7 @@ import {
   storeFcmTokenService,
   updateUserAddressService,
   updateUserService,
+  deleteUserAddressService,
 } from "./userService.js";
 
 export const registerUserController = async (req, res) => {
@@ -106,6 +107,19 @@ export const updateUserAddressController = async (req, res) => {
     const updatedUser = await updateUserAddressService(tenantId, id, address_id, req.body);
 
     res.status(200).json(successResponse("Address updated successfully", { data: updatedUser }));
+  } catch (error) {
+    res.status(400).json(errorResponse(error.message, error));
+  }
+};
+
+export const deleteUserAddressController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id, address_id } = req.params;
+
+    const updatedUser = await deleteUserAddressService(tenantId, id, address_id);
+
+    res.status(200).json(successResponse("Address deleted successfully", { data: updatedUser }));
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));
   }

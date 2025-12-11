@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addAddressController,
+  deleteUserAddressController,
   employeCreateController,
   getAllUsersController,
   getUserByIdController,
@@ -43,6 +44,12 @@ route.put(
   "/user/:id/address/:address_id",
   // verifyToken,
   updateUserAddressController
+);
+
+route.delete(
+  "/user/:id/address/:address_id",
+  // verifyToken,
+  deleteUserAddressController
 );
 
 route.put("/user/fcm-token/:id", storeFcmTokenController);
