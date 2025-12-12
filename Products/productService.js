@@ -186,11 +186,10 @@ export const createProductService = async (tenantId, productData) => {
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
+  console.log("🚀 The product data before creation is:", productData);
   // Create product
   return await productModelDB.create(productData);
 };
-
-
 
 export const getAllProductsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");

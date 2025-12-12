@@ -61,10 +61,76 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
 
   const sortObj = buildSortObject(sort);
   const SaleTrendDB = await SaleTrendModel(tenantId);
-
-  const data = await SaleTrendDB.find(query).sort(sortObj).skip(skip).limit(limit).select("-trend_products");
+  const ProductModelDB = await ProductModel(tenantId);
 
   const totalCount = await SaleTrendDB.countDocuments(query);
+
+  const pipeline = [
+    { $match: query },
+    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: ProductModelDB.collection.name,
+        localField: "trend_products.product_unique_id",
+        foreignField: "product_unique_id",
+        as: "fetched_products",
+      },
+    },
+    {
+      $addFields: {
+        trend_products: {
+          $map: {
+            input: "$trend_products",
+            as: "tp",
+            in: {
+              $mergeObjects: [
+                "$$tp",
+                {
+                  $let: {
+                    vars: {
+                      matchedProduct: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$fetched_products",
+                              as: "fp",
+                              cond: {
+                                $eq: ["$$fp.product_unique_id", "$$tp.product_unique_id"],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                    in: {
+                      product_name: "$$matchedProduct.product_name",
+                      brand_name: "$$matchedProduct.brand_name",
+                      final_price: "$$matchedProduct.final_price",
+                      gross_price: "$$matchedProduct.gross_price",
+                      product_image: "$$matchedProduct.product_image",
+                      stock_quantity: "$$matchedProduct.stock_quantity",
+                      discount_percentage: "$$matchedProduct.discount_percentage",
+                      product_unique_id: "$$matchedProduct.product_unique_id",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fetched_products: 0,
+      },
+    },
+  ];
+
+  const data = await SaleTrendDB.aggregate(pipeline);
 
   return {
     totalCount,
