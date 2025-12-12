@@ -8,6 +8,10 @@ const saleTrendProductSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    priority: {
+      type: Number,
+      required: true,
+    }
   },
   {
     _id: false,
@@ -42,7 +46,6 @@ const saleTrendSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 const SaleTrendModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.SaleTrends || db.model("SaleTrends", saleTrendSchema);

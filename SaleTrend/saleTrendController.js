@@ -5,8 +5,8 @@ import {
   getSaleTrendByUniqueIdService,
   updateSaleTrendService,
   deleteSaleTrendService,
-  addProductsToTrendService,
-  removeProductsFromTrendService,
+  // addProductsToTrendService,
+  // removeProductsFromTrendService,
 } from "./saleTrendService.js";
 
 export const createSaleTrendController = async (req, res) => {
@@ -65,28 +65,28 @@ export const deleteSaleTrendController = async (req, res) => {
   }
 };
 
-export const addProductsToTrendController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
-    const { product_unique_ids } = req.body; // Expecting array of IDs in body
+// export const addProductsToTrendController = async (req, res) => {
+//   try {
+//     const tenantId = req.headers["x-tenant-id"];
+//     const { id } = req.params;
+//     const { product_unique_ids } = req.body; // Expecting array of IDs in body
 
-    const updatedTrend = await addProductsToTrendService(tenantId, id, product_unique_ids);
-    res.status(200).json(successResponse("Products added to Sale Trend successfully", { data: updatedTrend }));
-  } catch (err) {
-    res.status(500).json(errorResponse(err.message, err));
-  }
-};
+//     const updatedTrend = await addProductsToTrendService(tenantId, id, product_unique_ids);
+//     res.status(200).json(successResponse("Products added to Sale Trend successfully", { data: updatedTrend }));
+//   } catch (err) {
+//     res.status(500).json(errorResponse(err.message, err));
+//   }
+// };
 
-export const removeProductsFromTrendController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
-    const { product_unique_ids } = req.body; // Expecting array of IDs in body
+// export const removeProductsFromTrendController = async (req, res) => {
+//   try {
+//     const tenantId = req.headers["x-tenant-id"];
+//     const { id } = req.params;
+//     const { product_unique_ids } = req.body; // Expecting array of IDs in body
 
-    const updatedTrend = await removeProductsFromTrendService(tenantId, id, product_unique_ids);
-    res.status(200).json(successResponse("Products removed from Sale Trend successfully", { data: updatedTrend }));
-  } catch (err) {
-    res.status(500).json(errorResponse(err.message, err));
-  }
-};
+//     const updatedTrend = await removeProductsFromTrendService(tenantId, id, product_unique_ids);
+//     res.status(200).json(successResponse("Products removed from Sale Trend successfully", { data: updatedTrend }));
+//   } catch (err) {
+//     res.status(500).json(errorResponse(err.message, err));
+//   }
+// };
