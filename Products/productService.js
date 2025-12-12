@@ -155,7 +155,8 @@ export const createProductService = async (tenantId, productData) => {
   if (possibleDuplicate) {
     const oldAttrMap = {};
     (possibleDuplicate.product_attributes || []).forEach((attr) => {
-      oldAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
+      const key = clean(attr.attribute_code)
+      oldAttrMap[key] = clean(attr.value);
     });
 
     const matchedAttributes = [];
