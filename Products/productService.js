@@ -140,15 +140,15 @@ export const createProductService = async (tenantId, productData) => {
   (productData.product_attributes || []).forEach((attr) => {
     newAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
   });
-
+  const clean = (v) => (v === null || v === undefined ? "" : String(v).trim().toLowerCase());
   // Fetch possible duplicate with base fields only
   const possibleDuplicate = await productModelDB
     .findOne({
-      product_name: productData.product_name,
-      product_color: productData.product_color,
-      product_size: productData.product_size,
-      brand_name: existingBrand.brand_name,
-      gender: productData.gender,
+      product_name: clean(productData.product_name),
+      product_color: clean(productData.product_color),
+      product_size: clean(productData.product_size),
+      brand_name: clean(existingBrand.brand_name),
+      gender: clean(productData.gender),
     })
     .lean();
 
