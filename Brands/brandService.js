@@ -18,6 +18,11 @@ export const createBrandService = async (tenantID, brandData) => {
 
   const brandModelDB = await BrandModel(tenantID);
 
+  const normalizedName = brandData.brand_name.trim().toLowerCase();
+  
+  const existingBrand = await brandModelDB.exists({ brand_name: { $regex: `^${normalizedName}$`, $options: "i" } });
+  throwIfTrue(existingBrand, "Brand with this Name already exists");
+
   const brand_unique_id = await generateUniqueId(brandModelDB, "BRD", "brand_unique_id");
 
   brandData.brand_unique_id = brand_unique_id;
