@@ -108,85 +108,72 @@ const calculatePrices = (productData) => {
 // MAIN SERVICE
 export const createProductService = async (tenantId, productData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-
   // Parse product_attributes from form-data
   productData = parseFormData(productData, "product_attributes");
-
   const [CategoryModelDB, BrandModelDB, productModelDB] = await Promise.all([
     CategoryModel(tenantId),
     BrandModel(tenantId),
     ProductModel(tenantId),
   ]);
-
   const [existingBrand, existingCategory] = await Promise.all([
     BrandModelDB.findOne({ brand_unique_id: productData.brand_unique_id }).lean(),
     CategoryModelDB.findOne({ category_unique_id: productData.category_unique_id }).lean(),
   ]);
-
   throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
-
   productData.industry_unique_id = existingCategory.industry_unique_id;
   productData.product_name = toTitleCase(productData.product_name);
   productData.brand_name = existingBrand.brand_name;
   productData.category_name = existingCategory.category_name;
-
   // -------------------------------
-  // DUPLICATE CHECK (FAST)
+  // CASE-INSENSITIVE DUPLICATE CHECK
   // -------------------------------
-
-  // Normalize attributes as a map for fast comparison
-  const newAttrMap = {};
-  (productData.product_attributes || []).forEach((attr) => {
-    newAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
-  });
-  const clean = (v) => (v === null || v === undefined ? "" : String(v).trim().toLowerCase());
-  // Fetch possible duplicate with base fields only
-  const possibleDuplicate = await productModelDB
-    .findOne({
-      product_name: clean(productData.product_name),
-      product_color: clean(productData.product_color),
-      product_size: clean(productData.product_size),
-      brand_name: clean(existingBrand.brand_name),
-      gender: clean(productData.gender),
-    })
-    .lean();
-
+  const ci = (v) => String(v || "").trim(); // sanitized string (no lowercase)
+  const norm = (v) => String(v || "").trim().toLowerCase(); // normalized
+  const possibleDuplicate = await productModelDB.findOne({
+    product_name: { $regex: new RegExp(`^${ci(productData.product_name)}$`, "i") },
+    product_color: { $regex: new RegExp(`^${ci(productData.product_color)}$`, "i") },
+    product_size: { $regex: new RegExp(`^${ci(productData.product_size)}$`, "i") },
+    brand_name: { $regex: new RegExp(`^${ci(existingBrand.brand_name)}$`, "i") },
+    gender: { $regex: new RegExp(`^${ci(productData.gender)}$`, "i") },
+  }).lean();
   if (possibleDuplicate) {
-    const oldAttrMap = {};
-    (possibleDuplicate.product_attributes || []).forEach((attr) => {
-      const key = clean(attr.attribute_code)
-      oldAttrMap[key] = clean(attr.value);
+    // Build normalized attribute maps
+    const newAttrMap = {};
+    (productData.product_attributes || []).forEach(attr => {
+      newAttrMap[norm(attr.attribute_code)] = norm(attr.value);
     });
-
-    const matchedAttributes = [];
+    const oldAttrMap = {};
+    (possibleDuplicate.product_attributes || []).forEach(attr => {
+      oldAttrMap[norm(attr.attribute_code)] = norm(attr.value);
+    });
     let allMatch = true;
-
+    const matchedAttributes = [];
     for (const key in newAttrMap) {
-      if (JSON.stringify(newAttrMap[key]) === JSON.stringify(oldAttrMap[key])) {
+      if (newAttrMap[key] === oldAttrMap[key]) {
         matchedAttributes.push(key);
       } else {
         allMatch = false;
-        break; // any mismatch → allow creation
+        break;
       }
     }
-
     if (allMatch && matchedAttributes.length > 0) {
-      throw new Error(`Product already exists with identical attributes: ${matchedAttributes.join(", ")}`);
+      throw new Error(
+        `Identical product already exists`
+      );
     }
   }
-
   // -------------------------------
   // Price calculations & unique ID
   // -------------------------------
   productData = calculatePrices(productData);
-  productData.product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
-
+  productData.product_unique_id = await generateProductUniqueId(
+    productModelDB,
+    productData.brand_unique_id
+  );
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
-
-  console.log("🚀 The product data before creation is:", productData);
   // Create product
   return await productModelDB.create(productData);
 };
