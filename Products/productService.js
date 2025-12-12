@@ -50,50 +50,148 @@ const calculatePrices = (productData) => {
   return productData;
 };
 
+// export const createProductService = async (tenantId, productData) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+
+//   // Parse the attributes which come as text field in form data into true JSON Data
+//   productData = parseFormData(productData, "product_attributes");
+
+//   const CategoryModelDB = await CategoryModel(tenantId);
+//   const BrandModelDB = await BrandModel(tenantId);
+//   const existingBrand = await BrandModelDB.findOne({
+//     brand_unique_id: productData.brand_unique_id,
+//   });
+//   throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
+//   const existingCategory = await CategoryModelDB.findOne({
+//     category_unique_id: productData.category_unique_id,
+//   });
+//   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
+
+//   productData.industry_unique_id = existingCategory.industry_unique_id;
+
+//   const productModelDB = await ProductModel(tenantId);
+
+//   if (productData.product_attributes) {
+//     for (const attribute of productData.product_attributes) {
+//       const normalizedAttributeName = attribute.attribute_code.trim().toLowerCase();
+
+//       const existingAttribute = await productModelDB.exists({
+//         "product_attributes.attribute_code": {
+//           $regex: `^${normalizedAttributeName}$`,
+//           $options: "i",
+//         },
+//       });
+
+//       if (existingAttribute) {
+//         throw new Error(`Attribute "${attribute.attribute_code}" already exists`);
+//       }
+//     }
+//   }
+
+//   productData.product_name = toTitleCase(productData.product_name);
+//   productData.brand_name = existingBrand.brand_name;
+//   productData.category_name = existingCategory.category_name;
+
+//   productData = calculatePrices(productData);
+
+//   const product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
+//   productData.product_unique_id = product_unique_id;
+
+//   const { isValid, message } = validateProductData(productData);
+//   throwIfTrue(!isValid, message);
+
+//   const newProduct = await productModelDB.create(productData);
+//   return newProduct;
+// };
+
+// MAIN SERVICE
 export const createProductService = async (tenantId, productData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  // Parse the attributes which come as text field in form data into true JSON Data
+  // Parse product_attributes from form-data
   productData = parseFormData(productData, "product_attributes");
 
-  const CategoryModelDB = await CategoryModel(tenantId);
-  const BrandModelDB = await BrandModel(tenantId);
-  const existingBrand = await BrandModelDB.findOne({
-    brand_unique_id: productData.brand_unique_id,
-  });
+  const [CategoryModelDB, BrandModelDB, productModelDB] = await Promise.all([
+    CategoryModel(tenantId),
+    BrandModel(tenantId),
+    ProductModel(tenantId),
+  ]);
+
+  const [existingBrand, existingCategory] = await Promise.all([
+    BrandModelDB.findOne({ brand_unique_id: productData.brand_unique_id }).lean(),
+    CategoryModelDB.findOne({ category_unique_id: productData.category_unique_id }).lean(),
+  ]);
+
   throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
-  const existingCategory = await CategoryModelDB.findOne({
-    category_unique_id: productData.category_unique_id,
-  });
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
 
   productData.industry_unique_id = existingCategory.industry_unique_id;
-
-  const productModelDB = await ProductModel(tenantId);
-
-  // const existingProduct = await productModelDB.findOne({
-  //   product_unique_id: productData.product_unique_id,
-  // });
-
-  // throwIfTrue(existingProduct, "Product with unique id already exists");
-
   productData.product_name = toTitleCase(productData.product_name);
   productData.brand_name = existingBrand.brand_name;
   productData.category_name = existingCategory.category_name;
 
+  // -------------------------------
+  // DUPLICATE CHECK (FAST)
+  // -------------------------------
+
+  // Normalize attributes as a map for fast comparison
+  const newAttrMap = {};
+  (productData.product_attributes || []).forEach(attr => {
+    newAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
+  });
+
+  // Fetch possible duplicate with base fields only
+  const possibleDuplicate = await productModelDB
+    .findOne({
+      product_name: productData.product_name,
+      product_color: productData.product_color,
+      product_size: productData.product_size,
+      brand_name: existingBrand.brand_name,
+      gender: productData.gender,
+    })
+    .lean();
+
+  if (possibleDuplicate) {
+    const oldAttrMap = {};
+    (possibleDuplicate.product_attributes || []).forEach(attr => {
+      oldAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
+    });
+
+    const matchedAttributes = [];
+    let allMatch = true;
+
+    for (const key in newAttrMap) {
+      if (JSON.stringify(newAttrMap[key]) === JSON.stringify(oldAttrMap[key])) {
+        matchedAttributes.push(key);
+      } else {
+        allMatch = false;
+        break; // any mismatch → allow creation
+      }
+    }
+
+    if (allMatch && matchedAttributes.length > 0) {
+      throw new Error(
+        `Product already exists with identical attributes: ${matchedAttributes.join(", ")}`
+      );
+    }
+  }
+
+  // -------------------------------
+  // Price calculations & unique ID
+  // -------------------------------
   productData = calculatePrices(productData);
+  productData.product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
 
-  const product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
-  productData.product_unique_id = product_unique_id;
-
+  // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
 
-  const newProduct = await productModelDB.create(productData);
-  return newProduct;
+  // Create product
+  return await productModelDB.create(productData);
 };
 
-// MAIN SERVICE
+
+
 export const getAllProductsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
