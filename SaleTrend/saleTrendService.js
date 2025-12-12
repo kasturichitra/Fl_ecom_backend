@@ -49,9 +49,10 @@ export const createSaleTrendService = async (tenantId, data) => {
 export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { page = 1, limit = 10, sort, searchTerm } = filters;
+  let { page = 1, limit = 10, sort, searchTerm, products_limit = 10 } = filters;
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
+  products_limit = parseInt(products_limit) || 10;
   const skip = (page - 1) * limit;
 
   const query = {};
@@ -82,7 +83,7 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
       $addFields: {
         trend_products: {
           $map: {
-            input: "$trend_products",
+            input: products_limit ? { $slice: ["$trend_products", products_limit] } : "$trend_products",
             as: "tp",
             in: {
               $mergeObjects: [
@@ -141,10 +142,12 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   };
 };
 
-export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id) => {
+export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id, products_limit = 10) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   const SaleTrendDB = await SaleTrendModel(tenantId);
   const ProductModelDB = await ProductModel(tenantId);
+
+  products_limit = parseInt(products_limit) || 10;
 
   const pipeline = [
     {
@@ -164,7 +167,7 @@ export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id) =
       $addFields: {
         trend_products: {
           $map: {
-            input: "$trend_products",
+            input: products_limit ? { $slice: ["$trend_products", products_limit] } : "$trend_products",
             as: "tp",
             in: {
               $mergeObjects: [
