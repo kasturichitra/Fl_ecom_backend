@@ -129,22 +129,27 @@ export const createProductService = async (tenantId, productData) => {
   // CASE-INSENSITIVE DUPLICATE CHECK
   // -------------------------------
   const ci = (v) => String(v || "").trim(); // sanitized string (no lowercase)
-  const norm = (v) => String(v || "").trim().toLowerCase(); // normalized
-  const possibleDuplicate = await productModelDB.findOne({
-    product_name: { $regex: new RegExp(`^${ci(productData.product_name)}$`, "i") },
-    product_color: { $regex: new RegExp(`^${ci(productData.product_color)}$`, "i") },
-    product_size: { $regex: new RegExp(`^${ci(productData.product_size)}$`, "i") },
-    brand_name: { $regex: new RegExp(`^${ci(existingBrand.brand_name)}$`, "i") },
-    gender: { $regex: new RegExp(`^${ci(productData.gender)}$`, "i") },
-  }).lean();
+  const norm = (v) =>
+    String(v || "")
+      .trim()
+      .toLowerCase(); // normalized
+  const possibleDuplicate = await productModelDB
+    .findOne({
+      product_name: { $regex: new RegExp(`^${ci(productData.product_name)}$`, "i") },
+      product_color: { $regex: new RegExp(`^${ci(productData.product_color)}$`, "i") },
+      product_size: { $regex: new RegExp(`^${ci(productData.product_size)}$`, "i") },
+      brand_name: { $regex: new RegExp(`^${ci(existingBrand.brand_name)}$`, "i") },
+      gender: { $regex: new RegExp(`^${ci(productData.gender)}$`, "i") },
+    })
+    .lean();
   if (possibleDuplicate) {
     // Build normalized attribute maps
     const newAttrMap = {};
-    (productData.product_attributes || []).forEach(attr => {
+    (productData.product_attributes || []).forEach((attr) => {
       newAttrMap[norm(attr.attribute_code)] = norm(attr.value);
     });
     const oldAttrMap = {};
-    (possibleDuplicate.product_attributes || []).forEach(attr => {
+    (possibleDuplicate.product_attributes || []).forEach((attr) => {
       oldAttrMap[norm(attr.attribute_code)] = norm(attr.value);
     });
     let allMatch = true;
@@ -158,19 +163,14 @@ export const createProductService = async (tenantId, productData) => {
       }
     }
     if (allMatch && matchedAttributes.length > 0) {
-      throw new Error(
-        `Identical product already exists`
-      );
+      throw new Error(`Identical product already exists`);
     }
   }
   // -------------------------------
   // Price calculations & unique ID
   // -------------------------------
   productData = calculatePrices(productData);
-  productData.product_unique_id = await generateProductUniqueId(
-    productModelDB,
-    productData.brand_unique_id
-  );
+  productData.product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
@@ -690,16 +690,103 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
   return response;
 };
 
+// export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+//   throwIfTrue(!filePath, "File Path is required");
+//   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
+
+//   const extracted = await extractExcel(filePath, staticExcelHeaders);
+
+//   const valid = [];
+//   const invalid = [];
+
+//   for (const row of extracted) {
+//     const errors = validateRow(row.raw, staticExcelHeaders);
+//     if (errors.length) {
+//       invalid.push({ rowNumber: row.rowNumber, errors, data: row.raw });
+//     } else {
+//       valid.push(transformRow(row.raw, staticExcelHeaders));
+//     }
+//   }
+
+//   const CategoryModelDB = await CategoryModel(tenantId);
+
+//   const existingCategory = await CategoryModelDB.findOne({ category_unique_id });
+//   throwIfTrue(!existingCategory, `Category not found with id: ${category_unique_id}`);
+
+//   if (valid.length) {
+//     const ProductModelDB = await ProductModel(tenantId);
+//     const BrandModelDB = await BrandModel(tenantId);
+
+//     for (let i = 0; i < valid.length; i++) {
+//       const existingBrand = await BrandModelDB.findOne({
+//         brand_unique_id: valid[i].brand_unique_id,
+//       });
+//       if (!existingBrand) {
+//         invalid.push({
+//           rowNumber: i + 1,
+//           errors: [
+//             {
+//               field: "",
+//               message: `Brand not found with id: ${valid[i].brand_unique_id}`,
+//             },
+//           ],
+//         });
+//         continue;
+//       }
+
+//       // const existingProduct = await ProductModelDB.findOne({
+//       //   product_unique_id: valid[i].product_unique_id,
+//       // });
+//       // if (existingProduct) {
+//       //   invalid.push({
+//       //     rowNumber: i + 1,
+//       //     errors: [
+//       //       {
+//       //         field: "",
+//       //         message: `Product already exists with id: ${valid[i].product_unique_id}`,
+//       //       },
+//       //     ],
+//       //   });
+//       //   continue;
+//       // }
+
+//       const product_unique_id = await generateProductUniqueId(ProductModelDB, existingBrand.brand_unique_id);
+//       valid[i].product_unique_id = product_unique_id;
+
+//       valid[i].industry_unique_id = existingCategory.industry_unique_id;
+//       valid[i].category_unique_id = existingCategory.category_unique_id;
+//       valid[i].brand_name = existingBrand.brand_name;
+//       valid[i].category_name = existingCategory.category_name;
+
+//       valid[i] = calculatePrices(valid[i]);
+
+//       const { isValid, message } = validateProductData(valid[i]);
+//       if (!isValid) {
+//         invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
+//         continue;
+//       }
+
+//       await ProductModelDB.create(valid[i]);
+//     }
+//   }
+
+//   return {
+//     totalRows: extracted.length,
+//     success: extracted.length - invalid.length,
+//     failed: invalid.length,
+//     errors: invalid,
+//   };
+// };
+
+// Get Product By Mongo Db Id
 export const createBulkProductsService = async (tenantId, category_unique_id, filePath) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!filePath, "File Path is required");
   throwIfTrue(!filePath.endsWith(".xlsx"), "Invalid file format - Plz provide only xlsx file");
-
   const extracted = await extractExcel(filePath, staticExcelHeaders);
-
   const valid = [];
   const invalid = [];
-
   for (const row of extracted) {
     const errors = validateRow(row.raw, staticExcelHeaders);
     if (errors.length) {
@@ -708,16 +795,12 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
       valid.push(transformRow(row.raw, staticExcelHeaders));
     }
   }
-
   const CategoryModelDB = await CategoryModel(tenantId);
-
   const existingCategory = await CategoryModelDB.findOne({ category_unique_id });
   throwIfTrue(!existingCategory, `Category not found with id: ${category_unique_id}`);
-
   if (valid.length) {
     const ProductModelDB = await ProductModel(tenantId);
     const BrandModelDB = await BrandModel(tenantId);
-
     for (let i = 0; i < valid.length; i++) {
       const existingBrand = await BrandModelDB.findOne({
         brand_unique_id: valid[i].brand_unique_id,
@@ -734,43 +817,103 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
         });
         continue;
       }
-
-      // const existingProduct = await ProductModelDB.findOne({
-      //   product_unique_id: valid[i].product_unique_id,
-      // });
-      // if (existingProduct) {
-      //   invalid.push({
-      //     rowNumber: i + 1,
-      //     errors: [
-      //       {
-      //         field: "",
-      //         message: `Product already exists with id: ${valid[i].product_unique_id}`,
-      //       },
-      //     ],
-      //   });
-      //   continue;
-      // }
-
+      // -------------------------------
+      // CASE-INSENSITIVE DUPLICATE CHECK
+      // -------------------------------
+      const productData = valid[i];
+      const ci = (v) => String(v || "").trim(); // sanitized string (no lowercase)
+      const norm = (v) => String(v || "").trim().toLowerCase(); // normalized
+      // Helper to build field condition that handles empty/null/undefined values
+      const buildFieldCondition = (fieldValue) => {
+        const trimmed = ci(fieldValue);
+        if (!trimmed) {
+          // Match empty string, null, undefined, or field not existing
+          return { $in: [null, undefined, ""] };
+        }
+        return { $regex: new RegExp(`^${trimmed}$`, "i") };
+      };
+      const duplicateQuery = {
+        product_name: { $regex: new RegExp(`^${ci(productData.product_name)}$`, "i") },
+        brand_name: { $regex: new RegExp(`^${ci(existingBrand.brand_name)}$`, "i") },
+      };
+      // Add optional fields with proper empty value handling
+      const productColorVal = ci(productData.product_color);
+      if (productColorVal) {
+        duplicateQuery.product_color = { $regex: new RegExp(`^${productColorVal}$`, "i") };
+      } else {
+        duplicateQuery.$or = duplicateQuery.$or || [];
+        duplicateQuery.$and = [
+          { $or: [{ product_color: { $in: [null, undefined, ""] } }, { product_color: { $exists: false } }] }
+        ];
+      }
+      const productSizeVal = ci(productData.product_size);
+      if (productSizeVal) {
+        duplicateQuery.product_size = { $regex: new RegExp(`^${productSizeVal}$`, "i") };
+      } else {
+        duplicateQuery.$and = duplicateQuery.$and || [];
+        duplicateQuery.$and.push(
+          { $or: [{ product_size: { $in: [null, undefined, ""] } }, { product_size: { $exists: false } }] }
+        );
+      }
+      const genderVal = ci(productData.gender);
+      if (genderVal) {
+        duplicateQuery.gender = { $regex: new RegExp(`^${genderVal}$`, "i") };
+      } else {
+        duplicateQuery.$and = duplicateQuery.$and || [];
+        duplicateQuery.$and.push(
+          { $or: [{ gender: { $in: [null, undefined, ""] } }, { gender: { $exists: false } }] }
+        );
+      }
+      const possibleDuplicate = await ProductModelDB.findOne(duplicateQuery).lean();
+      if (possibleDuplicate) {
+        // Build normalized attribute maps
+        const newAttrMap = {};
+        (productData.product_attributes || []).forEach(attr => {
+          newAttrMap[norm(attr.attribute_code)] = norm(attr.value);
+        });
+        const oldAttrMap = {};
+        (possibleDuplicate.product_attributes || []).forEach(attr => {
+          oldAttrMap[norm(attr.attribute_code)] = norm(attr.value);
+        });
+        let allMatch = true;
+        const matchedAttributes = [];
+        for (const key in newAttrMap) {
+          if (newAttrMap[key] === oldAttrMap[key]) {
+            matchedAttributes.push(key);
+          } else {
+            allMatch = false;
+            break;
+          }
+        }
+        if (allMatch && matchedAttributes.length > 0) {
+          invalid.push({
+            rowNumber: i + 1,
+            errors: [
+              {
+                field: "",
+                message: `Identical product already exists`,
+              },
+            ],
+          });
+          continue;
+        }
+      }
+      // -------------------------------
       const product_unique_id = await generateProductUniqueId(ProductModelDB, existingBrand.brand_unique_id);
       valid[i].product_unique_id = product_unique_id;
-
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
       valid[i].category_unique_id = existingCategory.category_unique_id;
       valid[i].brand_name = existingBrand.brand_name;
       valid[i].category_name = existingCategory.category_name;
-
       valid[i] = calculatePrices(valid[i]);
-
       const { isValid, message } = validateProductData(valid[i]);
       if (!isValid) {
         invalid.push({ rowNumber: i + 1, errors: [{ field: "", message }] });
         continue;
       }
-
       await ProductModelDB.create(valid[i]);
     }
   }
-
   return {
     totalRows: extracted.length,
     success: extracted.length - invalid.length,
@@ -779,7 +922,6 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
   };
 };
 
-// Get Product By Mongo Db Id
 export const getProductByIdService = async (tenantId, id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
