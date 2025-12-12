@@ -28,13 +28,13 @@ export const createSaleTrendService = async (tenantId, data) => {
   const SaleTrendDB = await SaleTrendModel(tenantId);
 
   // Generate Unique ID
-  const trend_unique_id = data.trend_name.replace(/\s+/g, "-").toLowerCase(); 
+  const trend_unique_id = data.trend_name.replace(/\s+/g, "-").toLowerCase();
 
   const existingTrend = await SaleTrendDB.findOne({ trend_unique_id });
   throwIfTrue(existingTrend, "Trend name must be unique");
 
   // Generate Unique ID
-  data.trend_unique_id = trend_unique_id; 
+  data.trend_unique_id = trend_unique_id;
 
   // Validate products if present
   if (data.trend_products && data.trend_products.length > 0) {
@@ -61,10 +61,76 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
 
   const sortObj = buildSortObject(sort);
   const SaleTrendDB = await SaleTrendModel(tenantId);
-
-  const data = await SaleTrendDB.find(query).sort(sortObj).skip(skip).limit(limit).select("-trend_products");
+  const ProductModelDB = await ProductModel(tenantId);
 
   const totalCount = await SaleTrendDB.countDocuments(query);
+
+  const pipeline = [
+    { $match: query },
+    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: ProductModelDB.collection.name,
+        localField: "trend_products.product_unique_id",
+        foreignField: "product_unique_id",
+        as: "fetched_products",
+      },
+    },
+    {
+      $addFields: {
+        trend_products: {
+          $map: {
+            input: "$trend_products",
+            as: "tp",
+            in: {
+              $mergeObjects: [
+                "$$tp",
+                {
+                  $let: {
+                    vars: {
+                      matchedProduct: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$fetched_products",
+                              as: "fp",
+                              cond: {
+                                $eq: ["$$fp.product_unique_id", "$$tp.product_unique_id"],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                    in: {
+                      product_name: "$$matchedProduct.product_name",
+                      brand_name: "$$matchedProduct.brand_name",
+                      final_price: "$$matchedProduct.final_price",
+                      gross_price: "$$matchedProduct.gross_price",
+                      product_image: "$$matchedProduct.product_image",
+                      stock_quantity: "$$matchedProduct.stock_quantity",
+                      discount_percentage: "$$matchedProduct.discount_percentage",
+                      product_unique_id: "$$matchedProduct.product_unique_id",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fetched_products: 0,
+      },
+    },
+  ];
+
+  const data = await SaleTrendDB.aggregate(pipeline);
 
   return {
     totalCount,
@@ -78,8 +144,73 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
 export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   const SaleTrendDB = await SaleTrendModel(tenantId);
+  const ProductModelDB = await ProductModel(tenantId);
 
-  const trend = await SaleTrendDB.findOne({ trend_unique_id });
+  const pipeline = [
+    {
+      $match: {
+        trend_unique_id: trend_unique_id,
+      },
+    },
+    {
+      $lookup: {
+        from: ProductModelDB.collection.name,
+        localField: "trend_products.product_unique_id",
+        foreignField: "product_unique_id",
+        as: "fetched_products",
+      },
+    },
+    {
+      $addFields: {
+        trend_products: {
+          $map: {
+            input: "$trend_products",
+            as: "tp",
+            in: {
+              $mergeObjects: [
+                "$$tp",
+                {
+                  $let: {
+                    vars: {
+                      matchedProduct: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$fetched_products",
+                              as: "fp",
+                              cond: {
+                                $eq: ["$$fp.product_unique_id", "$$tp.product_unique_id"],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                    in: {
+                      product_name: "$$matchedProduct.product_name",
+                      brand_name: "$$matchedProduct.brand_name",
+                      final_price: "$$matchedProduct.final_price",
+                      product_image: "$$matchedProduct.product_image",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fetched_products: 0,
+      },
+    },
+  ];
+
+  const result = await SaleTrendDB.aggregate(pipeline);
+  const trend = result[0];
+
   throwIfTrue(!trend, "Sale Trend not found");
 
   return trend;
@@ -115,60 +246,60 @@ export const deleteSaleTrendService = async (tenantId, trend_unique_id) => {
   return deletedTrend;
 };
 
-// Add products to an existing trend
-export const addProductsToTrendService = async (tenantId, trendId, productIdsArray) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!Array.isArray(productIdsArray), "productIds must be an array");
+// // Add products to an existing trend
+// export const addProductsToTrendService = async (tenantId, trendId, productIdsArray) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+//   throwIfTrue(!Array.isArray(productIdsArray), "productIds must be an array");
 
-  // Validate products exist
-  await validateProductsExist(tenantId, productIdsArray);
+//   // Validate products exist
+//   await validateProductsExist(tenantId, productIdsArray);
 
-  const SaleTrendDB = await SaleTrendModel(tenantId);
-  const trend = await SaleTrendDB.findOne({ trend_unique_id: trendId });
-  throwIfTrue(!trend, "Sale Trend not found");
+//   const SaleTrendDB = await SaleTrendModel(tenantId);
+//   const trend = await SaleTrendDB.findOne({ trend_unique_id: trendId });
+//   throwIfTrue(!trend, "Sale Trend not found");
 
-  // Prepare objects to add
-  const productsToAdd = productIdsArray.map((id) => ({ product_unique_id: id }));
+//   // Prepare objects to add
+//   const productsToAdd = productIdsArray.map((id) => ({ product_unique_id: id }));
 
-  // Use $addToSet to avoid duplicates.
-  // However, $addToSet with objects only works if the objects are exactly identical.
-  // Since we only have { product_unique_id: "..." }, this works.
-  // If we had other fields, we'd need to be more careful.
+//   // Use $addToSet to avoid duplicates.
+//   // However, $addToSet with objects only works if the objects are exactly identical.
+//   // Since we only have { product_unique_id: "..." }, this works.
+//   // If we had other fields, we'd need to be more careful.
 
-  // Actually, standard $addToSet might not check deeply if we had other fields, but schema only has product_unique_id wrapper.
-  // Let's iterate using bulk updates or just a simple loop if typically small, or one update.
-  // A single update with $addToSet per item in array is syntax:
-  // { $addToSet: { trend_products: { $each: productsToAdd } } }
+//   // Actually, standard $addToSet might not check deeply if we had other fields, but schema only has product_unique_id wrapper.
+//   // Let's iterate using bulk updates or just a simple loop if typically small, or one update.
+//   // A single update with $addToSet per item in array is syntax:
+//   // { $addToSet: { trend_products: { $each: productsToAdd } } }
 
-  const updatedTrend = await SaleTrendDB.findOneAndUpdate(
-    { trend_unique_id: trendId },
-    { $addToSet: { trend_products: { $each: productsToAdd } } },
-    { new: true }
-  );
+//   const updatedTrend = await SaleTrendDB.findOneAndUpdate(
+//     { trend_unique_id: trendId },
+//     { $addToSet: { trend_products: { $each: productsToAdd } } },
+//     { new: true }
+//   );
 
-  return updatedTrend;
-};
+//   return updatedTrend;
+// };
 
-// Remove products from an existing trend
-export const removeProductsFromTrendService = async (tenantId, trendId, productIdsArray) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!Array.isArray(productIdsArray), "productIds must be an array");
+// // Remove products from an existing trend
+// export const removeProductsFromTrendService = async (tenantId, trendId, productIdsArray) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+//   throwIfTrue(!Array.isArray(productIdsArray), "productIds must be an array");
 
-  const SaleTrendDB = await SaleTrendModel(tenantId);
+//   const SaleTrendDB = await SaleTrendModel(tenantId);
 
-  // query to pull items where product_unique_id is in productIdsArray
-  const updatedTrend = await SaleTrendDB.findOneAndUpdate(
-    { trend_unique_id: trendId },
-    {
-      $pull: {
-        trend_products: {
-          product_unique_id: { $in: productIdsArray },
-        },
-      },
-    },
-    { new: true }
-  );
+//   // query to pull items where product_unique_id is in productIdsArray
+//   const updatedTrend = await SaleTrendDB.findOneAndUpdate(
+//     { trend_unique_id: trendId },
+//     {
+//       $pull: {
+//         trend_products: {
+//           product_unique_id: { $in: productIdsArray },
+//         },
+//       },
+//     },
+//     { new: true }
+//   );
 
-  throwIfTrue(!updatedTrend, "Sale Trend not found");
-  return updatedTrend;
-};
+//   throwIfTrue(!updatedTrend, "Sale Trend not found");
+//   return updatedTrend;
+// };

@@ -5,8 +5,8 @@ import {
   getSaleTrendByUniqueIdController,
   updateSaleTrendController,
   deleteSaleTrendController,
-  addProductsToTrendController,
-  removeProductsFromTrendController,
+  // addProductsToTrendController,
+  // removeProductsFromTrendController,
 } from "./saleTrendController.js";
 
 const route = express.Router();
@@ -18,7 +18,7 @@ route.put("/:id", updateSaleTrendController);
 route.delete("/:id", deleteSaleTrendController);
 
 // Atomic updates for products
-route.put("/:id/add-products", addProductsToTrendController);
-route.put("/:id/remove-products", removeProductsFromTrendController);
+// route.put("/:id/add-products", addProductsToTrendController);
+// route.put("/:id/remove-products", removeProductsFromTrendController);
 
 export default route;
