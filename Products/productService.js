@@ -15,6 +15,7 @@ import { toArray, toTitleCase } from "../utils/conversions.js";
 import BrandModel from "../Brands/brandModel.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import generateProductUniqueId from "./utils/generateProductUniqueId.js";
+import SaleTrendModel from "../SaleTrend/saleTrendModel.js";
 
 const calculatePrices = (productData) => {
   // Step 1: Get base price
@@ -136,7 +137,7 @@ export const createProductService = async (tenantId, productData) => {
 
   // Normalize attributes as a map for fast comparison
   const newAttrMap = {};
-  (productData.product_attributes || []).forEach(attr => {
+  (productData.product_attributes || []).forEach((attr) => {
     newAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
   });
 
@@ -153,7 +154,7 @@ export const createProductService = async (tenantId, productData) => {
 
   if (possibleDuplicate) {
     const oldAttrMap = {};
-    (possibleDuplicate.product_attributes || []).forEach(attr => {
+    (possibleDuplicate.product_attributes || []).forEach((attr) => {
       oldAttrMap[attr.attribute_code.trim().toLowerCase()] = attr.value;
     });
 
@@ -170,9 +171,7 @@ export const createProductService = async (tenantId, productData) => {
     }
 
     if (allMatch && matchedAttributes.length > 0) {
-      throw new Error(
-        `Product already exists with identical attributes: ${matchedAttributes.join(", ")}`
-      );
+      throw new Error(`Product already exists with identical attributes: ${matchedAttributes.join(", ")}`);
     }
   }
 
@@ -212,6 +211,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     maximum_age,
     min_price,
     max_price,
+    trend,
     sort,
     searchTerm,
     page = 1,
@@ -300,8 +300,25 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  // MAIN AGGREGATION
-  const data = await productModelDB.aggregate([
+  // Fetch trend data if trend filter is active
+  let trendProductsMap = null;
+  if (trend) {
+    const saleTrendModelDb = await SaleTrendModel(tenantId);
+    const saleTrendData = await saleTrendModelDb.findOne({ trend_unique_id: trend }).lean();
+
+    if (saleTrendData) {
+      query.product_unique_id = { $in: saleTrendData.trend_products.map((p) => p.product_unique_id) };
+
+      // Create a map of product_unique_id to priority
+      trendProductsMap = {};
+      saleTrendData.trend_products.forEach((p) => {
+        trendProductsMap[p.product_unique_id] = p.priority;
+      });
+    }
+  }
+
+  // Build aggregation pipeline dynamically
+  const pipeline = [
     { $match: query },
     {
       $lookup: {
@@ -339,11 +356,38 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
         reviews: 0,
       },
     },
+  ];
 
-    { $sort: sortObj },
-    { $skip: skip },
-    { $limit: limit },
-  ]);
+  // If trend is active, inject priority field and sort by it
+  if (trendProductsMap) {
+    const priorityCases = Object.entries(trendProductsMap).map(([productId, priority]) => ({
+      case: { $eq: ["$product_unique_id", productId] },
+      then: priority,
+    }));
+
+    pipeline.push({
+      $addFields: {
+        trend_priority: {
+          $switch: {
+            branches: priorityCases,
+            default: 9999, // Products not in trend go to end
+          },
+        },
+      },
+    });
+
+    // Sort by trend_priority first, then by other sort criteria
+    pipeline.push({ $sort: { trend_priority: 1, ...sortObj } });
+  } else {
+    // Normal sorting without trend priority
+    pipeline.push({ $sort: sortObj });
+  }
+
+  pipeline.push({ $skip: skip });
+  pipeline.push({ $limit: limit });
+
+  // Execute aggregation
+  const data = await productModelDB.aggregate(pipeline);
 
   const totalCount = await productModelDB.countDocuments(query);
 
