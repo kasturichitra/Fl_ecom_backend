@@ -15,10 +15,13 @@ export const createIndustryTypeServices = async (tenantID, data, user_id = "6925
   throwIfTrue(!data.industry_name || !data.industry_name.trim(), "Industry Name is required");
   const IndustryModel = await IndustryTypeModel(tenantID);
 
-  if (data.industry_unique_id) {
-    if (await IndustryModel.exists({ industry_unique_id: data.industry_unique_id }))
-      throw new Error("Industry Type with this ID already exists");
-  }
+  const normalizedName = data.industry_name.trim().toLowerCase();
+
+   const existingIndustry = await IndustryModel.exists({
+    industry_name: { $regex: `^${normalizedName}$`, $options: "i" }
+  });
+
+  throwIfTrue(existingIndustry, "Industry Type with this Name already exists");
 
   const industry_unique_id = await generateUniqueId(IndustryModel, "IND", "industry_unique_id");
 
