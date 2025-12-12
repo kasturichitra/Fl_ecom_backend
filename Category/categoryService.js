@@ -19,12 +19,17 @@ export const createCategoryService = async (
 ) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   if (!industry_unique_id || !category_name || !category_image || !created_by)
-    throwIfTrue(true, "All industry_unique_id,category_name,category_unique_id,category_image,created_by fields are required");
+    throwIfTrue(
+      true,
+      "All industry_unique_id,category_name,category_unique_id,category_image,created_by fields are required"
+    );
 
   const CategoryDB = await CategoryModel(tenantId);
 
-  if (await CategoryDB.exists({ category_unique_id }))
-    throwIfTrue(true, "Category ID already exists");
+  const normalizedName = category_name.trim().toLowerCase();
+  const existingCategory = await CategoryDB.exists({ category_name: { $regex: `^${normalizedName}$`, $options: "i" } });
+
+  throwIfTrue(existingCategory, "Category with this Name already exists");
 
   category_name = toTitleCase(category_name);
 
@@ -73,12 +78,11 @@ export const getAllCategoriesService = async (tenantId, filters, search, page = 
   const sortObj = buildSortObject(sortParam);
   const [categoryData, totalCount] = await Promise.all([
     categoryModelDB.find(query).skip(skip).limit(+limit).sort(sortObj).lean(),
-    categoryModelDB.countDocuments(query)
+    categoryModelDB.countDocuments(query),
   ]);
 
   return { categoryData, totalCount };
 };
-
 
 export const getCategoriesByIndustryIdService = async (tenantId, industry_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -88,7 +92,6 @@ export const getCategoriesByIndustryIdService = async (tenantId, industry_unique
   return await CategoryDB.find({ industry_unique_id }).sort({ createdAt: -1 }).lean();
 };
 
-
 export const getCategoryByIdService = async (tenantId, targetId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!targetId, "category_unique_id is required");
@@ -97,7 +100,6 @@ export const getCategoryByIdService = async (tenantId, targetId) => {
 
   return await CategoryDB.findOne({ category_unique_id: targetId }).lean();
 };
-
 
 // export const updateCategoryService = async (tenantId, category_unique_id, updates) => {
 //   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -130,12 +132,9 @@ export const getCategoryByIdService = async (tenantId, targetId) => {
 export const updateCategoryService = async (tenantId, category_unique_id, updates) => {
   throwIfTrue(!tenantId || !category_unique_id, "IDs required");
 
-  const ProductModel  = (await import("../Products/productModel.js")).default;
+  const ProductModel = (await import("../Products/productModel.js")).default;
 
-  const [Category, Product] = await Promise.all([
-    CategoryModel(tenantId),
-    ProductModel(tenantId)
-  ]);
+  const [Category, Product] = await Promise.all([CategoryModel(tenantId), ProductModel(tenantId)]);
 
   const cat = await Category.findOneAndUpdate(
     { category_unique_id },
@@ -218,7 +217,7 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
         success[i].created_by = created_by;
 
         // await categoryDB.create(success[i]);
-        await categoryDB.insertMany(success); 
+        await categoryDB.insertMany(success);
       }
     }
   }
@@ -231,4 +230,3 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
     errors,
   };
 };
-
