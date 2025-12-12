@@ -62,7 +62,7 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   const sortObj = buildSortObject(sort);
   const SaleTrendDB = await SaleTrendModel(tenantId);
 
-  const data = await SaleTrendDB.find(query).sort(sortObj).skip(skip).limit(limit);
+  const data = await SaleTrendDB.find(query).sort(sortObj).skip(skip).limit(limit).select("-trend_products");
 
   const totalCount = await SaleTrendDB.countDocuments(query);
 

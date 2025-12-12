@@ -35,6 +35,10 @@ const saleTrendSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
