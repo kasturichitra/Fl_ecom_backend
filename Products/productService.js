@@ -169,12 +169,15 @@ export const createProductService = async (tenantId, productData) => {
   // -------------------------------
   // Price calculations & unique ID
   // -------------------------------
+  // console.log(productData,'productData');
+  console.log("Input product data", productData)
   productData = calculatePrices(productData);
-  productData.product_unique_id = await generateProductUniqueId(productModelDB, productData.brand_unique_id);
+  productData.product_unique_id = await generateProductUniqueId(productModelDB,BrandModelDB, productData.brand_unique_id);
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
   // Create product
+  console.log(productData, 'dsfsdfdfgfdg');
   return await productModelDB.create(productData);
 };
 
