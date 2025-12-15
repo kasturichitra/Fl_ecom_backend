@@ -2,9 +2,11 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { port_number } from "./env.js";
 // import chatSocket from "./utils/chatSocket.js";
 // Routes
+import authRoutes from "./Auth/authRoute.js";
 import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
 import categoryRoute from "./Category/categoryRoute.js";
@@ -33,6 +35,7 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -101,6 +104,7 @@ if (process.env.NODE_ENV !== "production") {
 
 /* -------------------------- REST API Routes -------------------------- */
 
+app.use("/auth", authRoutes); 
 app.use("/industryType", industryType);
 app.use("/category", categoryRoute);
 app.use("/products", productRoute);

@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     phone_number: {
       type: String,
       required: [true, "Phone number is required"],
+      unique: true,
       match: [/^\d{10,15}$/, "Please provide a valid phone number"],
     },
     // Branch name means which branch employee is operating from. 
