@@ -5,8 +5,6 @@ import {
   employeCreateController,
   getAllUsersController,
   getUserByIdController,
-  loginUserController,
-  registerUserController,
   storeFcmTokenController,
   updateUserAddressController,
   updateUserController,
@@ -18,10 +16,6 @@ import getUploadMiddleware from "../utils/multerConfig.js";
 
 const route = express.Router();
 const upload = getUploadMiddleware("user");
-
-// Auth
-route.post("/register", registerUserController);
-route.post("/login", loginUserController);
 
 route.get("/user", getAllUsersController);
 route.get("/user/:id", getUserByIdController);

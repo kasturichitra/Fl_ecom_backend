@@ -5,6 +5,7 @@ import cors from "cors";
 import { port_number } from "./env.js";
 // import chatSocket from "./utils/chatSocket.js";
 // Routes
+import authRoutes from "./Auth/authRoute.js";
 import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
 import categoryRoute from "./Category/categoryRoute.js";
@@ -99,6 +100,7 @@ if (process.env.NODE_ENV !== "production") {
 
 /* -------------------------- REST API Routes -------------------------- */
 
+app.use("/auth", authRoutes); 
 app.use("/industryType", industryType);
 app.use("/category", categoryRoute);
 app.use("/products", productRoute);
