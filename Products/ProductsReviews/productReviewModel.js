@@ -48,7 +48,7 @@ const productReviewSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "published", "hidden", "removed"],
-      default: "pending",
+      default: "published",
     },
     // videos: {
     //   type: [String],
