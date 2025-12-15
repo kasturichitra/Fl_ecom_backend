@@ -1,15 +1,15 @@
+import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { loginUserService, registerUserService } from "./authService.js";
 
 export const registerUserController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { username, email, phone_number, password } = req.body;
+    const data = req.body;
 
-    if (!username || !email || !phone_number || !password)
-      return res.status(400).json({ status: "failed", message: "All fields are required" });
+    const user = await registerUserService(tenantId, data);
 
-    const user = await registerUserService(tenantId, username, email, password, phone_number);
+    generateTokenAndSetCookie(res, "rjhbekjcfnorebojerlbsour");
 
     res.status(201).json(successResponse("User registered successfully", { data: user }));
   } catch (error) {

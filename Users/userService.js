@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
-import generateToken from "../utils/generateToken.js";
+import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import UserModel from "./userModel.js";
 import { validateUserCreate } from "./validationUser.js";
