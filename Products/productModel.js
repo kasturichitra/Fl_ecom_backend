@@ -255,6 +255,29 @@ const productSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // Rating Summary - Aggregated from reviews by cron job
+    rating_summary: {
+      average_rating: {
+        type: Number,
+        default: 0,
+      },
+      total_reviews: {
+        type: Number,
+        default: 0,
+      },
+      // rating_breakdown: {
+      //   1: { type: Number, default: 0 },
+      //   2: { type: Number, default: 0 },
+      //   3: { type: Number, default: 0 },
+      //   4: { type: Number, default: 0 },
+      //   5: { type: Number, default: 0 },
+      // },
+      last_review_aggregated_at: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,

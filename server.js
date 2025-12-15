@@ -23,6 +23,8 @@ import configRoutes from "./Configs/configRoutes.js";
 import dashboardRoutes from "./Dashboard/dashboardRoutes.js";
 import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 
+// Cron Jobs
+import "./CronJobs/reviewAggregation.cron.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
