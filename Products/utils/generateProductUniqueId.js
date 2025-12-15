@@ -1,19 +1,32 @@
-const generateProductUniqueId = async (DB, brand_unique_id) => {
+
+
+const generateProductUniqueId = async (DB,BrandModelDB, brand_unique_id) => {
+  // console.log("Brand unique id", DB);
   const latestElement = await DB.findOne({
     brand_unique_id: brand_unique_id,
   })
     .sort({ createdAt: -1 })
     .select("product_unique_id brand_name");
 
-    console.log("latestElement", latestElement);
-    console.log("Brand unique id", brand_unique_id);
-
-  const prefix = latestElement["brand_name"].toUpperCase().split(3);
-
-  if (!latestElement) {
+  if (!latestElement){
+    const brand = await BrandModelDB.findOne({ brand_unique_id: brand_unique_id }).select("brand_name");
+    if (!brand) {
+      throw new Error("Brand not found");
+    }
+    const prefix = brand.brand_name.toUpperCase().split(3);
     const startNumber = "0001";
     return `${prefix}-${startNumber}`;
   }
+
+  // console.log("latestElement", latestElement);
+  // console.log("Brand unique id", brand_unique_id);
+
+  const prefix = latestElement["brand_name"].toUpperCase().split(3);
+
+  // if (!latestElement) {
+  //   const startNumber = "0001";
+  //   return `${prefix}-${startNumber}`;
+  // }
 
   // Extract numeric part
   const parts = latestElement["product_unique_id"].split("-");
