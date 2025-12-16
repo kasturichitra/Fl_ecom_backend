@@ -1,52 +1,69 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import UserModel from "../Users/userModel.js";
+
 dotenv.config();
 
 const verifyToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  const tenantId = req.headers["x-tenant-id"];
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({
-      status: "failed",
-      message: "Access denied. No token provided.",
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decoded, "sdkjfksdf");
+    /* ---------------------------------- */
+    /* 1️⃣ Tenant Validation               */
+    /* ---------------------------------- */
+    const tenantId = req.headers["x-tenant-id"];
 
+    if (!tenantId) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Tenant ID is required",
+      });
+    }
+
+    /* ---------------------------------- */
+    /* 2️⃣ Access Token from Cookie        */
+    /* ---------------------------------- */
+    const token = req.cookies?.token;
+
+    if (!token) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Not authenticated",
+      });
+    }
+
+    /* ---------------------------------- */
+    /* 3️⃣ Verify JWT                      */
+    /* ---------------------------------- */
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    /* ---------------------------------- */
+    /* 4️⃣ Tenant-specific User Model      */
+    /* ---------------------------------- */
     const UserModelDB = await UserModel(tenantId);
 
-    const user = await UserModelDB.findById(decoded.id);
-    if (!user) {
+    const user = await UserModelDB
+      .findById(decoded.id)
+      .select("_id name email role is_active");
+
+    if (!user || !user.is_active) {
       return res.status(401).json({
         status: "failed",
-        message: "Access denied. User not found.",
+        message: "User not found or inactive",
       });
     }
 
+    /* ---------------------------------- */
+    /* 5️⃣ Attach user to request          */
+    /* ---------------------------------- */
     req.user = user;
+    req.tenantId = tenantId;
 
-    if (!decoded) {
-      return res.status(401).json({
-        status: "failed",
-        message: "Access denied.  invalid token.",
-      });
-    }
     next();
   } catch (error) {
-    console.log("token error====>", error);
+    console.error("Auth error:", error.message);
 
     return res.status(401).json({
       status: "failed",
       message: "Invalid or expired token",
-      error: error.message,
     });
   }
 };

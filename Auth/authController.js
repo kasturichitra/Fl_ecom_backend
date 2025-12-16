@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken"; 
+import jwt from "jsonwebtoken";
 
 import UserModel from "../Users/userModel.js";
 import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
@@ -288,4 +288,23 @@ export const resetPasswordController = async (req, res) => {
   await deviceSessionDb.updateMany({ user_id: user._id }, { revoked_at: new Date() });
 
   res.json(successResponse("Password reset successful"));
+};
+
+export const getMeController = async (req, res) => {
+  try {
+    return res.status(200).json({
+      status: "success",
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch user",
+    });
+  }
 };

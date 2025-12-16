@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   forgotPasswordController,
+  getMeController,
   loginUserController,
   logoutUserController,
   registerUserController,
@@ -21,5 +22,6 @@ route.post("/resend-otp", resendOtpController);
 route.post("/forgot-password", forgotPasswordController);
 route.post("/verify-forgot-otp", verifyForgotOtpController);
 route.post("/reset-password", resetPasswordController);
+route.get("/me", getMeController);
 
 export default route;
