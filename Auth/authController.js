@@ -118,13 +118,51 @@ export const logoutUserController = async (req, res) => {
 };
 
 export const resendOtpController = async (req, res) => {
-  const tenantId = req.headers["x-tenant-id"];
-  throwIfTrue(!tenantId, "Tenant ID is Required");
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    throwIfTrue(!tenantId, "Tenant ID is Required");
 
-  const { user_id, device_id, purpose, email, phone_number } = req.body;
-  const otpDb = await otpModel(tenantId);
-  const { otp_id } = await generateAndSendOtp({ user_id, device_id, purpose, email, phone_number }, otpDb);
-  res.status(200).json({ requireOtp: true, reason: purpose, otp_id });
+    const { otp_id } = req.body;
+    throwIfTrue(!otp_id, "otp_id is required");
+
+    const otpDb = await otpModel(tenantId);
+    const userDb = await UserModel(tenantId);
+
+    const oldOtp = await otpDb.findOne({
+      _id: otp_id,
+      consumed_at: null,
+      expires_at: { $gt: new Date() },
+    });
+    
+    throwIfTrue(!oldOtp, "OTP expired. Please restart login.");
+
+    const existingUser = await userDb.findOne({ _id: oldOtp.user_id });
+    throwIfTrue(!existingUser, "User not found");
+
+    // 🔥 Invalidate old OTP
+    oldOtp.consumed_at = new Date();
+    await oldOtp.save();
+
+    // 🔁 Generate new OTP using SAME CONTEXT
+    const { otp_id: newOtpId } = await generateAndSendOtp(
+      {
+        user_id: oldOtp.user_id,
+        device_id: oldOtp.device_id,
+        purpose: oldOtp.purpose,
+        email: existingUser.email,
+        phone_number: existingUser.phone_number,
+      },
+      otpDb
+    );
+
+    res.status(200).json({
+      requireOtp: true,
+      reason: oldOtp.purpose,
+      otp_id: newOtpId,
+    });
+  } catch (error) {
+    res.status(400).json(errorResponse(error.message));
+  }
 };
 
 export const verifyOtpController = async (req, res) => {
