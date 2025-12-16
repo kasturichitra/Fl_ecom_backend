@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addAddressController,
+  deleteUserAccountController,
   deleteUserAddressController,
   employeCreateController,
   getAllUsersController,
@@ -56,5 +57,7 @@ route.post(
   upload.single("image"),
   employeCreateController
 );
+
+route.delete("/user/:id", deleteUserAccountController);
 
 export default route;

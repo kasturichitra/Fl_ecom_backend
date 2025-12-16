@@ -8,6 +8,7 @@ import {
   updateUserAddressService,
   updateUserService,
   deleteUserAddressService,
+  deleteUserAccountService,
 } from "./userService.js";
 
 export const getAllUsersController = async (req, res) => {
@@ -113,6 +114,20 @@ export const storeFcmTokenController = async (req, res) => {
     const { fcm_token } = req.body;
     const response = await storeFcmTokenService(tenantId, user_id, fcm_token);
     res.status(200).json(successResponse("Fcm token stored successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+
+
+
+export const deleteUserAccountController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id } = req.params;
+    const response = await deleteUserAccountService(tenantId, id);
+    res.status(200).json(successResponse("User account deleted successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
