@@ -371,9 +371,10 @@ export const getMeController = async (req, res) => {
   try {
     return res.status(200).json({
       status: "success",
+      isAuthenticated: true,
       user: {
         id: req.user._id,
-        name: req.user.name,
+        username: req.user.username,
         email: req.user.email,
         role: req.user.role,
       },

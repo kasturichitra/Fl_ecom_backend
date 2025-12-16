@@ -10,6 +10,7 @@ import {
   verifyForgotOtpController,
   verifyOtpController,
 } from "./authController.js";
+import verifyToken from "../utils/verifyToken.js";
 
 const route = Router();
 
@@ -22,6 +23,6 @@ route.post("/resend-otp", resendOtpController);
 route.post("/forgot-password", forgotPasswordController);
 route.post("/verify-forgot-otp", verifyForgotOtpController);
 route.post("/reset-password", resetPasswordController);
-route.get("/me", getMeController);
+route.get("/me", verifyToken, getMeController);
 
 export default route;

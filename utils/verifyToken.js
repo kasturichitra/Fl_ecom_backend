@@ -42,7 +42,7 @@ const verifyToken = async (req, res, next) => {
 
     const user = await UserModelDB
       .findById(decoded.id)
-      .select("_id name email role is_active");
+      .select("_id username email role is_active");
 
     if (!user || !user.is_active) {
       return res.status(401).json({
