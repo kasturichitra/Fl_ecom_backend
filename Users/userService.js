@@ -116,7 +116,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch { }
+    } catch {}
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -246,8 +246,6 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
   return result;
 };
 
-
-
 export const deleteUserAccountService = async (tenantId, user_id) => {
   throwIfTrue(!tenantId || !user_id, "Required fields missing");
 
@@ -255,21 +253,15 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
-  const [
-    OrderModelDB,
-    WishlistModelDB,
-    CartModelDB,
-    NotificationModelDB,
-    OtpModelDB,
-    DeviceModelDB,
-  ] = await Promise.all([
-    OrdersModel(tenantId),
-    WishlistModel(tenantId),
-    CartModel(tenantId),
-    NotificationModel(tenantId),
-    OtpModel(tenantId),
-    deviceSessionModel(tenantId),
-  ]);
+  const [OrderModelDB, WishlistModelDB, CartModelDB, NotificationModelDB, OtpModelDB, DeviceModelDB] =
+    await Promise.all([
+      OrdersModel(tenantId),
+      WishlistModel(tenantId),
+      CartModel(tenantId),
+      NotificationModel(tenantId),
+      OtpModel(tenantId),
+      deviceSessionModel(tenantId),
+    ]);
 
   await Promise.all([
     usersDB.deleteOne({ _id: user_id }),
