@@ -116,6 +116,16 @@ export const logoutUserController = async (req, res) => {
   }
 };
 
+export const resendOtpController = async (req, res) => {
+  const tenantId = req.headers["x-tenant-id"];
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+
+  const { user_id, device_id, purpose, email, phone_number } = req.body;
+  const otpDb = await otpModel(tenantId);
+  const { otp_id } = await generateAndSendOtp({ user_id, device_id, purpose, email, phone_number }, otpDb);
+  res.status(200).json({ requireOtp: true, reason: purpose, otp_id });
+};
+
 export const verifyOtpController = async (req, res) => {
   const tenantId = req.headers["x-tenant-id"];
   throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -132,10 +142,10 @@ export const verifyOtpController = async (req, res) => {
     expires_at: { $gt: new Date() },
   });
 
-  if (!record) return res.status(400).json({ message: "OTP expired" });
+  if (!record) return res.status(400).json(errorResponse("OTP expired"));
 
   const valid = await bcrypt.compare(otp, record.otp_hash);
-  if (!valid) return res.status(401).json({ message: "Invalid OTP" });
+  if (!valid) return res.status(401).json(errorResponse("Invalid OTP"));
 
   if (record.consumed_at) return res.status(400).json(errorResponse("OTP already used"));
   // 🔒 Mark OTP as used

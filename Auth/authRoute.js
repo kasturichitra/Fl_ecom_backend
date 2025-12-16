@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginUserController, logoutUserController, registerUserController, verifyOtpController } from "./authController.js";
+import { loginUserController, logoutUserController, registerUserController, resendOtpController, verifyOtpController } from "./authController.js";
 
 const route = Router();
 
@@ -8,5 +8,6 @@ route.post("/register", registerUserController);
 route.post("/login", loginUserController);
 route.post("/logout", logoutUserController);
 route.post("/verify-otp", verifyOtpController);
+route.post("/resend-otp", resendOtpController);
 
 export default route;
