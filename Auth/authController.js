@@ -133,6 +133,17 @@ export const resendOtpController = async (req, res) => {
       consumed_at: null,
       expires_at: { $gt: new Date() },
     });
+
+    console.log("OTP Created At", oldOtp.createdAt);
+
+    const RESEND_COOLDOWN_MS = 30 * 1000;
+
+    const now = Date.now();
+    const lastOtpTime = oldOtp.createdAt.getTime();
+
+    if (now - lastOtpTime < RESEND_COOLDOWN_MS) {
+      return res.status(429).json(errorResponse("Please wait before resending OTP"));
+    }
     
     throwIfTrue(!oldOtp, "OTP expired. Please restart login.");
 
