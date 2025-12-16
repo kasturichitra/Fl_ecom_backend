@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addAddressController,
+  deleteUserAccountController,
   deleteUserAddressController,
   employeCreateController,
   getAllUsersController,
@@ -57,31 +58,6 @@ route.post(
   employeCreateController
 );
 
+route.delete("/user/:id", deleteUserAccountController);
+
 export default route;
-
-// import express from "express";
-// import {
-//   addAddressController,
-//   employeCreateController,
-//   loginUserController,
-//   registerUserController,
-//   updateUserAddressController,
-//   updateUserController,
-// } from "./userController.js";
-// import verifyToken from "../utils/verifyToken.js";
-// import getUploadMiddleware from "../utils/multerConfig.js";
-// import verifyAdmin from "../utils/verifyAdmin.js";
-
-// const route = express.Router();
-// const upload = getUploadMiddleware("user");
-
-// route.post("/register", registerUserController);
-// route.post("/login", loginUserController);
-// route.put("/:id", verifyToken, upload.single("image"), updateUserController);
-
-// route.post("/:userID/address", verifyToken, addAddressController);
-// route.put("/:id/address/:addressId", verifyToken, updateUserAddressController);
-
-// route.post("/employe", verifyToken, verifyAdmin, employeCreateController);
-
-// export default route;
