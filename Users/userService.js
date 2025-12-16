@@ -10,7 +10,7 @@ import { fcm } from "../utils/firebase-admin.js";
 import OrdersModel from "../Orders/orderModel.js";
 import WishlistModel from "../Wishlist/wishlistModel.js";
 import CartModel from "../Cart/cartModel.js";
-import NotificationModel from "../Notification/notificationModel.js";
+import { NotificationModel } from "../Notification/notificationModel.js";
 import OtpModel from "../Auth/otpModel.js";
 import deviceSessionModel from "../Auth/deviceSessionModel.js";
 
