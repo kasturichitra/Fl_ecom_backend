@@ -84,28 +84,41 @@ export const getUserByIdService = async (tenantId, id) => {
 
 export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
-
   const usersDB = await UserModel(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
-
-  if (updateData.password) {
-    updateData.password = await bcrypt.hash(updateData.password, 10);
+  /* =========================
+     PASSWORD UPDATE LOGIC
+  ========================== */
+  if (updateData.current_password || updateData.new_password) {
+    throwIfTrue(
+      !updateData.current_password || !updateData.new_password,
+      "Current password and new password are required"
+    );
+    const isPasswordMatch = await bcrypt.compare(updateData.current_password, user.password);
+    throwIfTrue(!isPasswordMatch, "Current password is incorrect");
+    // Hash new password
+    user.password = await bcrypt.hash(updateData.new_password, 10);
+    // Remove password fields from updateData
+    delete updateData.current_password;
+    delete updateData.new_password;
   }
-
+  /* =========================
+     IMAGE UPDATE LOGIC
+  ========================== */
   if (updateData.image && user.image) {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch { }
+    } catch {}
   }
-
+  /* =========================
+     UPDATE OTHER FIELDS
+  ========================== */
   Object.assign(user, updateData);
-
   const updatedUser = await user.save();
   const result = updatedUser.toObject();
   delete result.password;
-
   return result;
 };
 
@@ -122,7 +135,7 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
 
   // If new address is default: true → make all existing addresses default:false
   if (addressData.default === true) {
-    user.address.forEach(addr => {
+    user.address.forEach((addr) => {
       addr.default = false;
     });
   }
@@ -151,7 +164,7 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   // 🔥 Handle default=true logic
   // --------------------------
   if (addressData.default === true) {
-    user.address.forEach(a => {
+    user.address.forEach((a) => {
       a.default = false;
     });
   }
@@ -159,14 +172,13 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   // --------------------------
   // 🔥 Update fields correctly (this avoids creating new address)
   // --------------------------
-  Object.keys(addressData).forEach(key => {
+  Object.keys(addressData).forEach((key) => {
     address[key] = addressData[key];
   });
 
   const updatedUser = await user.save();
   return updatedUser;
 };
-
 
 export const deleteUserAddressService = async (tenantId, user_id, address_id) => {
   throwIfTrue(!tenantId || !user_id || !address_id, "Required fields missing");
