@@ -314,7 +314,7 @@ export const verifyForgotOtpController = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 10 * 60 * 1000,
-      path: "/auth/reset-password", // 🔥 important
+      path: "/", // 🔥 important
     });
 
     res.json(successResponse("OTP verified"));
@@ -358,7 +358,7 @@ export const resetPasswordController = async (req, res) => {
 
     // 🧹 Clear reset cookie
     res.clearCookie("reset_token", {
-      path: "/auth/reset-password",
+      path: "/",
     });
 
     res.json(successResponse("Password reset successful"));
