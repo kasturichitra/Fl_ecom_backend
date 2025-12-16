@@ -1,18 +1,22 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-const otpSchema = new mongoose.Schema({
-  user_id: mongoose.Schema.Types.ObjectId,
-  device_id: String,
-  purpose: {
-    type: String,
-    enum: ["NEW_DEVICE", "DEVICE_SESSION_EXPIRED", "SIGN_UP"],
+const otpSchema = new mongoose.Schema(
+  {
+    user_id: mongoose.Schema.Types.ObjectId,
+    device_id: String,
+    purpose: {
+      type: String,
+      enum: ["NEW_DEVICE", "DEVICE_SESSION_EXPIRED", "SIGN_UP"],
+    },
+    otp_hash: String,
+    expires_at: Date,
+    consumed_at: Date,
   },
-  otp_hash: String,
-  expires_at: Date,
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  }
+);
 
 otpSchema.index({ expires_at: 1 });
 

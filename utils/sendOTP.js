@@ -1,6 +1,6 @@
 import axios from "axios";
 import nodemailer from "nodemailer";
-import bcrypt from "bcryptjs"; 
+import bcrypt from "bcryptjs";
 
 const DOVE_SOFT_API_URL = process.env.DOVE_SOFT_API_URL;
 const DOVE_SOFT_USER = process.env.DOVE_SOFT_USER;
@@ -58,25 +58,33 @@ export const sendEmailOTP = async (email, otp) => {
   await sendEmail(email, message);
 };
 
-
 export const generateAndSendOtp = async (options = {}, otpDb) => {
-  const {user_id, device_id, purpose, expiresAt = new Date(Date.now() + 3 * 60 * 1000), email, phone_number} = options;
+  const {
+    user_id,
+    device_id,
+    purpose,
+    expiresAt = new Date(Date.now() + 3 * 60 * 1000),
+    email,
+    phone_number,
+  } = options;
 
   const otp = Math.floor(100000 + Math.random() * 900000);
 
   const otpHash = await bcrypt.hash(otp.toString(), 10);
 
   const response = await otpDb.create({
-    user_id, 
+    user_id,
     device_id,
     purpose,
     expires_at: expiresAt,
-    otp_hash: otpHash, 
-  })
+    otp_hash: otpHash,
+  });
 
   if (email) await sendEmailOTP(email, otp);
   if (phone_number) await sendMobileOTP(phone_number, otp);
 
-  return response;
-  // const 
+  return {
+    otp_id: response._id, // 🔥 THIS IS KEY
+    expires_at: response.expires_at,
+  };
 };

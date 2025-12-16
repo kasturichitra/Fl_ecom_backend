@@ -14,9 +14,11 @@ export const registerUserController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     throwIfTrue(!tenantId, "Tenant ID is Required");
 
-    const { username, email, password, phone_number } = req.body;
+    const { username, email, password, phone_number, device_id, device_name } = req.body;
 
+    const otpDb = await otpModel(tenantId);
     const usersDB = await UserModel(tenantId);
+
     const existingUser = await usersDB.findOne({
       $or: [{ email }, { phone_number }],
     });
@@ -29,12 +31,19 @@ export const registerUserController = async (req, res) => {
       email,
       phone_number,
       password: hashedPassword,
+      is_active: false,
     });
 
-    // Generate token and set cookie
-    const token = generateTokenAndSetCookie(res, user._id);
+    const { otp_id } = await generateAndSendOtp(
+      { user_id: user._id, device_id, purpose: "SIGN_UP", email, phone_number },
+      otpDb
+    );
 
-    res.status(201).json(successResponse("User registered successfully", { data: user }));
+    res.status(201).json({
+      requireOtp: true,
+      reason: "SIGN_UP",
+      otp_id,
+    });
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));
   }
@@ -53,6 +62,8 @@ export const loginUserController = async (req, res) => {
     const existingUser = await usersDB.findOne({ $or: [{ email }, { phone_number }] });
     throwIfTrue(!existingUser, "User not found");
 
+    if (!existingUser.is_active) return res.json(errorResponse("OTP Verification is required"));
+
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
     throwIfTrue(!isValidPassword, "Invalid password");
 
@@ -67,8 +78,8 @@ export const loginUserController = async (req, res) => {
         email,
         phone_number,
       };
-      const response = await generateAndSendOtp(options, otpDb);
-      return res.json({ requireOtp: true, reason: "NEW_DEVICE" });
+      const { otp_id } = await generateAndSendOtp(options, otpDb);
+      return res.json({ requireOtp: true, reason: "NEW_DEVICE", otp_id });
     }
 
     // 🔴 DEVICE EXPIRED
@@ -80,8 +91,8 @@ export const loginUserController = async (req, res) => {
         email,
         phone_number,
       };
-      const response = await generateAndSendOtp(options, otpDb);
-      return res.json({ requireOtp: true, reason: "DEVICE_SESSION_EXPIRED" });
+      const { otp_id } = await generateAndSendOtp(options, otpDb);
+      return res.json({ requireOtp: true, reason: "DEVICE_SESSION_EXPIRED", otp_id });
     }
 
     device.last_login_at = new Date();
@@ -109,23 +120,33 @@ export const verifyOtpController = async (req, res) => {
   const tenantId = req.headers["x-tenant-id"];
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
-  const { user_id, device_id, otp, purpose, device_name } = req.body;
+  const { otp, device_name, otp_id } = req.body;
 
   const otpDb = await otpModel(tenantId);
   const deviceSessionDb = await deviceSessionModel(tenantId);
+  const userDb = await UserModel(tenantId);
 
-  const record = await otpDb.findOne({ user_id, device_id, purpose }).sort({ createdAt: -1 });
-  console.log("Record is ===>", record);
+  const record = await otpDb.findOne({
+    _id: otp_id,
+    consumed_at: null,
+    expires_at: { $gt: new Date() },
+  });
+
   if (!record) return res.status(400).json({ message: "OTP expired" });
 
   const valid = await bcrypt.compare(otp, record.otp_hash);
   if (!valid) return res.status(401).json({ message: "Invalid OTP" });
 
-  await otpDb.deleteOne({ _id: record._id });
+  if (record.consumed_at) return res.status(400).json(errorResponse("OTP already used"));
+  // 🔒 Mark OTP as used
+  record.consumed_at = new Date();
+  await record.save();
+
+  const { user_id, device_id, purpose } = record;
 
   // 🔵 SIGNUP FLOW
   if (purpose === "SIGN_UP") {
-    await User.findByIdAndUpdate(user_id, { is_active: true });
+    await userDb.findByIdAndUpdate(user_id, { is_active: true });
 
     await deviceSessionDb.create({
       user_id,
