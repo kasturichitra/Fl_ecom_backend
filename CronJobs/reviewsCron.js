@@ -2,8 +2,6 @@ import ProductModel from "../Products/productModel.js";
 import ProductReviewModel from "../Products/ProductsReviews/productReviewModel.js";
 
 export const aggregateProductReviewsService = async (tenantDbName) => {
-    console.log(`aggregateProductReviewsService started for ${tenantDbName}`);
-
     const [ProductModelDB, ReviewModelDB] = await Promise.all([
         ProductModel(tenantDbName),
         ProductReviewModel(tenantDbName)
@@ -20,8 +18,6 @@ export const aggregateProductReviewsService = async (tenantDbName) => {
         },
     ]);
 
-    console.log(reviewedProducts, "aggregateProductReviewsService reviewedProducts");
-    console.log(`Found ${reviewedProducts.length} reviewed products`);
 
     for (const { _id: product_unique_id } of reviewedProducts) {
         const product = await ProductModelDB.findOne(
@@ -29,15 +25,12 @@ export const aggregateProductReviewsService = async (tenantDbName) => {
             { rating_summary: 1 }
         );
 
-        if (!product) {
-            console.log(`Product NOT found: ${product_unique_id}`);
-            continue;
-        }
+        if (!product) continue;
+
 
         const lastAggregatedAt =
             product.rating_summary?.last_review_aggregated_at || new Date(0);
 
-        console.log(`Product: ${product_unique_id}, Last Aggregated: ${lastAggregatedAt}`);
 
         const newReviews = await ReviewModelDB.aggregate([
             {
@@ -56,8 +49,6 @@ export const aggregateProductReviewsService = async (tenantDbName) => {
             },
         ]);
 
-        console.log(`New reviews found for ${product_unique_id}: ${newReviews.length}`);
-
         if (!newReviews.length) continue;
 
         const { count: totalNewReviews, totalRating: totalNewRatingSum } = newReviews[0];
@@ -69,19 +60,15 @@ export const aggregateProductReviewsService = async (tenantDbName) => {
         const updatedAvg =
             (prevAvg * prevTotal + totalNewRatingSum) / updatedTotal;
 
-        console.log(
-            await ProductModelDB.updateOne(
-                { product_unique_id },
-                {
-                    $set: {
-                        "rating_summary.average_rating": Number(updatedAvg.toFixed(2)),
-                        "rating_summary.total_reviews": updatedTotal,
-                        "rating_summary.last_review_aggregated_at": new Date(),
-                    },
-                }
-            )
-        );
-
-        console.log(`Updated ${product_unique_id}`);
+        await ProductModelDB.updateOne(
+            { product_unique_id },
+            {
+                $set: {
+                    "rating_summary.average_rating": Number(updatedAvg.toFixed(2)),
+                    "rating_summary.total_reviews": updatedTotal,
+                    "rating_summary.last_review_aggregated_at": new Date(),
+                },
+            }
+        )
     }
 };
