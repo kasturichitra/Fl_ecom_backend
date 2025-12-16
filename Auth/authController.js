@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken"; 
 
 import UserModel from "../Users/userModel.js";
 import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
@@ -189,4 +190,102 @@ export const verifyOtpController = async (req, res) => {
   }
 
   res.json(successResponse("OTP verified successfully"));
+};
+
+export const forgotPasswordController = async (req, res) => {
+  const tenantId = req.headers["x-tenant-id"];
+  throwIfTrue(!tenantId, "Tenant ID required");
+
+  const { email, phone_number, device_id } = req.body;
+
+  const usersDB = await UserModel(tenantId);
+  const otpDb = await otpModel(tenantId);
+
+  const user = await usersDB.findOne({ $or: [{ email }, { phone_number }] });
+
+  // Always return success to prevent user enumeration
+  if (!user) {
+    return res.json(successResponse("If user exists, OTP sent"));
+  }
+
+  const { otp_id } = await generateAndSendOtp(
+    {
+      user_id: user._id,
+      device_id,
+      purpose: "FORGOT_PASSWORD",
+      email: user.email,
+      phone_number: user.phone_number,
+    },
+    otpDb
+  );
+
+  res.json({ requireOtp: true, reason: "FORGOT_PASSWORD", otp_id });
+};
+
+export const verifyForgotOtpController = async (req, res) => {
+  const tenantId = req.headers["x-tenant-id"];
+  throwIfTrue(!tenantId, "Tenant ID required");
+
+  const { otp_id, otp } = req.body;
+
+  const otpDb = await otpModel(tenantId);
+
+  const record = await otpDb.findOne({
+    _id: otp_id,
+    purpose: "FORGOT_PASSWORD",
+    consumed_at: null,
+    expires_at: { $gt: new Date() },
+  });
+
+  if (!record) {
+    return res.status(400).json(errorResponse("OTP expired"));
+  }
+
+  const valid = await bcrypt.compare(otp, record.otp_hash);
+  if (!valid) {
+    return res.status(401).json(errorResponse("Invalid OTP"));
+  }
+
+  record.consumed_at = new Date();
+  await record.save();
+
+  // Issue short-lived reset token (IN-MEMORY PURPOSE)
+  const resetToken = jwt.sign(
+    {
+      user_id: record.user_id,
+      purpose: "RESET_PASSWORD",
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "10m" }
+  );
+
+  res.json(successResponse("OTP verified", { resetToken }));
+};
+
+export const resetPasswordController = async (req, res) => {
+  const tenantId = req.headers["x-tenant-id"];
+  throwIfTrue(!tenantId, "Tenant ID required");
+
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) throw new Error("Reset token required");
+
+  const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+  if (payload.purpose !== "RESET_PASSWORD") {
+    throw new Error("Invalid reset token");
+  }
+
+  const usersDB = await UserModel(tenantId);
+  const deviceSessionDb = await deviceSessionModel(tenantId);
+
+  const user = await usersDB.findById(payload.user_id);
+  if (!user) throw new Error("User not found");
+
+  user.password = await bcrypt.hash(req.body.newPassword, 10);
+  await user.save();
+
+  // 🔥 Revoke ALL device sessions
+  await deviceSessionDb.updateMany({ user_id: user._id }, { revoked_at: new Date() });
+
+  res.json(successResponse("Password reset successful"));
 };

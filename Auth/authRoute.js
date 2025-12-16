@@ -1,5 +1,14 @@
 import { Router } from "express";
-import { loginUserController, logoutUserController, registerUserController, resendOtpController, verifyOtpController } from "./authController.js";
+import {
+  forgotPasswordController,
+  loginUserController,
+  logoutUserController,
+  registerUserController,
+  resendOtpController,
+  resetPasswordController,
+  verifyForgotOtpController,
+  verifyOtpController,
+} from "./authController.js";
 
 const route = Router();
 
@@ -9,5 +18,8 @@ route.post("/login", loginUserController);
 route.post("/logout", logoutUserController);
 route.post("/verify-otp", verifyOtpController);
 route.post("/resend-otp", resendOtpController);
+route.post("/forgot-password", forgotPasswordController);
+route.post("/verify-forgot-otp", verifyForgotOtpController);
+route.post("/reset-password", resetPasswordController);
 
 export default route;

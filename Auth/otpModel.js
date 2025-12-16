@@ -7,7 +7,7 @@ const otpSchema = new mongoose.Schema(
     device_id: String,
     purpose: {
       type: String,
-      enum: ["NEW_DEVICE", "DEVICE_SESSION_EXPIRED", "SIGN_UP"],
+      enum: ["NEW_DEVICE", "DEVICE_SESSION_EXPIRED", "SIGN_UP", "FORGOT_PASSWORD"],
     },
     otp_hash: String,
     expires_at: Date,
