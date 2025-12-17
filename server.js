@@ -22,6 +22,7 @@ import notificationRoutes from "./Notification/notificationRoutes.js";
 import configRoutes from "./Configs/configRoutes.js";
 import dashboardRoutes from "./Dashboard/dashboardRoutes.js";
 import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
+import verifyToken from "./utils/verifyToken.js";
 
 // Cron Jobs
 import "./CronJobs/reviewAggregation.cron.js";
@@ -104,24 +105,24 @@ if (process.env.NODE_ENV !== "production") {
 
 /* -------------------------- REST API Routes -------------------------- */
 
-app.use("/auth", authRoutes); 
-app.use("/industryType", industryType);
-app.use("/category", categoryRoute);
-app.use("/products", productRoute);
-app.use("/reviews", productsReviewsRoute);
-app.use("/orders", orderRoute);
-// app.use("/ticket", ticketRoute);
-app.use("/wishlists", wishlistRoute);
-app.use("/banners", bannerRoutes);
-app.use("/brands", brandRoutes);
-app.use("/cart", cartRoutes);
-app.use("/notifications", notificationRoutes);
-app.use("/configs", configRoutes);
-app.use("/dashboard", dashboardRoutes);
-app.use("/saleTrends", saleTrendRoutes);
+app.use("/auth", authRoutes);
+app.use("/industryType", verifyToken, industryType);
+app.use("/category", verifyToken, categoryRoute);
+app.use("/products", verifyToken, productRoute);
+app.use("/reviews", verifyToken, productsReviewsRoute);
+app.use("/orders", verifyToken, orderRoute);
+// app.use("/ticket",verifyToken, ticketRoute);
+app.use("/wishlists", verifyToken, wishlistRoute);
+app.use("/banners", verifyToken, bannerRoutes);
+app.use("/brands", verifyToken, brandRoutes);
+app.use("/cart", verifyToken, cartRoutes);
+app.use("/notifications", verifyToken, notificationRoutes);
+app.use("/configs", verifyToken, configRoutes);
+app.use("/dashboard", verifyToken, dashboardRoutes);
+app.use("/saleTrends", verifyToken, saleTrendRoutes);
 
 
-app.use("/", userRoutes);
+app.use("/", verifyToken, userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");

@@ -10,9 +10,6 @@ import {
   updateUserAddressController,
   updateUserController,
 } from "./userController.js";
-
-import verifyToken from "../utils/verifyToken.js";
-import verifyAdmin from "../utils/verifyAdmin.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
 
 const route = express.Router();
@@ -22,41 +19,17 @@ route.get("/user", getAllUsersController);
 route.get("/user/:id", getUserByIdController);
 
 // User Update
-route.put(
-  "/user/:id",
-  //  verifyToken,
-  upload.single("image"),
-  updateUserController
-);
+route.put("/user/:id", upload.single("image"), updateUserController);
 
 // Address
-route.post(
-  "/user/:user_id/address",
-  // verifyToken,
-  addAddressController
-);
-route.put(
-  "/user/:id/address/:address_id",
-  // verifyToken,
-  updateUserAddressController
-);
-
-route.delete(
-  "/user/:id/address/:address_id",
-  // verifyToken,
-  deleteUserAddressController
-);
+route.post("/user/:user_id/address", addAddressController);
+route.put("/user/:id/address/:address_id", updateUserAddressController);
+route.delete("/user/:id/address/:address_id", deleteUserAddressController);
 
 route.put("/user/fcm-token/:id", storeFcmTokenController);
 
 // Employee Create (Admin only)
-route.post(
-  "/employe",
-  // verifyToken,
-  // ?verifyAdmin,
-  upload.single("image"),
-  employeCreateController
-);
+route.post("/employe", upload.single("image"), employeCreateController);
 
 route.delete("/user/:id", deleteUserAccountController);
 
