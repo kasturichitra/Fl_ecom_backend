@@ -235,7 +235,7 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
 export const getGroupedIndustriesAndCategoriesService = async (tenantId, filters) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { industryPageLimit = 5, categoryPageLimit = 5 } = filters;
+  const { industryPageLimit = 6, categoryPageLimit = 6 } = filters;
   const IndustryTypeDB = await IndustryTypeModel(tenantId);
   const CategoryDB = await CategoryModel(tenantId); // Ensure model is registered
 
