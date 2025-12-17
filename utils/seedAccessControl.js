@@ -19,6 +19,12 @@ const permissionsList = [
   { key: "product:update", description: "Update existing products", category: "Products", is_system: true },
   { key: "product:delete", description: "Delete products", category: "Products", is_system: true },
 
+  // Industries
+  { key: "industry:create", description: "Create new industries", category: "Industries", is_system: true },
+  { key: "industry:read", description: "View industries", category: "Industries", is_system: true },
+  { key: "industry:update", description: "Update industries", category: "Industries", is_system: true },
+  { key: "industry:delete", description: "Delete industries", category: "Industries", is_system: true },
+
   // Orders
   { key: "order:create", description: "Create new orders", category: "Orders", is_system: true },
   { key: "order:read", description: "View orders", category: "Orders", is_system: true },
@@ -139,6 +145,7 @@ const seedAccessControl = async (tenantId) => {
           "order:read",
           "order:update",
           "category:read",
+          "industry:read",
           "brand:read",
           "user:read",
           "dashboard:view",
@@ -155,6 +162,7 @@ const seedAccessControl = async (tenantId) => {
           "order:create",
           "order:read",
           "category:read",
+          "industry:read",
           "brand:read",
           "wishlist:read",
           "wishlist:update",
