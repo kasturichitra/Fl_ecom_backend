@@ -8,6 +8,7 @@ import {
   getAllCategoriesService,
   getCategoriesByIndustryIdService,
   getCategoryByIdService,
+  getGroupedIndustriesAndCategoriesService,
   updateCategoryService,
 } from "./categoryService.js";
 
@@ -140,6 +141,21 @@ export const getCategoryByIdController = async (req, res) => {
     //   message: "Get category By ID error",
     //   error: error.message,
     // });
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getGroupedIndustriesAndCategoriesController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+
+    const filters = req.query;
+
+    const data = await getGroupedIndustriesAndCategoriesService(tenantId, filters);
+
+    res.status(200).json(successResponse("Industries and Categories fetched successfully", data));
+  } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
 };

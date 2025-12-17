@@ -9,6 +9,7 @@ import {
   getAllCategoriesController,
   getCategoriesByIndustryIdController,
   getCategoryByIdController,
+  getGroupedIndustriesAndCategoriesController,
   updateCategoryController,
 } from "./categoryController.js";
 
@@ -18,6 +19,7 @@ const upload = getUploadMiddleware("category");
 
 route.post("/", verifyToken, upload.single("image"), createCategoryController);
 route.get("/", getAllCategoriesController);
+route.get("/grouped", getGroupedIndustriesAndCategoriesController);
 route.get("/industry/:id", getCategoriesByIndustryIdController);
 route.get("/:id", getCategoryByIdController);
 route.put("/:id", verifyToken, upload.single("image"), updateCategoryController);

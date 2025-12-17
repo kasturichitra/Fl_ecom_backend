@@ -5,6 +5,7 @@ import { extractExcel, transformCategoryRow, transformRow, validateRow } from ".
 import generateUniqueId from "../utils/generateUniqueId.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { CategoryModel } from "./categoryModel.js";
+import IndustryTypeModel from "../IndustryType/industryTypeModel.js";
 import { staticCategoryExcelHeaders } from "./staticExcelCategory.js";
 
 //this function is to create category
@@ -229,4 +230,46 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
     success,
     errors,
   };
+};
+
+export const getGroupedIndustriesAndCategoriesService = async (tenantId, filters) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { industryPageLimit = 5, categoryPageLimit = 5 } = filters;
+  const IndustryTypeDB = await IndustryTypeModel(tenantId);
+  const CategoryDB = await CategoryModel(tenantId); // Ensure model is registered
+
+  const industries = await IndustryTypeDB.aggregate([
+    {
+      $match: { is_active: true },
+    },
+    {
+      $sort: { createdAt: -1 }, // Or sort by industry_name
+    },
+    {
+      $limit: parseInt(industryPageLimit),
+    },
+    {
+      $lookup: {
+        from: "categories", // Collection name for CategoryModel
+        localField: "industry_unique_id",
+        foreignField: "industry_unique_id",
+        pipeline: [
+          { $match: { is_active: true } },
+          { $project: { category_name: 1, category_unique_id: 1, _id: 0 } },
+          { $limit: parseInt(categoryPageLimit) },
+        ],
+        as: "categories",
+      },
+    },
+    {
+      $project: {
+        industry_name: 1,
+        categories: 1,
+        _id: 0,
+      },
+    },
+  ]);
+
+  return { industries };
 };
