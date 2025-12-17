@@ -131,7 +131,7 @@ export const loginUserController = async (req, res) => {
     // Generate token and set cookie
     const token = generateTokenAndSetCookie(res, existingUser._id);
 
-    res.status(200).json(successResponse("Login successful", { data: token }));
+    res.status(200).json(successResponse("Login successful"));
   } catch (error) {
     res.status(401).json(errorResponse(error.message, error));
   }

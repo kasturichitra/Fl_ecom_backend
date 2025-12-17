@@ -12,12 +12,16 @@ import {
   getProductByIdController,
   updateProductController,
 } from "./productController.js";
+import verifyPermission from "../utils/verifyPermission.js";
+import verifyToken from "../utils/verifyToken.js";
 
 const router = express.Router();
 const upload = getUploadMiddleware("Product");
 
 router.post(
   "/",
+  verifyToken,
+  // verifyPermission("product:create"),
   upload.fields([
     { name: "product_image", maxCount: 1 },
     { name: "product_images", maxCount: 5 },
@@ -25,21 +29,22 @@ router.post(
   createProductController
 );
 
-router.post("/bulk", upload.single("file"), createBulkProductsController);
+router.post("/bulk", verifyToken, upload.single("file"), createBulkProductsController);
 router.get("/:id", getProductByIdController);
 router.get("/", getAllProductsController);
 router.put(
   "/:id",
+  verifyToken,
   upload.fields([
     { name: "product_image", maxCount: 1 },
     { name: "product_images", maxCount: 5 },
   ]),
   updateProductController
 );
-router.delete("/:id", deleteProductController);
+router.delete("/:id", verifyToken, deleteProductController);
 
 // Get excel template
-router.get("/excel-template/:id", downloadExcelTemplateController);
+router.get("/excel-template/:id", verifyToken, downloadExcelTemplateController);
 
 // router.get("/sub-category/:id", getProductsBysubUniqeIDController);
 // Bottom to ensure express routing error doesn't happen

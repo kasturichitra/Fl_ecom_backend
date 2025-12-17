@@ -1,5 +1,6 @@
 import express from "express";
 import getUploadMiddleware from "../utils/multerConfig.js";
+import verifyToken from "../utils/verifyToken.js";
 import {
   categoryBulkUploadController,
   createCategoryController,
@@ -15,13 +16,13 @@ const route = express.Router();
 
 const upload = getUploadMiddleware("category");
 
-route.post("/", upload.single("image"), createCategoryController);
+route.post("/", verifyToken, upload.single("image"), createCategoryController);
 route.get("/", getAllCategoriesController);
 route.get("/industry/:id", getCategoriesByIndustryIdController);
 route.get("/:id", getCategoryByIdController);
-route.put("/:id", upload.single("image"), updateCategoryController);
-route.delete("/:id", deleteCategoryController);
+route.put("/:id", verifyToken, upload.single("image"), updateCategoryController);
+route.delete("/:id", verifyToken, deleteCategoryController);
 
-route.get("/download-template/:id", downloadCategoryExcelTemplateController);
-route.post("/bulkUpload", upload.single("file"), categoryBulkUploadController);
+route.get("/download-template/:id", verifyToken, downloadCategoryExcelTemplateController);
+route.post("/bulkUpload", verifyToken, upload.single("file"), categoryBulkUploadController);
 export default route;

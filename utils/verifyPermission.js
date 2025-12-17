@@ -34,9 +34,9 @@ const verifyPermission = (requiredPermissions) => {
       if (!hasPermission) {
         return res.status(403).json({
           status: "failed",
-          message: "Insufficient permissions",
-          required: requiredPerms,
-          current: userPermissions,
+          message: "You are not permitted for this operation",
+          // required: requiredPerms,
+          // current: userPermissions,
         });
       }
 
