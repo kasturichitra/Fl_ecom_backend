@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import UserModel from "../Users/userModel.js";
+import RoleModel from "../Role/roleModel.js";
+import PermissionModel from "../Permission/permissionModel.js";
 
 dotenv.config();
 
@@ -38,6 +40,10 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     /* 4️⃣ Tenant-specific User Model      */
     /* ---------------------------------- */
+    // Ensure Role and Permission models are registered on this connection
+    await RoleModel(tenantId);
+    await PermissionModel(tenantId);
+
     const UserModelDB = await UserModel(tenantId);
 
     const user = await UserModelDB.findById(decoded.id)
@@ -45,7 +51,7 @@ const verifyToken = async (req, res, next) => {
         path: "role_id",
         populate: { path: "permissions", select: "key" },
       })
-      .select("_id username email role role_id is_active");
+      .select("_id username email role_id is_active");
 
     if (!user || !user.is_active) {
       return res.status(401).json({
@@ -66,7 +72,7 @@ const verifyToken = async (req, res, next) => {
       _id: user._id,
       username: user.username,
       email: user.email,
-      role: user.role,
+      // role: user.role,
       role_id: user.role_id?._id,
       permissions, // Permission keys array for fast authorization
     };
@@ -74,7 +80,7 @@ const verifyToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Auth error:", error.message);
+    console.error("Auth error:", error);
 
     return res.status(401).json({
       status: "failed",

@@ -1,8 +1,6 @@
-import mongoose from "mongoose";
 import dotenv from "dotenv";
-import RoleModel from "../Role/roleModel.js";
 import PermissionModel from "../Permission/permissionModel.js";
-import { getTenanteDB } from "../Config/tenantDB.js";
+import RoleModel from "../Role/roleModel.js";
 
 dotenv.config();
 

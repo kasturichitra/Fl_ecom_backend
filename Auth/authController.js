@@ -419,13 +419,11 @@ export const getMeController = async (req, res) => {
         id: req.user._id,
         username: req.user.username,
         email: req.user.email,
-        role: req.user.role,
+        role_id: req.user.role_id,
+        permissions: req.user.permissions,
       },
     });
   } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to fetch user",
-    });
+    return res.status(500).json(errorResponse(error.message));
   }
 };
