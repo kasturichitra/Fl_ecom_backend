@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
 
 import UserModel from "../Users/userModel.js";
 import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
@@ -15,7 +16,21 @@ export const registerUserController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     throwIfTrue(!tenantId, "Tenant ID is Required");
 
-    const { username, email, password, phone_number, device_id, device_name } = req.body;
+    const { username, email, password, phone_number, device_name } = req.body;
+
+    // Check for device_id cookie, generate new UUID if not present
+    let device_id = req.cookies.device_id;
+    if (!device_id) {
+      device_id = randomUUID();
+      // Set device_id cookie
+      res.cookie("device_id", device_id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: DEVICE_SESSION_EXPIRY_TIME,
+        path: "/",
+      });
+    }
 
     const otpDb = await otpModel(tenantId);
     const usersDB = await UserModel(tenantId);
@@ -55,7 +70,21 @@ export const loginUserController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     throwIfTrue(!tenantId, "Tenant ID is Required");
 
-    const { email, phone_number, password, device_id, device_name } = req.body;
+    const { email, phone_number, password, device_name } = req.body;
+
+    // Check for device_id cookie, generate new UUID if not present
+    let device_id = req.cookies.device_id;
+    if (!device_id) {
+      device_id = randomUUID();
+      // Set device_id cookie
+      res.cookie("device_id", device_id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: DEVICE_SESSION_EXPIRY_TIME,
+        path: "/",
+      });
+    }
 
     const deviceSessionDb = await deviceSessionModel(tenantId);
     const usersDB = await UserModel(tenantId);
@@ -245,7 +274,21 @@ export const forgotPasswordController = async (req, res) => {
   const tenantId = req.headers["x-tenant-id"];
   throwIfTrue(!tenantId, "Tenant ID required");
 
-  const { email, phone_number, device_id } = req.body;
+  const { email, phone_number } = req.body;
+
+  // Check for device_id cookie, generate new UUID if not present
+  let device_id = req.cookies.device_id;
+  if (!device_id) {
+    device_id = randomUUID();
+    // Set device_id cookie
+    res.cookie("device_id", device_id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: DEVICE_SESSION_EXPIRY_TIME,
+      path: "/",
+    });
+  }
 
   const usersDB = await UserModel(tenantId);
   const otpDb = await otpModel(tenantId);
