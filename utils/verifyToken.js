@@ -40,9 +40,12 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     const UserModelDB = await UserModel(tenantId);
 
-    const user = await UserModelDB
-      .findById(decoded.id)
-      .select("_id username email role is_active");
+    const user = await UserModelDB.findById(decoded.id)
+      .populate({
+        path: "role_id",
+        populate: { path: "permissions", select: "key" },
+      })
+      .select("_id username email role role_id is_active");
 
     if (!user || !user.is_active) {
       return res.status(401).json({
@@ -52,9 +55,21 @@ const verifyToken = async (req, res, next) => {
     }
 
     /* ---------------------------------- */
-    /* 5️⃣ Attach user to request          */
+    /* 5️⃣ Extract permission keys         */
     /* ---------------------------------- */
-    req.user = user;
+    const permissions = user.role_id?.permissions?.map((p) => p.key) || [];
+
+    /* ---------------------------------- */
+    /* 6️⃣ Attach user & permissions       */
+    /* ---------------------------------- */
+    req.user = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      role_id: user.role_id?._id,
+      permissions, // Permission keys array for fast authorization
+    };
     req.tenantId = tenantId;
 
     next();

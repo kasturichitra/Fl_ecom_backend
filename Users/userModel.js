@@ -30,15 +30,21 @@ const userSchema = new mongoose.Schema(
       unique: true,
       match: [/^\d{10,15}$/, "Please provide a valid phone number"],
     },
-    // Branch name means which branch employee is operating from. 
+    // Branch name means which branch employee is operating from.
     branch_name: {
-      type: String, 
-    }, 
+      type: String,
+    },
     // User means end customer who will use this app or e commerce website.
+    // DEPRECATED: Legacy role field - now using role_id reference
     role: {
       type: String,
       enum: ["admin", "employee", "user"],
       default: "user",
+    },
+    role_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      // If not set, falls back to legacy 'role' field
     },
     is_active: {
       type: Boolean,
@@ -47,8 +53,8 @@ const userSchema = new mongoose.Schema(
     image: {
       type: String,
     },
-    fcm_token:{
-      type: String, 
+    fcm_token: {
+      type: String,
     },
     address: [addressSchema],
   },
