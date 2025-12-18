@@ -5,43 +5,43 @@ const contactInfoSchema = new mongoose.Schema(
     {
         email: {
             type: String,
-            required: true,
+            // required: true,
         },
         phone_number: {
             type: String,
-            required: true,
+            // required: true,
         },
         address: {
             type: String,
-            required: true,
+            // required: true,
         },
         instagram_link: {
             type: String,
-            required: true,
+            // required: true,
         },
         facebook_link: {
             type: String,
-            required: true,
+            // required: true,
         },
         twitter_link: {
             type: String,
-            required: true,
+            // required: true,
         },
         about_us: {
             type: String,
-            required: true,
+            // required: true,
         },
         terms_and_conditions: {
             type: String,
-            required: true,
+            // required: true,
         },
         privacy_policy: {
             type: String,
-            required: true,
+            // required: true,
         },
         logo_image: {
             type: String,
-            required: false,
+            // required: false,
         },
     },
     { timestamps: true }
