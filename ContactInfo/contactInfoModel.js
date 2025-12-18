@@ -43,6 +43,11 @@ const contactInfoSchema = new mongoose.Schema(
             type: String,
             // required: false,
         },
+        // Green color top of the website text
+        navbar_banner_text: {
+            type: String,
+            // required: false,
+        }
     },
     { timestamps: true }
 );
