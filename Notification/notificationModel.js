@@ -19,7 +19,7 @@ const notificationSchema = new mongoose.Schema(
     },
     receiverModel: {//receiverModel is the model of the user who will receive the notification
       type: String,
-      enum: ["User", "Admin"],
+      enum: ["user", "admin"],
     },
 
     title: {
