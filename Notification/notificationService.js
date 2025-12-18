@@ -9,9 +9,9 @@ import { NotificationModel } from "./notificationModel.js";
 
 //     let filter = {};
 
-//     if (role === "User") {
+//     if (role === "user") {
 //         filter = {
-//             receiverModel: "User",
+//             receiverModel: "user",
 //             read: false, // Add this line to filter for unread notifications
 //             $or: [
 //                 { receiver: userId },
@@ -19,9 +19,9 @@ import { NotificationModel } from "./notificationModel.js";
 //             ]
 //         };
 //     }
-//     if (role === "Admin") {
+//     if (role === "admin") {
 //         filter = {
-//             receiverModel: "Admin",
+//             receiverModel: "admin",
 //             read: false
 //         };
 //     }
@@ -46,15 +46,15 @@ export const getAllNotificationService = async (
   let filter = {};
 
   // Role-based filter
-  if (role === "User") {
+  if (role === "user") {
     filter = {
-      receiverModel: "User",
+      receiverModel: "user",
       read: false,
       $or: [{ receiver: userId }, { is_broadcast: true }]
     };
-  } else if (role === "Admin") {
+  } else if (role === "admin") {
     filter = {
-      receiverModel: "Admin",
+      receiverModel: "admin",
       read: false
     };
   }

@@ -11,9 +11,9 @@ export const sendUserNotification = async (tenantID, userId, data) => {
     const Notification = await NotificationModel(tenantID);
     const saved = await Notification.create({
       sender: data.sender || "System",
-      senderModel: data.senderModel || "Admin",
+      senderModel: data.senderModel || "admin",
       receiver: userId,
-      receiverModel: "User",
+      receiverModel: "user",
       title: data.title,
       message: data.message,
       type: data.type || "custom",
@@ -43,9 +43,9 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
     const Notification = await NotificationModel(tenantID);
     const saved = await Notification.create({
       sender: data.sender || "System",
-      senderModel: data.senderModel || "User",
+      senderModel: data.senderModel || "user",
       receiver: adminId,
-      receiverModel: "Admin",
+      receiverModel: "admin",
       title: data.title,
       message: data.message,
       link: data.link || null,
