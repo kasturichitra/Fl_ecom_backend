@@ -23,6 +23,7 @@ import configRoutes from "./Configs/configRoutes.js";
 import dashboardRoutes from "./Dashboard/dashboardRoutes.js";
 import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 import verifyToken from "./utils/verifyToken.js";
+import contactInfoRoute from "./ContactInfo/contactInfoRoute.js";
 
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
@@ -119,6 +120,8 @@ app.use("/notifications", verifyToken, notificationRoutes);
 app.use("/configs", verifyToken, configRoutes);
 app.use("/dashboard", verifyToken, dashboardRoutes);
 app.use("/saleTrends", saleTrendRoutes);
+
+app.use("/contactInfo", contactInfoRoute);
 
 app.use("/", verifyToken, userRoutes);
 
