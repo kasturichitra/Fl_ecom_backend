@@ -16,6 +16,7 @@ import BrandModel from "../Brands/brandModel.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import generateProductUniqueId from "./utils/generateProductUniqueId.js";
 import SaleTrendModel from "../SaleTrend/saleTrendModel.js";
+import { generateQrPdfBuffer } from "../utils/generateQrPdf.js";
 
 const calculatePrices = (productData) => {
   // Step 1: Get base price
@@ -170,14 +171,18 @@ export const createProductService = async (tenantId, productData) => {
   // Price calculations & unique ID
   // -------------------------------
   // console.log(productData,'productData');
-  console.log("Input product data", productData)
+  console.log("Input product data", productData);
   productData = calculatePrices(productData);
-  productData.product_unique_id = await generateProductUniqueId(productModelDB,BrandModelDB, productData.brand_unique_id);
+  productData.product_unique_id = await generateProductUniqueId(
+    productModelDB,
+    BrandModelDB,
+    productData.brand_unique_id
+  );
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
   // Create product
-  console.log(productData, 'dsfsdfdfgfdg');
+  console.log(productData, "dsfsdfdfgfdg");
   return await productModelDB.create(productData);
 };
 
@@ -825,7 +830,10 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
       // -------------------------------
       const productData = valid[i];
       const ci = (v) => String(v || "").trim(); // sanitized string (no lowercase)
-      const norm = (v) => String(v || "").trim().toLowerCase(); // normalized
+      const norm = (v) =>
+        String(v || "")
+          .trim()
+          .toLowerCase(); // normalized
       // Helper to build field condition that handles empty/null/undefined values
       const buildFieldCondition = (fieldValue) => {
         const trimmed = ci(fieldValue);
@@ -846,7 +854,7 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
       } else {
         duplicateQuery.$or = duplicateQuery.$or || [];
         duplicateQuery.$and = [
-          { $or: [{ product_color: { $in: [null, undefined, ""] } }, { product_color: { $exists: false } }] }
+          { $or: [{ product_color: { $in: [null, undefined, ""] } }, { product_color: { $exists: false } }] },
         ];
       }
       const productSizeVal = ci(productData.product_size);
@@ -854,28 +862,26 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
         duplicateQuery.product_size = { $regex: new RegExp(`^${productSizeVal}$`, "i") };
       } else {
         duplicateQuery.$and = duplicateQuery.$and || [];
-        duplicateQuery.$and.push(
-          { $or: [{ product_size: { $in: [null, undefined, ""] } }, { product_size: { $exists: false } }] }
-        );
+        duplicateQuery.$and.push({
+          $or: [{ product_size: { $in: [null, undefined, ""] } }, { product_size: { $exists: false } }],
+        });
       }
       const genderVal = ci(productData.gender);
       if (genderVal) {
         duplicateQuery.gender = { $regex: new RegExp(`^${genderVal}$`, "i") };
       } else {
         duplicateQuery.$and = duplicateQuery.$and || [];
-        duplicateQuery.$and.push(
-          { $or: [{ gender: { $in: [null, undefined, ""] } }, { gender: { $exists: false } }] }
-        );
+        duplicateQuery.$and.push({ $or: [{ gender: { $in: [null, undefined, ""] } }, { gender: { $exists: false } }] });
       }
       const possibleDuplicate = await ProductModelDB.findOne(duplicateQuery).lean();
       if (possibleDuplicate) {
         // Build normalized attribute maps
         const newAttrMap = {};
-        (productData.product_attributes || []).forEach(attr => {
+        (productData.product_attributes || []).forEach((attr) => {
           newAttrMap[norm(attr.attribute_code)] = norm(attr.value);
         });
         const oldAttrMap = {};
-        (possibleDuplicate.product_attributes || []).forEach(attr => {
+        (possibleDuplicate.product_attributes || []).forEach((attr) => {
           oldAttrMap[norm(attr.attribute_code)] = norm(attr.value);
         });
         let allMatch = true;
@@ -944,4 +950,31 @@ export const getProductsBySubUniqueIDService = async (tenantId, category_unique_
   });
 
   return response;
+};
+
+export const generateProductQrPdfService = async (tenantId, data) => {
+  if (!tenantId) throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { product_unique_id, quantity = 1 } = data;
+
+  const productModelDB = await ProductModel(tenantId);
+  const existingProduct = await productModelDB.findOne({
+    product_unique_id: product_unique_id,
+  });
+  throwIfTrue(!existingProduct, `Product not found with given unique id ${data.product_unique_id}`);
+
+  const pdfBuffer = await generateQrPdfBuffer({
+    product_name: existingProduct.product_name,
+    product_unique_id: existingProduct.product_unique_id,
+    quantity,
+    final_price: existingProduct.final_price,
+    category_name: existingProduct.category_name,
+    brand_name: existingProduct.brand_name,
+    product_color: existingProduct.product_color,
+  });
+
+  return {
+    pdfBuffer,
+    fileName: `qr-${existingProduct.product_name}-${quantity}.pdf`,
+  };
 };
