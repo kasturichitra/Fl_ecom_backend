@@ -10,7 +10,7 @@ const notificationSchema = new mongoose.Schema(
     senderModel: {//senderModel is the model of the user who will send the notification
       type: String,
       required: [true, "Sender model is required"],
-      enum: ["User", "Admin"],
+      enum: ["user", "admin"],
     },
 
     receiver: {//receiver is the user who will receive the notification
