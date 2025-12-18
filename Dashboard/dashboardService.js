@@ -21,6 +21,18 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
       cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
   }
 
+  if (from) {
+    baseQuery.createdAt = {
+      $gte: new Date(from),
+    };
+  }
+
+  if (to) {
+    baseQuery.createdAt = {
+      $lte: new Date(to),
+    };
+  }
+
   if (from && to) {
     baseQuery.createdAt = {
       $gte: new Date(from),
@@ -77,6 +89,18 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   if (cash_on_delivery !== undefined) {
     baseQuery.cash_on_delivery =
       cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  }
+
+  if (from) {
+    baseQuery.createdAt = {
+      $gte: new Date(from),
+    };
+  }
+
+  if (to) {
+    baseQuery.createdAt = {
+      $lte: new Date(to),
+    };
   }
 
   if (from && to) {
@@ -139,6 +163,18 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   if (cash_on_delivery !== undefined) {
     baseQuery.cash_on_delivery =
       cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  }
+
+  if (from) {
+    baseQuery.createdAt = {
+      $gte: new Date(from),
+    };
+  }
+
+  if (to) {
+    baseQuery.createdAt = {
+      $lte: new Date(to),
+    };
   }
 
   if (from && to) {

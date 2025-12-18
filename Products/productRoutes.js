@@ -6,6 +6,7 @@ import {
   createProductController,
   deleteProductController,
   downloadExcelTemplateController,
+  generateProductQrPdfController,
   // getProductByIdController,
   // getProductsBysubUniqeIDController,
   getAllProductsController,
@@ -45,6 +46,8 @@ router.delete("/:id", verifyToken, deleteProductController);
 
 // Get excel template
 router.get("/excel-template/:id", verifyToken, downloadExcelTemplateController);
+
+router.put("/qr-pdf/:id", verifyToken, generateProductQrPdfController);
 
 // router.get("/sub-category/:id", getProductsBysubUniqeIDController);
 // Bottom to ensure express routing error doesn't happen

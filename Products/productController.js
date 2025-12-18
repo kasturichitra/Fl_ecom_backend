@@ -5,6 +5,7 @@ import {
   createProductService,
   deleteProductService,
   downloadExcelTemplateService,
+  generateProductQrPdfService,
   getAllProductsService,
   getProductByUniqueIdService,
   updateProductService,
@@ -170,6 +171,25 @@ export const createBulkProductsController = async (req, res) => {
     const { category_unique_id } = req.body;
     const response = await createBulkProductsService(tenantId, category_unique_id, req.file.path);
     res.status(201).json(successResponse("Bulk products created successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const generateProductQrPdfController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: product_unique_id } = req.params;
+    let { quantity } = req.body;
+
+    quantity = parseInt(quantity) || 1;
+
+    const { pdfBuffer, fileName } = await generateProductQrPdfService(tenantId, { product_unique_id, quantity });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
