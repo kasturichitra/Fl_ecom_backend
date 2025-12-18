@@ -212,7 +212,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       type: "order",
       relatedId: order.order_id,
       relatedModel: "Order",
-      senderModel: "User",
+      senderModel: "user",
       sender: username,
       link: `/order-products-detailes/${order.order_id}`,
       data: {
