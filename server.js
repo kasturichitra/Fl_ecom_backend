@@ -25,7 +25,8 @@ import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 import verifyToken from "./utils/verifyToken.js";
 
 // Cron Jobs
-import "./CronJobs/reviewAggregation.cron.js";
+import "./CronJobs/reviewsCronSchedule.js";
+import "./CronJobs/saleTrandsCornJobs/saleTrendSchedule.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
