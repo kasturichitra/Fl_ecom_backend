@@ -8,3 +8,5 @@ export const jwtSecret=process.env.JWT_SECRET
 
 export const smtpUser=process.env.SMTP_USER
 export const smtpPass=process.env.SMTP_PASS
+
+export const couponAlphabet=process.env.COUPON_ALPHABET
