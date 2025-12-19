@@ -84,6 +84,12 @@ const permissionsList = [
   { key: "saletrend:read", description: "View sale trends", category: "Sale Trends", is_system: true },
   { key: "saletrend:update", description: "Update sale trends", category: "Sale Trends", is_system: true },
   { key: "saletrend:delete", description: "Delete sale trends", category: "Sale Trends", is_system: true },
+  
+  // coupons
+  { key: "coupon:create", description: "Create coupon", category: "Coupons", is_system: true },
+  { key: "coupon:read", description: "View coupon", category: "Coupons", is_system: true },
+  { key: "coupon:update", description: "Update coupon", category: "Coupons", is_system: true },
+  { key: "coupon:delete", description: "Delete coupon", category: "Coupons", is_system: true },
 ];
 
 const seedAccessControl = async (tenantId) => {
@@ -152,6 +158,7 @@ const seedAccessControl = async (tenantId) => {
           "notification:send",
           "notification:read",
           "saletrend:read",
+          "coupon:read",
         ]),
         is_system_role: true,
       },
@@ -172,6 +179,7 @@ const seedAccessControl = async (tenantId) => {
           "review:read",
           "notification:read",
           "saletrend:read",
+          "coupon:read",
         ]),
         is_system_role: true,
       },
