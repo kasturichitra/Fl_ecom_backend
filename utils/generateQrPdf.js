@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { generateQRCodeBase64 } from "./generateQRCode.js";
+import { generateQRCodeBase64 } from "./generateQrCode.js";
 
 export const generateQrPdfBuffer = async ({
   product_name,
@@ -23,7 +23,10 @@ export const generateQrPdfBuffer = async ({
     category_name,
     brand_name,
     product_color,
+    link: `http://10.1.1.121:5174/product/${product_unique_id}`,
   });
+
+  // const qrData = `http://10.1.1.121:5174/product/${product_unique_id}`;
 
   // Generate QR ONCE (important for performance)
   const qrImage = await generateQRCodeBase64(qrData);

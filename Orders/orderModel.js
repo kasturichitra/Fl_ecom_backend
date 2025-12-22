@@ -2,17 +2,17 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 export const addressSchema = new mongoose.Schema({
-  first_name:{
+  first_name: {
     type: String,
     trim: true,
     required: true,
   },
-  last_name:{
+  last_name: {
     type: String,
     trim: true,
     required: true,
   },
-  mobile_number:{
+  mobile_number: {
     type: String,
     trim: true,
     required: true,
@@ -56,11 +56,11 @@ export const addressSchema = new mongoose.Schema({
     trim: true,
     required: true,
   },
-  default:{
+  default: {
     type: Boolean,
     default: false,
   },
-  address_type:{
+  address_type: {
     type: String,
     enum: ["Home", "Office", "Other"],
     default: "Home",
@@ -92,12 +92,32 @@ const orderProductSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Discounted price is (base_price - discount_price)
+  unit_discounted_price: {
+    type: Number,
+    default: 0,
+  },
   // Tax value per unit (applied AFTER discount on the discounted amount)
   unit_tax_value: {
     type: Number,
     default: 0,
   },
-  // Final price per unit: (base_price - discount_price) + tax_value (tax applied on discounted amount)
+  // Additional discount percentage (applied on discounted price)
+  additional_discount_percentage: {
+    type: Number,
+    default: 0,
+  },
+  // Additional discount amount (subtracted from discounted price)
+  additional_discount_amount: {
+    type: Number,
+    default: 0,
+  },
+  additional_discount_type: {
+    type: String,
+    // enum: ["percentage", "amount"],
+    // default: "percentage",
+  },
+  // Final price per unit is (discounted_price - additional_discount_amount) + tax_value
   unit_final_price: {
     type: Number,
     required: true,
@@ -189,6 +209,22 @@ const orderSchema = new mongoose.Schema(
         required: true,
       },
     ],
+
+    // Additional discount percentage (applied on discounted price)
+    additional_discount_percentage: {
+      type: Number,
+      default: 0,
+    },
+    // Additional discount amount (subtracted from discounted price)
+    additional_discount_amount: {
+      type: Number,
+      default: 0,
+    },
+    additional_discount_type: {
+      type: String,
+      enum: ["percentage", "amount"],
+      default: "percentage",
+    },
 
     address: addressSchema,
     base_price: { type: Number, required: true, min: 0 },

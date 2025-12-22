@@ -44,6 +44,56 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   }
 };
 
+/*
+  Example JSON
+  {
+  "user_id": "67531b...", 
+  "order_type": "Online", 
+  "payment_method": "UPI", 
+  "payment_status": "Paid", 
+  "transaction_id": "TXN123456789", 
+  "shipping_charges": 50, 
+  "is_from_cart": true,
+
+  "order_products": [
+    {
+      "product_unique_id": "PROD_001", 
+      "product_name": "Premium T-Shirt",
+      "quantity": 2,
+      "unit_base_price": 500, 
+      "unit_discount_price": 50, 
+      "unit_tax_value": 0, 
+      "unit_final_price": 450, 
+      "additional_discount_percentage": 0,
+      "additional_discount_amount": 0,
+      "additional_discount_type": "percentage", 
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0
+    }
+  ],
+
+  "address": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "mobile_number": "9876543210",
+    "house_number": "123",
+    "street": "Main Street",
+    "landmark": "Near Park",
+    "city": "Mumbai",
+    "district": "Mumbai Suburban",
+    "state": "Maharashtra",
+    "postal_code": "400001",
+    "country": "India",
+    "address_type": "Home",
+    "save_addres": true 
+  }
+
+  "additional_discount_percentage": 10, 
+  "additional_discount_amount": 100,
+  "additional_discount_type": "percentage"
+}
+*/
 export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -80,11 +130,35 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   // For each product, multiply unit values by quantity
   const productsWithTotals = await Promise.all(
     order_products.map(async (item) => {
-      const quantity = Number(item.quantity);
-      const unit_base_price = Number(item.unit_base_price);
-      const unit_discount_price = Number(item.unit_discount_price || 0);
-      const unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
-      const unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
+      let quantity = Number(item.quantity);
+      let unit_base_price = Number(item.unit_base_price);
+      let unit_discount_price = Number(item.unit_discount_price || 0);
+      let unit_discounted_price = Number(item.unit_discounted_price || 0);
+      let unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
+      let unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
+      let additional_discount_percentage = Number(item.additional_discount_percentage || 0);
+      let additional_discount_amount = Number(item.additional_discount_amount || 0);
+      let additional_discount_type = item.additional_discount_type || null;
+      let cgst = Number(item.cgst || 0);
+      let sgst = Number(item.sgst || 0);
+      let igst = Number(item.igst || 0);
+
+      // Additional discount percentage calculation
+      if (additional_discount_type === "percentage") {
+        // Step 1: Calculate additional discount amount
+        additional_discount_amount = (unit_discounted_price * additional_discount_percentage) / 100;
+        // Step 2: Calculate tax amount on this discounted price
+        unit_tax_value = ((unit_discounted_price - additional_discount_amount) * (cgst + sgst + igst)) / 100;
+        // Step 3: Calculate final price
+        unit_final_price = unit_discounted_price - additional_discount_amount + unit_tax_value;
+      } else if (additional_discount_type === "amount") {
+        // Step 1: Calculate additional discount amount
+        additional_discount_amount = unit_discounted_price - additional_discount_amount;
+        // Step 2: Calculate tax amount on this discounted price
+        unit_tax_value = ((unit_discounted_price - additional_discount_amount) * (cgst + sgst + igst)) / 100;
+        // Step 3: Calculate final price
+        unit_final_price = unit_discounted_price - additional_discount_amount + unit_tax_value;
+      }
 
       // Check if product exists
       const existingProduct = await ProductModelDB.findOne({ product_unique_id: item.product_unique_id });
@@ -105,12 +179,20 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       }
 
       return {
-        ...item,
+        // ...item,
+        product_unique_id: item.product_unique_id,
+        product_name: existingProduct.product_name,
+
         quantity,
         unit_base_price,
         unit_discount_price,
+        unit_discounted_price, 
         unit_tax_value,
         unit_final_price,
+        // Additional discount details if provided
+        additional_discount_percentage,
+        additional_discount_amount,
+        additional_discount_type,
         // Calculate totals by multiplying unit values by quantity
         total_base_price: unit_base_price * quantity,
         total_discount_price: unit_discount_price * quantity,
@@ -122,23 +204,35 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
   // These represent the aggregate values across all products in the order
-  const base_price = productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0);
+  let base_price = productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0);
 
-  const discount_price = productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0);
+  let discount_price = productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0);
 
-  const tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0); // Tax on discounted amounts
+  let tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0); // Tax on discounted amounts
 
-  const shipping_charges = Number(payload.shipping_charges ?? 0);
+  let shipping_charges = Number(payload.shipping_charges ?? 0);
 
+  let additional_discount_percentage = Number(payload.additional_discount_percentage ?? 0);
+  let additional_discount_amount = Number(payload.additional_discount_amount ?? 0);
+  let additional_discount_type = payload.additional_discount_type ?? null;
   // Total amount = Σ(final_price of all products) + shipping
   // where each product's final_price = (base - discount) + tax
-  const total_amount = productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges;
+  let total_amount = productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges;
 
-  const order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
+  // Check for additional order level discounts
+  if (additional_discount_type === "percentage") {
+    additional_discount_amount = (total_amount * additional_discount_percentage) / 100;
+    total_amount -= additional_discount_amount;
+  } else if (additional_discount_type === "amount") {
+    additional_discount_amount = additional_discount_amount;
+    total_amount -= additional_discount_amount;
+  }
 
-  const order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
+  let order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
 
-  const order_id = generateNextOrderId(lastOrderId?.order_id);
+  let order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
+
+  let order_id = generateNextOrderId(lastOrderId?.order_id);
 
   // Remove unwanted fields from payload
   const { is_from_cart, order_products: _removed, ...rest } = payload;
@@ -154,6 +248,9 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     discount_price,
     shipping_charges,
     total_amount,
+    additional_discount_amount,
+    additional_discount_percentage,
+    additional_discount_type,
     order_id,
   };
 
@@ -475,7 +572,6 @@ export const getOrderProductService = async (tenantId, orderId) => {
   };
 };
 
-
 export const getOrderSingleProductService = async (tenantId, order_id, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!order_id, "Valid Order ID is required");
@@ -487,9 +583,7 @@ export const getOrderSingleProductService = async (tenantId, order_id, product_u
 
   const order = orderDoc.toObject();
 
-  const matchedProduct = order.order_products.find(
-    (p) => p.product_unique_id === product_unique_id
-  );
+  const matchedProduct = order.order_products.find((p) => p.product_unique_id === product_unique_id);
 
   if (!matchedProduct) throw new Error("Product not found in this order");
 
@@ -499,5 +593,3 @@ export const getOrderSingleProductService = async (tenantId, order_id, product_u
 
   return order;
 };
-
-
