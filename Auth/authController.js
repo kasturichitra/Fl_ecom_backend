@@ -245,6 +245,9 @@ export const verifyOtpController = async (req, res) => {
       last_login_at: new Date(),
       expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME),
     });
+
+    // Set Cookie upon successful signup
+    generateTokenAndSetCookie(res, user_id);
   }
 
   // 🟡 NEW DEVICE
@@ -257,6 +260,9 @@ export const verifyOtpController = async (req, res) => {
       last_login_at: new Date(),
       expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME),
     });
+
+    // Set Cookie upon successful new device registrations
+    generateTokenAndSetCookie(res, user_id);
   }
 
   // 🔴 PASSWORD EXPIRED
@@ -265,6 +271,9 @@ export const verifyOtpController = async (req, res) => {
       { user_id, device_id },
       { expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME) }
     );
+
+    // Set Cookie upon successful new device registrations
+    generateTokenAndSetCookie(res, user_id);
   }
 
   res.json(successResponse("OTP verified successfully"));

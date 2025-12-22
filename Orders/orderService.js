@@ -131,33 +131,46 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   const productsWithTotals = await Promise.all(
     order_products.map(async (item) => {
       let quantity = Number(item.quantity);
-      let unit_base_price = Number(item.unit_base_price);
-      let unit_discount_price = Number(item.unit_discount_price || 0);
-      let unit_discounted_price = Number(item.unit_discounted_price || 0);
-      let unit_tax_value = Number(item.unit_tax_value || 0); // Tax applied on (base - discount)
-      let unit_final_price = Number(item.unit_final_price); // = (base - discount) + tax
+      let unit_base_price = Number(item.unit_base_price); // Tax-inclusive MRP
+      let unit_discount_price = Number(item.unit_discount_price || 0); // Discount amount
+      let unit_discounted_price = Number(item.unit_discounted_price || 0); // Price after product discount
+      let unit_tax_value = Number(item.unit_tax_value || 0); // Tax extracted from discounted price
+      let unit_final_price = Number(item.unit_final_price); // Final price per unit (tax-inclusive)
+
+      // Additional order-level discount fields
       let additional_discount_percentage = Number(item.additional_discount_percentage || 0);
       let additional_discount_amount = Number(item.additional_discount_amount || 0);
       let additional_discount_type = item.additional_discount_type || null;
+
       let cgst = Number(item.cgst || 0);
       let sgst = Number(item.sgst || 0);
       let igst = Number(item.igst || 0);
+      const taxPercentage = cgst + sgst + igst;
 
-      // Additional discount percentage calculation
-      if (additional_discount_type === "percentage") {
-        // Step 1: Calculate additional discount amount
-        additional_discount_amount = (unit_discounted_price * additional_discount_percentage) / 100;
-        // Step 2: Calculate tax amount on this discounted price
-        unit_tax_value = ((unit_discounted_price - additional_discount_amount) * (cgst + sgst + igst)) / 100;
-        // Step 3: Calculate final price
-        unit_final_price = unit_discounted_price - additional_discount_amount + unit_tax_value;
-      } else if (additional_discount_type === "amount") {
-        // Step 1: Calculate additional discount amount
-        additional_discount_amount = unit_discounted_price - additional_discount_amount;
-        // Step 2: Calculate tax amount on this discounted price
-        unit_tax_value = ((unit_discounted_price - additional_discount_amount) * (cgst + sgst + igst)) / 100;
-        // Step 3: Calculate final price
-        unit_final_price = unit_discounted_price - additional_discount_amount + unit_tax_value;
+      // Apply additional discount if provided
+      if (additional_discount_type === "percentage" && additional_discount_percentage > 0) {
+        // Calculate additional discount amount on the already-discounted price
+        additional_discount_amount = Math.ceil((unit_discounted_price * additional_discount_percentage) / 100);
+
+        // Apply additional discount
+        const price_after_additional_discount = unit_discounted_price - additional_discount_amount;
+
+        // Use reverse GST to extract tax from the final discounted price
+        const taxableValue = price_after_additional_discount / (1 + taxPercentage / 100);
+        unit_tax_value = Math.ceil(price_after_additional_discount - taxableValue);
+
+        // Final price is the price after all discounts (still tax-inclusive)
+        unit_final_price = Math.ceil(price_after_additional_discount);
+      } else if (additional_discount_type === "amount" && additional_discount_amount > 0) {
+        // Apply additional discount amount
+        const price_after_additional_discount = unit_discounted_price - additional_discount_amount;
+
+        // Use reverse GST to extract tax from the final discounted price
+        const taxableValue = price_after_additional_discount / (1 + taxPercentage / 100);
+        unit_tax_value = Math.ceil(price_after_additional_discount - taxableValue);
+
+        // Final price is the price after all discounts (still tax-inclusive)
+        unit_final_price = Math.ceil(price_after_additional_discount);
       }
 
       // Check if product exists
@@ -179,53 +192,56 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       }
 
       return {
-        // ...item,
         product_unique_id: item.product_unique_id,
         product_name: existingProduct.product_name,
 
         quantity,
         unit_base_price,
         unit_discount_price,
-        unit_discounted_price, 
+        unit_discounted_price,
         unit_tax_value,
         unit_final_price,
+
         // Additional discount details if provided
         additional_discount_percentage,
         additional_discount_amount,
         additional_discount_type,
+
         // Calculate totals by multiplying unit values by quantity
-        total_base_price: unit_base_price * quantity,
-        total_discount_price: unit_discount_price * quantity,
-        total_tax_value: unit_tax_value * quantity,
-        total_final_price: unit_final_price * quantity, // = (base - discount + tax) × quantity
+        total_base_price: Math.ceil(unit_base_price * quantity),
+        total_discount_price: Math.ceil(unit_discount_price * quantity),
+        total_tax_value: Math.ceil(unit_tax_value * quantity),
+        total_final_price: Math.ceil(unit_final_price * quantity), // Total price (tax-inclusive)
       };
     })
   );
 
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
   // These represent the aggregate values across all products in the order
-  let base_price = productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0);
+  let base_price = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0));
 
-  let discount_price = productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0);
+  let discount_price = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0));
 
-  let tax_value = productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0); // Tax on discounted amounts
+  let tax_value = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_tax_value, 0)); // Tax on discounted amounts
 
-  let shipping_charges = Number(payload.shipping_charges ?? 0);
+  let shipping_charges = Math.ceil(Number(payload.shipping_charges ?? 0));
 
   let additional_discount_percentage = Number(payload.additional_discount_percentage ?? 0);
-  let additional_discount_amount = Number(payload.additional_discount_amount ?? 0);
+  let additional_discount_amount = Math.ceil(Number(payload.additional_discount_amount ?? 0));
   let additional_discount_type = payload.additional_discount_type ?? null;
   // Total amount = Σ(final_price of all products) + shipping
   // where each product's final_price = (base - discount) + tax
-  let total_amount = productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges;
+  let total_amount = Math.ceil(
+    productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges
+  );
 
   // Check for additional order level discounts
   if (additional_discount_type === "percentage") {
-    additional_discount_amount = (total_amount * additional_discount_percentage) / 100;
-    total_amount -= additional_discount_amount;
+    additional_discount_amount = Math.ceil((total_amount * additional_discount_percentage) / 100);
+    total_amount = Math.ceil(total_amount - additional_discount_amount);
   } else if (additional_discount_type === "amount") {
-    additional_discount_amount = additional_discount_amount;
-    total_amount -= additional_discount_amount;
+    additional_discount_amount = Math.ceil(additional_discount_amount);
+    total_amount = Math.ceil(total_amount - additional_discount_amount);
   }
 
   let order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();

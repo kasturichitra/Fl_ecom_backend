@@ -18,35 +18,51 @@ import generateProductUniqueId from "./utils/generateProductUniqueId.js";
 import SaleTrendModel from "../SaleTrend/saleTrendModel.js";
 import { generateQrPdfBuffer } from "../utils/generateQrPdf.js";
 
+/**
+ * Calculate all price-related fields for a product
+ *
+ * Logic:
+ * 1. base_price is the original MRP (tax-inclusive)
+ * 2. Apply discount_percentage to get discounted_price
+ * 3. Use reverse GST to extract taxable_value and tax from discounted_price
+ * 4. final_price = discounted_price (after discount, tax-inclusive)
+ *
+ * @param {Object} productData - Product data with base_price, discount_percentage, and GST rates
+ * @returns {Object} productData with all calculated price fields
+ */
 const calculatePrices = (productData) => {
-  // Step 1: Get base price
+  // Step 1: Get base price (MRP - tax inclusive)
   const basePrice = Number(productData.base_price);
 
-  // Step 2: Calculate tax on base price
+  // Step 2: Get GST rates
   const cgst = Number(productData.cgst) || 0;
   const sgst = Number(productData.sgst) || 0;
   const igst = Number(productData.igst) || 0;
   const taxPercentage = cgst + sgst + igst;
-  let taxValue = (basePrice * taxPercentage) / 100;
-  productData.tax_value = taxValue;
 
-  // Step 3: Calculate gross price = base + tax
-  const grossPrice = basePrice + taxValue;
-  productData.gross_price = grossPrice;
-
-  // Step 4: Calculate discount on base price
+  // Step 3: Calculate discount amount on base price
   const discountPercentage = Number(productData.discount_percentage) || 0;
   const discountAmount = (basePrice * discountPercentage) / 100;
   productData.discount_price = Math.ceil(discountAmount);
 
+  // Step 4: Calculate discounted price (after discount, still tax-inclusive)
   const discountedPrice = basePrice - discountAmount;
   productData.discounted_price = Math.ceil(discountedPrice);
 
-  // Step 5: Calculate final price which is the price after discount * tax
-  taxValue = (discountedPrice * taxPercentage) / 100;
+  // Step 5: Use REVERSE GST to extract taxable value and tax from discounted price
+  // discounted_price is tax-inclusive, so we extract the tax portion
+  const taxableValue = discountedPrice / (1 + taxPercentage / 100);
+  const taxValue = discountedPrice - taxableValue;
+
   productData.tax_value = Math.ceil(taxValue);
 
-  const finalPrice = Math.ceil(discountedPrice + taxValue);
+  // Step 6: Calculate gross price (base + tax on base, for reference)
+  // This represents the price WITH tax but BEFORE any discount
+  const grossPrice = basePrice; // Since base is already tax-inclusive
+  productData.gross_price = Math.ceil(grossPrice);
+
+  // Step 7: Final price is the discounted price (tax-inclusive)
+  const finalPrice = Math.ceil(discountedPrice);
   productData.final_price = finalPrice;
 
   return productData;
