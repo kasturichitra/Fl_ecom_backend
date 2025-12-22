@@ -3,16 +3,18 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import CouponModel from "./couponModel.js";
 import { couponAlphabet } from "../env.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { sendCouponEmail } from "../utils/sendEmail.js";
+import UserModel from "../Users/userModel.js";
 
 const generateNanoId = customAlphabet(couponAlphabet, 8);
 
 export const createCouponService = async (tenantId, couponData) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!couponData.coupon_code, "Coupon code is required");
-  throwIfTrue(!couponData.coupon_type, "Coupon type is required");
-  throwIfTrue(!couponData.apply_on, "Apply on field is required");
-  throwIfTrue(!couponData.coupon_start_date, "Coupon start date is required");
-  throwIfTrue(!couponData.coupon_end_date, "Coupon end date is required");
+    throwIfTrue(!tenantId, "Tenant ID is required");
+    throwIfTrue(!couponData.coupon_code, "Coupon code is required");
+    throwIfTrue(!couponData.coupon_type, "Coupon type is required");
+    throwIfTrue(!couponData.apply_on, "Apply on field is required");
+    throwIfTrue(!couponData.coupon_start_date, "Coupon start date is required");
+    throwIfTrue(!couponData.coupon_end_date, "Coupon end date is required");
 
     if (couponData.coupon_code) {
         couponData.coupon_code = couponData.coupon_code.toUpperCase();
@@ -20,9 +22,9 @@ export const createCouponService = async (tenantId, couponData) => {
 
     // Validation and sanitation for User Specificity
     if (couponData.coupon_type === "User_Specific") {
-        throwIfTrue(!couponData.users || couponData.users.length === 0, "Users are required for User_Specific coupons");
+        throwIfTrue(!couponData.user || couponData.user.length === 0, "Users are required for User_Specific coupons");
     } else if (couponData.coupon_type === "Generic") {
-        couponData.users = [];
+        couponData.user = [];
     }
 
     // Clear irrelevant selection fields based on apply_on
@@ -43,32 +45,39 @@ export const createCouponService = async (tenantId, couponData) => {
 
     const Coupon = await CouponModel(tenantId);
     const coupon = await Coupon.create(couponData);
+
+    // Send emails if User_Specific
+    // Send emails if User_Specific (Background Process)
+    if (coupon.coupon_type === "User_Specific" && coupon.user && coupon.user.length > 0) {
+        processBackgroundEmails(tenantId, coupon).catch(err => console.error("Background email error:", err));
+    }
+
     return coupon;
 };
 
 export const generateUniqueCouponCodeService = async (tenantId) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  const Coupon = await CouponModel(tenantId);
-  let isUnique = false;
-  let newCode;
+    throwIfTrue(!tenantId, "Tenant ID is required");
+    const Coupon = await CouponModel(tenantId);
+    let isUnique = false;
+    let newCode;
 
-  while (!isUnique) {
-    newCode = generateNanoId();
-    const existing = await Coupon.findOne({ coupon_code: newCode });
-    if (!existing) {
-      isUnique = true;
+    while (!isUnique) {
+        newCode = generateNanoId();
+        const existing = await Coupon.findOne({ coupon_code: newCode });
+        if (!existing) {
+            isUnique = true;
+        }
     }
-  }
 
-  throwIfTrue(!isUnique, "Failed to generate a unique coupon code after multiple attempts");
+    throwIfTrue(!isUnique, "Failed to generate a unique coupon code after multiple attempts");
 
-  return newCode;
+    return newCode;
 };
 
 export const getAllCouponsService = async (tenantId, filters, search, page, limit, sort, status) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
-  const Coupon = await CouponModel(tenantId);
-  let query = { ...filters };
+    throwIfTrue(!tenantId, "Tenant ID is required");
+    const Coupon = await CouponModel(tenantId);
+    let query = { ...filters };
 
     if (search) {
         const searchRegex = { $regex: search, $options: "i" };
@@ -77,34 +86,34 @@ export const getAllCouponsService = async (tenantId, filters, search, page, limi
             { coupon_code: searchRegex },
             { coupon_type: searchRegex },
             { apply_on: searchRegex },
-            { "user_id.label": searchRegex },
-            { "user_id.value": searchRegex },
+            { "user.label": searchRegex },
+            { "user.value": searchRegex },
         ];
 
-    if (!isNaN(searchNumber)) {
-      searchOr.push(
-        { discount_percentage: searchNumber },
-        { discount_amount: searchNumber },
-        { min_order_amount: searchNumber },
-        { total_useage_limit: searchNumber }
-      );
+        if (!isNaN(searchNumber)) {
+            searchOr.push(
+                { discount_percentage: searchNumber },
+                { discount_amount: searchNumber },
+                { min_order_amount: searchNumber },
+                { total_useage_limit: searchNumber }
+            );
+        }
+        query.$or = searchOr;
     }
-    query.$or = searchOr;
-  }
 
-  const skip = (page - 1) * limit;
-  const sortObject = buildSortObject(sort);
+    const skip = (page - 1) * limit;
+    const sortObject = buildSortObject(sort);
 
-  if (status) {
-    query.status = status;
-  }
+    if (status) {
+        query.status = status;
+    }
 
-  const [coupons, totalCount] = await Promise.all([
-    Coupon.find(query).sort(sortObject).skip(skip).limit(limit).lean(),
-    Coupon.countDocuments(query),
-  ]);
+    const [coupons, totalCount] = await Promise.all([
+        Coupon.find(query).sort(sortObject).skip(skip).limit(limit).lean(),
+        Coupon.countDocuments(query),
+    ]);
 
-  return { coupons, totalCount };
+    return { coupons, totalCount };
 };
 
 export const getByIdCouponService = async (tenantId, id) => {
@@ -121,19 +130,34 @@ export const updateCouponService = async (tenantId, id, updateData) => {
     const existingCoupon = await Coupon.findById(id);
     throwIfTrue(!existingCoupon, "Coupon not found");
 
-  if (updateData.coupon_code) {
-    updateData.coupon_code = updateData.coupon_code.toUpperCase();
-  }
+    if (updateData.coupon_code) {
+        updateData.coupon_code = updateData.coupon_code.toUpperCase();
+    }
 
     const finalType = updateData.coupon_type || existingCoupon.coupon_type;
     const finalApplyOn = updateData.apply_on || existingCoupon.apply_on;
 
+
     // Handle User Specificity sanitation and validation
     if (finalType === "Generic") {
-        updateData.users = [];
+        updateData.user = [];
     } else if (finalType === "User_Specific") {
-        const users = updateData.users || existingCoupon.users;
+        let users = updateData.user || existingCoupon.user;
         throwIfTrue(!users || users.length === 0, "Users are required for User_Specific coupons");
+
+        // Merge existing email_sent status
+        if (updateData.user) {
+            updateData.user = updateData.user.map(newUser => {
+                const existingUser = existingCoupon.user.find(u => u.value === newUser.value);
+                // If user existed and email was sent, keep it true. Otherwise defaults to false (from model) or undefined.
+                // We Explicitly set it to preserve history or prepare for new send.
+                return {
+                    ...newUser,
+                    email_sent: existingUser ? existingUser.email_sent : false
+                };
+            });
+            users = updateData.user;
+        }
     }
 
     // Clear irrelevant selection fields based on final apply_on
@@ -152,15 +176,21 @@ export const updateCouponService = async (tenantId, id, updateData) => {
         updateData.selected_brands = [];
     }
 
-    const updatedCoupon = await Coupon.findByIdAndUpdate(
+    let updatedCoupon = await Coupon.findByIdAndUpdate(
         id,
         { $set: updateData },
         { new: true, runValidators: true }
-    ).lean();
+    );
 
-  throwIfTrue(!updatedCoupon, "Coupon not found");
+    throwIfTrue(!updatedCoupon, "Coupon not found");
 
-  return updatedCoupon;
+    // Send emails for Update if User_Specific (Background Process)
+    // We check who hasn't received an email yet (email_sent: false)
+    if (updatedCoupon.coupon_type === "User_Specific" && updatedCoupon.user && updatedCoupon.user.length > 0) {
+        processBackgroundEmails(tenantId, updatedCoupon).catch(err => console.error("Background update email error:", err));
+    }
+
+    return updatedCoupon;
 };
 
 
@@ -170,4 +200,34 @@ export const deleteCouponService = async (tenantId, id) => {
     const deletedCoupon = await Coupon.findByIdAndDelete(id).lean();
     throwIfTrue(!deletedCoupon, "Coupon not found");
     return deletedCoupon;
+};
+
+// Reusable helper function for background email processing
+const processBackgroundEmails = async (tenantId, coupon) => {
+    try {
+        const usersPendingEmail = coupon.user.filter(u => !u.email_sent);
+
+        if (usersPendingEmail.length > 0) {
+            const Coupon = await CouponModel(tenantId);
+            const User = await UserModel(tenantId);
+            const userIds = usersPendingEmail.map(u => u.value);
+            const usersData = await User.find({ _id: { $in: userIds } }).select("email");
+
+            const emailPromises = usersData.map(async (user) => {
+                if (user.email) {
+                    await sendCouponEmail(user.email, coupon);
+                    // Update the specific user in the users array
+                    // We need to mutate the mongoose document or prepare an update operation
+                    await Coupon.updateOne(
+                        { _id: coupon._id, "user.value": user._id.toString() },
+                        { $set: { "user.$.email_sent": true } }
+                    );
+                }
+            });
+
+            await Promise.all(emailPromises);
+        }
+    } catch (error) {
+        console.error("Failed to send coupon emails (background):", error);
+    }
 };
