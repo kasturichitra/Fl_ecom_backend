@@ -6,7 +6,6 @@ import {
   updateIndustrytypeServices,
 } from "./industryTypeService.js";
 
-
 // ===============================
 // CREATE INDUSTRY
 // ===============================
@@ -14,20 +13,31 @@ import {
 export const createIndustryTypeController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    if (!tenantID) return res.status(400).json({ status: "Failed", message: "Tenant ID is required" });
+    
+    const { image_base64, ...rest } = req.body;
+
+    let fileBuffer = null;
+
+    if (image_base64) {
+      // Remove base64 header if present
+      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+
+      fileBuffer = Buffer.from(base64Data, "base64");
+    }
 
     const payload = {
-      ...req.body,
-      industry_name: req.body.industry_name?.trim(),
-      image_url: req.file?.path ?? null,
+      ...rest,
+      industry_name: rest.industry_name?.trim(),
     };
 
-    const data = await createIndustryTypeServices(tenantID, payload);
+    const data = await createIndustryTypeServices(tenantID, payload, fileBuffer);
+
     res.status(201).json(successResponse("Industry Type created successfully", { data }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
+
 // ===============================
 // SEARCH INDUSTRY
 // ===============================
@@ -48,7 +58,7 @@ export const getIndustrysSearchController = async (req, res) => {
       req.query.endDate,
       +req.query.page || 1,
       +req.query.limit || 10,
-       req.query.sort
+      req.query.sort
     );
 
     res.status(200).json(
@@ -66,7 +76,6 @@ export const getIndustrysSearchController = async (req, res) => {
 // ===============================
 // UPDATE INDUSTRY
 // ===============================
-
 
 export const updateIndustryTypeController = async (req, res) => {
   try {
@@ -108,7 +117,6 @@ export const deleteIndustrytypeController = async (req, res) => {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
-
 
 // import throwIfTrue from "../utils/throwIfTrue.js";
 // import {
@@ -198,7 +206,6 @@ export const deleteIndustrytypeController = async (req, res) => {
 //     });
 //   }
 // };
-
 
 // export const updateIndustryTypeController = async (req, res) => {
 //   try {

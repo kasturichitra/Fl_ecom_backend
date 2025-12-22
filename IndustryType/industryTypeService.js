@@ -5,20 +5,21 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import IndustryTypeModel from "./industryTypeModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
 ----------------------------------------------*/
 
-export const createIndustryTypeServices = async (tenantID, data, user_id = "69259c7026c2856821c44ced") => {
+export const createIndustryTypeServices = async (tenantID, data, fileBuffer, user_id = "69259c7026c2856821c44ced") => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!data.industry_name || !data.industry_name.trim(), "Industry Name is required");
   const IndustryModel = await IndustryTypeModel(tenantID);
 
   const normalizedName = data.industry_name.trim().toLowerCase();
 
-   const existingIndustry = await IndustryModel.exists({
-    industry_name: { $regex: `^${normalizedName}$`, $options: "i" }
+  const existingIndustry = await IndustryModel.exists({
+    industry_name: { $regex: `^${normalizedName}$`, $options: "i" },
   });
 
   throwIfTrue(existingIndustry, "Industry Type with this Name already exists");
@@ -26,13 +27,25 @@ export const createIndustryTypeServices = async (tenantID, data, user_id = "6925
   const industry_unique_id = await generateUniqueId(IndustryModel, "IND", "industry_unique_id");
 
   const industry_name = toTitleCase(data.industry_name);
+
+  let image_url = null;
+
+  if (fileBuffer) {
+    image_url = await uploadImageVariants({
+      fileBuffer: fileBuffer,
+      // mimeType: data.image_url.mimetype,
+      basePath: `${tenantID}/IndustryType/${industry_unique_id}`,
+    });
+  }
+
   return await IndustryModel.create({
     ...data,
-    industry_name, 
+    industry_name,
     industry_unique_id,
     description: data.description?.trim() || "",
     is_active: data.is_active ?? true,
-    image_url: data.image_url ?? null,
+    // image_url: data.image_url ?? null,
+    image_url,
   });
 };
 /* ---------------------------------------------

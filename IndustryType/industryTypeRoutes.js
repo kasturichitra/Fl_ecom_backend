@@ -13,7 +13,12 @@ const route = express.Router();
 
 const upload = getUploadMiddleware("IndustryType");
 
-route.post("/", verifyToken, upload.single("image"), createIndustryTypeController);
+route.post(
+  "/",
+  verifyToken,
+  //  upload.single("image"),
+  createIndustryTypeController
+);
 route.put("/:id", verifyToken, upload.single("image"), updateIndustryTypeController);
 route.get("/search", getIndustrysSearchController);
 route.delete("/delete/:id", verifyToken, deleteIndustrytypeController);

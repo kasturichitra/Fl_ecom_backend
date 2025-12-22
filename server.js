@@ -37,7 +37,9 @@ const app = express();
 
 /* --------------------- Express Middleware --------------------- */
 
-app.use(express.json());
+app.use(express.json({
+  limit: "50mb",
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -89,20 +91,20 @@ io.on("connection", (socket) => {
 
 /* ---------------------- Morgan Logging ---------------------- */
 
-// Create custom tokens
-morgan.token("body", (req) => JSON.stringify(req.body));
-morgan.token("params", (req) => JSON.stringify(req.params));
-morgan.token("query", (req) => JSON.stringify(req.query));
+// // Create custom tokens
+// morgan.token("body", (req) => JSON.stringify(req.body));
+// morgan.token("params", (req) => JSON.stringify(req.params));
+// morgan.token("query", (req) => JSON.stringify(req.query));
 
-const format = ":date[iso] | :response-time ms | :status | :method :url | params=:params | query=:query | body=:body ";
+// const format = ":date[iso] | :response-time ms | :status | :method :url | params=:params | query=:query | body=:body ";
 
-// Write to rotating file
-app.use(morgan(format, { stream: accessLogStream }));
+// // Write to rotating file
+// app.use(morgan(format, { stream: accessLogStream }));
 
-// Also print to console in dev mode
-if (process.env.NODE_ENV !== "production") {
-  app.use(morgan(format));
-}
+// // Also print to console in dev mode
+// if (process.env.NODE_ENV !== "production") {
+//   app.use(morgan(format));
+// }
 
 /* -------------------------- REST API Routes -------------------------- */
 

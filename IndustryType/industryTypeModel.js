@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
+import { imageSchema } from "../lib/imageModel.js";
 
 const industryTypeSchema = new mongoose.Schema(
   {
@@ -7,17 +8,17 @@ const industryTypeSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,          // 🔥 Faster lookup
+      index: true, // 🔥 Faster lookup
     },
     industry_name: {
       type: String,
       required: true,
       trim: true,
-      index: true,          // 🔥 Search optimization
+      index: true, // 🔥 Search optimization
     },
     image_url: {
-      type: String,
-      trim: true,
+      type: imageSchema,
+      default: null,
     },
     description: {
       type: String,
@@ -26,7 +27,7 @@ const industryTypeSchema = new mongoose.Schema(
     is_active: {
       type: Boolean,
       default: true,
-      index: true,          // 🔥 Active/inactive filters become fast
+      index: true, // 🔥 Active/inactive filters become fast
     },
     created_by: {
       type: String,
@@ -38,9 +39,9 @@ const industryTypeSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,        // already handles createdAt & updatedAt
-    versionKey: false,       // removes __v
-    strict: true,            // avoids unwanted fields
+    timestamps: true, // already handles createdAt & updatedAt
+    versionKey: false, // removes __v
+    strict: true, // avoids unwanted fields
   }
 );
 
@@ -62,8 +63,6 @@ const IndustryTypeModel = async (tenantID) => {
 };
 
 export default IndustryTypeModel;
-
-
 
 // import mongoose from "mongoose";
 // import { getTenanteDB } from "../Config/tenantDB.js";
