@@ -1,6 +1,17 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
+const selectedItemSchema = new mongoose.Schema({
+    label: {
+        type: String,
+        required: true
+    },
+    value: {
+        type: String,
+        required: true
+    }
+})
+
 const couponSchema = new mongoose.Schema({
     coupon_code: {
         type: String,
@@ -14,6 +25,10 @@ const couponSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: ["Generic", "User_Specific"]
+    },
+    users:{
+        type:[selectedItemSchema],//user label means name and user value means user id
+        default:[]
     },
     discount_percentage: {
         type: Number,
@@ -37,15 +52,15 @@ const couponSchema = new mongoose.Schema({
         enum: ["Product", "Category", "Brand", "Order"]
     },
     selected_products: {
-        type: Array,
+        type: [selectedItemSchema],
         default: []
     },
     selected_categories: {
-        type: Array,
+        type: [selectedItemSchema],
         default: []
     },
     selected_brands: {
-        type: Array,
+        type: [selectedItemSchema],
         default: []
     },
     total_useage_limit: {
