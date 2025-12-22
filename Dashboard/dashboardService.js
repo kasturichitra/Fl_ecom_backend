@@ -387,12 +387,21 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
-  const { category_unique_id } = filters;
+  const { category_unique_id, from, to } = filters;
 
   // normalize the ID – prevent "" or " "
   const categoryId = category_unique_id?.trim?.() || "";
 
+  const matchQuery = {};
+
+  if (from || to) {
+    matchQuery.createdAt = {};
+    if (from) matchQuery.createdAt.$gte = new Date(from);
+    if (to) matchQuery.createdAt.$lte = new Date(to);
+  }
+
   const pipeline = [
+    ...(Object.keys(matchQuery).length > 0 ? [{ $match: matchQuery }] : []),
     // 1. Only Delivered Orders
     // TODO: Later add the delivered only filter to ensure only delivered orders are considered
     // {
@@ -489,17 +498,25 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
 
 export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
   const Orders = await OrdersModel(tenantID);
-  const { category_unique_id } = filters;
+  const { category_unique_id, from, to } = filters;
 
   // normalize the ID – prevent "" or " "
   const categoryId = category_unique_id?.trim?.() || "";
 
+  const matchQuery = {
+    order_status: "Delivered",
+  };
+
+  if (from || to) {
+    matchQuery.createdAt = {};
+    if (from) matchQuery.createdAt.$gte = new Date(from);
+    if (to) matchQuery.createdAt.$lte = new Date(to);
+  }
+
   const pipeline = [
-    // 1. Filter only delivered orders
+    // 1. Filter only delivered orders + date range
     {
-      $match: {
-        order_status: "Delivered",
-      },
+      $match: matchQuery,
     },
     // 2. Unwind order_products
     {
