@@ -47,6 +47,10 @@ const contactInfoSchema = new mongoose.Schema(
         navbar_banner_text: {
             type: String,
             // required: false,
+        },
+        working_hours: {
+            type: String,
+            // required: false,
         }
     },
     { timestamps: true }
