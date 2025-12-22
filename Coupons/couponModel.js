@@ -12,6 +12,21 @@ const selectedItemSchema = new mongoose.Schema({
     }
 })
 
+const couponUserSchema = new mongoose.Schema({
+    label: {
+        type: String,
+        required: true
+    },
+    value: {
+        type: String,
+        required: true
+    },
+    email_sent: {
+        type: Boolean,
+        default: false
+    }
+})
+
 const couponSchema = new mongoose.Schema({
     coupon_code: {
         type: String,
@@ -26,9 +41,9 @@ const couponSchema = new mongoose.Schema({
         required: true,
         enum: ["Generic", "User_Specific"]
     },
-    users:{
-        type:[selectedItemSchema],//user label means name and user value means user id
-        default:[]
+    user: {
+        type: [couponUserSchema],//user label means name and user value means user id
+        default: []
     },
     discount_percentage: {
         type: Number,
