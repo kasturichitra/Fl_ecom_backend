@@ -1,4 +1,4 @@
-import { createCouponService, generateUniqueCouponCodeService, getAllCouponsService, updateCouponService } from "./couponService.js";
+import { createCouponService, deleteCouponService, generateUniqueCouponCodeService, getAllCouponsService, getByIdCouponService, updateCouponService } from "./couponService.js";
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 
 export const createCouponController = async (req, res) => {
@@ -46,6 +46,20 @@ export const getAllCouponsController = async (req, res) => {
     }
 };
 
+
+export const getByIdCouponController = async (req, res) => {
+    try {
+        const tenantId = req.headers["x-tenant-id"];
+        const { id } = req.params;
+
+        const coupon = await getByIdCouponService(tenantId, id);
+
+        res.status(200).json(successResponse("Coupon fetched successfully", { data: coupon }));
+    } catch (error) {
+        res.status(error.message.includes("not found") ? 404 : 500).json(errorResponse(error.message, error));
+    }
+};
+
 export const updateCouponController = async (req, res) => {
     try {
         const tenantId = req.headers["x-tenant-id"];
@@ -54,6 +68,20 @@ export const updateCouponController = async (req, res) => {
         const updatedCoupon = await updateCouponService(tenantId, id, req.body);
 
         res.status(200).json(successResponse("Coupon updated successfully", { data: updatedCoupon }));
+    } catch (error) {
+        res.status(error.message.includes("not found") ? 404 : 500).json(errorResponse(error.message, error));
+    }
+};
+
+
+export const deleteCouponController = async (req, res) => {
+    try {
+        const tenantId = req.headers["x-tenant-id"];
+        const { id } = req.params;
+
+        const deletedCoupon = await deleteCouponService(tenantId, id);
+
+        res.status(200).json(successResponse("Coupon deleted successfully", { data: deletedCoupon }));
     } catch (error) {
         res.status(error.message.includes("not found") ? 404 : 500).json(errorResponse(error.message, error));
     }
