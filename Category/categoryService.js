@@ -122,16 +122,16 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
   const ProductModel = (await import("../Products/productModel.js")).default;
   const productModelDB = await ProductModel(tenantId);
 
-  const existing = await CategoryDB.findOne({ category_unique_id }).lean();
-  throwIfTrue(!existing, "Category not found");
+  const existingCategory = await CategoryDB.findOne({ category_unique_id }).lean();
+  throwIfTrue(!existingCategory, "Category not found");
 
   let category_image = updates.category_image;
 
   // Handle Image Update
   if (fileBuffer) {
-    // Delete existing variants
-    if (existing.category_image) {
-      const urls = Object.values(existing.category_image).filter((u) => typeof u === "string");
+    // Delete existingCategory variants
+    if (existingCategory.category_image) {
+      const urls = Object.values(existingCategory.category_image).filter((u) => typeof u === "string");
       await Promise.all(urls.map(autoDeleteFromS3));
     }
 

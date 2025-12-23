@@ -46,7 +46,7 @@ const categorySchema = new mongoose.Schema(
     },
     created_by: {
       type: String,
-      required: true,
+      // required: true,
       trim: true,
     },
     updated_by: {

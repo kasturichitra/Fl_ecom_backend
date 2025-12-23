@@ -26,7 +26,7 @@ const categoryCreateSchema = Joi.object({
 
   is_active: Joi.boolean().default(true),
 
-  created_by: Joi.string().required().messages({
+  created_by: Joi.string().optional().messages({
     "any.required": "Created by is required.",
     "string.base": "Created by must be a string.",
   }),
