@@ -9,8 +9,8 @@ import { port_number } from "./env.js";
 import authRoutes from "./Auth/authRoute.js";
 import userRoutes from "./Users/userRoute.js";
 import industryType from "./IndustryType/industryTypeRoutes.js";
-import categoryRoute from "./Category/categoryRoute.js";
-import productRoute from "./Products/productRoutes.js";
+import categoryRoutes from "./Category/categoryRoutes.js";
+import productRoutes from "./Products/productRoutes.js";
 import productsReviewsRoute from "./Products/ProductsReviews/productReviewRoutes.js";
 import orderRoute from "./Orders/orderRoutes.js";
 // import ticketRoute from "./Tickets/ticketRoutes.js";
@@ -119,8 +119,8 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use("/auth", authRoutes);
 app.use("/industryType", industryType);
-app.use("/category", categoryRoute);
-app.use("/products", productRoute);
+app.use("/category", categoryRoutes);
+app.use("/products", productRoutes);
 app.use("/reviews", productsReviewsRoute);
 app.use("/orders", verifyToken, orderRoute);
 // app.use("/ticket",verifyToken, ticketRoute);

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
+import { imageSchema } from "../lib/imageModel.js";
 
 // -------------------- ATTRIBUTE SCHEMA --------------------
 const attributesSchema = new mongoose.Schema(
@@ -37,8 +38,7 @@ const categorySchema = new mongoose.Schema(
       trim: true,
     },
     category_image: {
-      type: String,
-      default: null,
+      type: imageSchema, 
     },
     is_active: {
       type: Boolean,
