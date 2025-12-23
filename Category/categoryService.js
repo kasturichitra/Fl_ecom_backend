@@ -130,7 +130,7 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
   // Handle Image Update
   if (fileBuffer) {
     // Delete existingCategory variants
-    if (existingCategory.category_image) {
+    if (existingCategory.category_image && typeof existingCategory.category_image === "object") {
       const urls = Object.values(existingCategory.category_image).filter((u) => typeof u === "string");
       await Promise.all(urls.map(autoDeleteFromS3));
     }
