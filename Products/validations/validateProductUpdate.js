@@ -150,8 +150,20 @@ const productUpdateValidationSchema = Joi.object({
   delivery_time: Joi.string(),
   cash_on_delivery: Joi.boolean(),
 
-  product_image: Joi.string(),
-  product_images: Joi.array().items(Joi.string()),
+  product_image: Joi.object({
+    original: Joi.string().optional().allow("", null),
+    medium: Joi.string().optional().allow("", null),
+    low: Joi.string().optional().allow("", null),
+  }).optional(),
+  product_images: Joi.array()
+    .items(
+      Joi.object({
+        original: Joi.string().optional().allow("", null),
+        medium: Joi.string().optional().allow("", null),
+        low: Joi.string().optional().allow("", null),
+      })
+    )
+    .optional(),
 
   product_attributes: Joi.alternatives()
     .try(

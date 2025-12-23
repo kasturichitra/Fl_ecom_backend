@@ -639,9 +639,11 @@ export const updateProductService = async (
 
   const productModelDB = await ProductModel(tenantId);
 
-  const existingProduct = await productModelDB.findOne({
-    product_unique_id,
-  });
+  const existingProduct = await productModelDB
+    .findOne({
+      product_unique_id,
+    })
+    .lean();
 
   throwIfTrue(!existingProduct, "Product not found");
 
@@ -681,7 +683,9 @@ export const updateProductService = async (
     // Delete existing gallery images from S3 (all variants)
     if (existingProduct.product_images?.length > 0) {
       const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
-        Object.values(imageObj).map(autoDeleteFromS3)
+        Object.values(imageObj)
+          .filter((url) => typeof url === "string")
+          .map(autoDeleteFromS3)
       );
       await Promise.all(deletePromises);
     }
@@ -710,9 +714,11 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
 
   const productModelDB = await ProductModel(tenantId);
 
-  const existingProduct = await productModelDB.findOne({
-    product_unique_id,
-  });
+  const existingProduct = await productModelDB
+    .findOne({
+      product_unique_id,
+    })
+    .lean();
 
   throwIfTrue(!existingProduct, "Product not found");
 
@@ -721,14 +727,16 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
   // -------------------------------
   // Delete single product_image (hero image) from S3 (all 3 variants)
   if (existingProduct.product_image) {
-    const imageUrls = Object.values(existingProduct.product_image);
+    const imageUrls = Object.values(existingProduct.product_image).filter((url) => typeof url === "string");
     await Promise.all(imageUrls.map(autoDeleteFromS3));
   }
 
   // Delete multiple product_images (gallery images) from S3 (all 3 variants each)
   if (existingProduct.product_images?.length > 0) {
     const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
-      Object.values(imageObj).map(autoDeleteFromS3)
+      Object.values(imageObj)
+        .filter((url) => typeof url === "string")
+        .map(autoDeleteFromS3)
     );
     await Promise.all(deletePromises);
   }

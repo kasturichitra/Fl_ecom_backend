@@ -17,11 +17,11 @@ const productValidationSchema = Joi.object({
     "string.base": "Product Unique Id must be a string",
   }),
 
-  brand_name: Joi.string().optional().messages({
+  brand_name: Joi.string().optional().allow("", null).messages({
     "string.base": "Brand name must be a string.",
   }),
 
-  category_name: Joi.string().optional().messages({
+  category_name: Joi.string().optional().allow("", null).messages({
     "string.base": "Category name must be a string.",
   }),
 
@@ -68,14 +68,14 @@ const productValidationSchema = Joi.object({
     })
     .required(),
 
-  product_slug: Joi.string().optional(),
-  product_description: Joi.string().optional(),
-  long_description: Joi.string().optional(),
-  product_type: Joi.string().optional(),
-  product_color: Joi.string().optional(),
-  product_size: Joi.string().optional(),
-  model_number: Joi.string().optional(),
-  sku: Joi.string().optional(),
+  product_slug: Joi.string().optional().allow("", null),
+  product_description: Joi.string().optional().allow("", null),
+  long_description: Joi.string().optional().allow("", null),
+  product_type: Joi.string().optional().allow("", null),
+  product_color: Joi.string().optional().allow("", null),
+  product_size: Joi.string().optional().allow("", null),
+  model_number: Joi.string().optional().allow("", null),
+  sku: Joi.string().optional().allow("", null),
 
   base_price: Joi.number().min(0).required().messages({
     "any.required": "Base price is required.",
@@ -98,8 +98,8 @@ const productValidationSchema = Joi.object({
   discount_price: Joi.number().min(0).optional(),
 
   currency: Joi.string().default("INR"),
-  discount_type: Joi.string().optional(),
-  discount_coupon: Joi.string().optional(),
+  discount_type: Joi.string().optional().allow("", null),
+  discount_coupon: Joi.string().optional().allow("", null),
 
   cgst: Joi.number().min(0).optional(),
   sgst: Joi.number().min(0).optional(),
@@ -109,22 +109,36 @@ const productValidationSchema = Joi.object({
   low_stock_threshold: Joi.number().optional(),
 
   gender: Joi.string().valid("Men", "Women", "Unisex", "Kids", "Other").default("Unisex"),
-  tag: Joi.string().optional(),
+  tag: Joi.string().optional().allow("", null),
   minimum_age: Joi.number().min(0).optional(),
   maximum_age: Joi.number().min(0).optional(),
-  age_group: Joi.string().optional(),
+  age_group: Joi.string().optional().allow("", null),
 
-  product_warranty: Joi.string().optional(),
-  warranty_type: Joi.string().optional(),
-  return_policy: Joi.string().optional(),
+  product_warranty: Joi.string().optional().allow("", null),
+  warranty_type: Joi.string().optional().allow("", null),
+  return_policy: Joi.string().optional().allow("", null),
 
   replacement_available: Joi.boolean().default(true),
   shipping_charges: Joi.number().min(0).default(0),
-  delivery_time: Joi.string().optional(),
+  delivery_time: Joi.string().optional().allow("", null),
   cash_on_delivery: Joi.boolean().default(true),
 
-  product_image: Joi.string().optional(),
-  product_images: Joi.array().items(Joi.string()).optional(),
+  product_image: Joi.object({
+    original: Joi.string().optional().allow("", null),
+    medium: Joi.string().optional().allow("", null),
+    low: Joi.string().optional().allow("", null),
+  })
+    .optional()
+    .allow(null),
+  product_images: Joi.array()
+    .items(
+      Joi.object({
+        original: Joi.string().optional().allow("", null),
+        medium: Joi.string().optional().allow("", null),
+        low: Joi.string().optional().allow("", null),
+      })
+    )
+    .optional(),
 
   product_attributes: Joi.alternatives()
     .try(

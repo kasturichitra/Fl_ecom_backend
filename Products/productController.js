@@ -11,25 +11,27 @@ import {
   updateProductService,
 } from "./productService.js";
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const createProductController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
 
-    const { product_image_base64, product_images_base64, ...data } = req.body;
+    const { product_image, product_images, ...data } = req.body;
 
     let productImageBuffer = null;
     let productImagesBuffers = [];
 
     // Handle single product_image (hero image)
-    if (product_image_base64) {
-      const base64Data = product_image_base64.replace(/^data:image\/\w+;base64,/, "");
+    if (product_image) {
+      const base64Data = product_image.replace(/^data:image\/\w+;base64,/, "");
       productImageBuffer = Buffer.from(base64Data, "base64");
     }
 
     // Handle multiple product_images (gallery images)
-    if (product_images_base64 && Array.isArray(product_images_base64)) {
-      productImagesBuffers = product_images_base64.map((base64Image) => {
+    if (product_images && Array.isArray(product_images)) {
+      throwIfTrue(product_images.length > 5, "Maximum 5 gallery images allowed");
+      productImagesBuffers = product_images.map((base64Image) => {
         const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
         return Buffer.from(base64Data, "base64");
       });
@@ -73,7 +75,7 @@ export const getProductByIdController = async (req, res) => {
 export const updateProductController = async (req, res) => {
   try {
     const { id } = req.params;
-    const { product_image_base64, product_images_base64, ...productData } = req.body;
+    const { product_image, product_images, ...productData } = req.body;
     const tenantId = req.headers["x-tenant-id"];
 
     if (!id) {
@@ -84,14 +86,14 @@ export const updateProductController = async (req, res) => {
     let productImagesBuffers = [];
 
     // Handle single product_image (hero image)
-    if (product_image_base64) {
-      const base64Data = product_image_base64.replace(/^data:image\/\w+;base64,/, "");
+    if (product_image) {
+      const base64Data = product_image.replace(/^data:image\/\w+;base64,/, "");
       productImageBuffer = Buffer.from(base64Data, "base64");
     }
 
     // Handle multiple product_images (gallery images)
-    if (product_images_base64 && Array.isArray(product_images_base64)) {
-      productImagesBuffers = product_images_base64.map((base64Image) => {
+    if (product_images && Array.isArray(product_images)) {
+      productImagesBuffers = product_images.map((base64Image) => {
         const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
         return Buffer.from(base64Data, "base64");
       });
