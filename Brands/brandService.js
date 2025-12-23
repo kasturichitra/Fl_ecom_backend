@@ -9,6 +9,7 @@ import { CategoryModel } from "../Category/categoryModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData, fileBuffer) => {
@@ -42,6 +43,8 @@ export const createBrandService = async (tenantID, brandData, fileBuffer) => {
     ...brandData,
     brand_image,
   };
+
+  console.log("brandDoc", brandDoc);
   const { isValid, message } = validateBrandCreate(brandDoc);
   throwIfTrue(!isValid, message);
 
@@ -148,7 +151,9 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
     throwIfTrue(existingBrand, `Brand already exists with unique ID ${updateBrandData.brand_unique_id}`);
   }
 
-  const existingBrand = await brandModelDB.findById(id);
+  const existingBrand = await brandModelDB.findOne({
+    brand_unique_id: id,
+  });
   throwIfTrue(!existingBrand, `Brand not found with id: ${id}`);
 
   let brand_image = null;
@@ -175,7 +180,7 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
   const { isValid, message } = validateBrandUpdate(brandDoc);
   throwIfTrue(!isValid, message);
 
-  const updated = await brandModelDB.findByIdAndUpdate(id, brandDoc, {
+  const updated = await brandModelDB.findOneAndUpdate({ brand_unique_id: id }, brandDoc, {
     new: true,
     runValidators: true,
   });

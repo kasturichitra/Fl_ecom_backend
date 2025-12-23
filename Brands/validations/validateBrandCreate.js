@@ -12,11 +12,11 @@ const brandCreateSchema = Joi.object({
     "string.base": "Brand unique ID must be a string.",
   }),
 
-  brand_slug: Joi.string().messages({
+  brand_slug: Joi.string().optional().allow("", null).messages({
     "string.base": "Brand slug must be a string.",
   }),
 
-  brand_description: Joi.string().messages({
+  brand_description: Joi.string().optional().allow("", null).messages({
     "string.base": "Brand description must be a string.",
   }),
 
@@ -27,15 +27,6 @@ const brandCreateSchema = Joi.object({
   })
     .optional()
     .allow(null),
-  brand_images: Joi.array()
-    .items(
-      Joi.object({
-        original: Joi.string().optional().allow("", null),
-        medium: Joi.string().optional().allow("", null),
-        low: Joi.string().optional().allow("", null),
-      })
-    )
-    .optional(),
 
   // Relations
   categories: Joi.array()
@@ -57,11 +48,11 @@ const brandCreateSchema = Joi.object({
   }),
 
   // Created / Updated info
-  created_by: Joi.string().messages({
+  created_by: Joi.string().optional().allow("", null).messages({
     "string.base": "Created by must be a string (User ID).",
   }),
 
-  updated_by: Joi.string().messages({
+  updated_by: Joi.string().optional().allow("", null).messages({
     "string.base": "Updated by must be a string (User ID).",
   }),
 });
