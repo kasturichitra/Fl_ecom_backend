@@ -1,3 +1,4 @@
+import { uploadImageVariants } from "../../lib/aws-s3/uploadImageVariants.js";
 import OrdersModel from "../../Orders/orderModel.js";
 import { buildSortObject } from "../../utils/buildSortObject.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
@@ -7,11 +8,8 @@ import { validateReviewCreate } from "./validations/validateReviewCreate.js";
 import { validateReviewUpdate } from "./validations/validateReviewUpdate.js";
 
 //This function will create Reviews
-export const createReviewService = async (tenantId, reviewsData) => {
+export const createReviewService = async (tenantId, reviewsData, imagesFileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-
-  const { isValid, message } = validateReviewCreate(reviewsData);
-  throwIfTrue(!isValid, message);
 
   const productModelDB = await ProductModel(tenantId);
   const existingProduct = await productModelDB.findOne({
@@ -19,7 +17,21 @@ export const createReviewService = async (tenantId, reviewsData) => {
   });
   throwIfTrue(!existingProduct, `Product not found with given unique id ${reviewsData.product_unique_id}`);
 
+  if (imagesFileBuffer && imagesFileBuffer.length > 0) {
+    const uploadPromises = imagesFileBuffer.map((buffer, index) => {
+      uploadImageVariants({
+        fileBuffer: buffer,
+        basePath: `${tenantId}/ProductReviews/${response._id}/images/${index + 1}`,
+      });
+    });
+    reviewsData.images = await Promise.all(uploadPromises);
+  }
+
   const productReviewsModelDB = await ProductReviewModel(tenantId);
+
+  const { isValid, message } = validateReviewCreate(reviewsData);
+  throwIfTrue(!isValid, message);
+
   let response = await productReviewsModelDB.create(reviewsData);
 
   const ordersModelDb = await OrdersModel(tenantId);
@@ -153,15 +165,29 @@ export const getRatingSummaryService = async (tenantId, filters = {}) => {
 };
 
 //This function will update reviews based on Id
-export const updateReviewService = async (tenantId, id, updateReview) => {
+export const updateReviewService = async (tenantId, id, payload, imagesFileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!id, "Review ID is required");
 
-  const { isValid, message } = validateReviewUpdate(updateReview);
+  // const { isValid, message } = validateReviewUpdate(payload);
+  // throwIfTrue(!isValid, message);
+
+  if (imagesFileBuffer && imagesFileBuffer.length > 0) {
+    const uploadPromises = imagesFileBuffer.map((buffer, index) => {
+      uploadImageVariants({
+        fileBuffer: buffer,
+        basePath: `${tenantId}/ProductReviews/${id}/images/${index + 1}`,
+      });
+    });
+
+    payload.images = await Promise.all(uploadPromises);
+  }
+
+  const {isValid, message} = validateReviewUpdate(payload);
   throwIfTrue(!isValid, message);
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);
-  const response = await productReviewsModelDB.findByIdAndUpdate(id, updateReview, { new: true, runValidators: true });
+  const response = await productReviewsModelDB.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
 
   return response;
 };

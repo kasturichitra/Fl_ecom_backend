@@ -1,4 +1,5 @@
 import { errorResponse, successResponse } from "../../utils/responseHandler.js";
+import throwIfTrue from "../../utils/throwIfTrue.js";
 import {
   createReviewService,
   getAllReviewsService,
@@ -10,17 +11,22 @@ import {
 
 export const createReviewController = async (req, res) => {
   try {
-    let data = req.body;
+    let { image_base64, ...data } = req.body;
 
-    const images = req.files ? req.files.path : [];
     const tenantId = req.headers["x-tenant-id"];
 
-    data = {
-      ...data,
-      images,
-    };
+    let imagesFileBuffer = [];
 
-    const response = await createReviewService(tenantId, data);
+    if (image_base64 && Array.isArray(image_base64)) {
+      throwIfTrue(image_base64.length > 5, "Only 5 images can be uploaded at a time");
+
+      imagesFileBuffer = image_base64.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
+    }
+
+    const response = await createReviewService(tenantId, data, imagesFileBuffer);
 
     res.status(201).json(successResponse("Review created successfully", { data: response }));
   } catch (error) {
@@ -88,15 +94,26 @@ export const getRatingSummaryController = async (req, res) => {
 
 export const updateReviewController = async (req, res) => {
   try {
-    console.log("Request body is ===>", req.body);
-
     const { id } = req.params;
-    const updateReview = req.body;
+    const {
+      image_base64, 
+      ...payload
+    } = req.body;
+
     const tenantId = req.headers["x-tenant-id"];
 
-    console.log("Request body is ===>", req.body);
+    let imagesFileBuffer = [];
 
-    const response = await updateReviewService(tenantId, id, updateReview);
+    if (image_base64 && Array.isArray(image_base64)) {
+      throwIfTrue(image_base64.length > 5, "Only 5 images can be uploaded at a time");
+
+      imagesFileBuffer = image_base64.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
+    }
+
+    const response = await updateReviewService(tenantId, id, payload, imagesFileBuffer);
     res.status(200).json(successResponse("Review updated successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));

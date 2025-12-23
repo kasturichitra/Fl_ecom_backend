@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../../Config/tenantDB.js";
+import { imageSchema } from "../../lib/imageModel.js";
 
 const productReviewSchema = new mongoose.Schema(
   {
@@ -38,7 +39,7 @@ const productReviewSchema = new mongoose.Schema(
       trim: true,
     },
     images: {
-      type: [String],
+      type: [imageSchema],
       default: [],
     },
     is_verified_purchase: {

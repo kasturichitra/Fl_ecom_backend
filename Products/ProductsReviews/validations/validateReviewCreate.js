@@ -1,21 +1,17 @@
 import Joi from "joi";
 
 const reviewCreateSchema = Joi.object({
-  product_unique_id: Joi.string()
-    .required()
-    .messages({
-      "any.required": "Product ID is required.",
-      "string.base": "Product ID must be a string.",
-    }),
+  product_unique_id: Joi.string().required().messages({
+    "any.required": "Product ID is required.",
+    "string.base": "Product ID must be a string.",
+  }),
 
-  user_unique_id: Joi.string()
-    .required()
-    .messages({
-      "any.required": "User ID is required.",
-      "string.base": "User ID must be a string.",
-    }),
+  user_unique_id: Joi.string().required().messages({
+    "any.required": "User ID is required.",
+    "string.base": "User ID must be a string.",
+  }),
 
-  user_name: Joi.string().messages({
+  user_name: Joi.string().optional().allow("", null).messages({
     "string.base": "User name must be a string.",
   }),
 
@@ -26,29 +22,35 @@ const reviewCreateSchema = Joi.object({
     "number.max": "Rating cannot exceed 5.",
   }),
 
-  title: Joi.string().messages({
+  title: Joi.string().optional().allow("", null).messages({
     "string.base": "Title must be a string.",
   }),
 
-  comment: Joi.string().messages({
+  comment: Joi.string().optional().allow("", null).messages({
     "string.base": "Comment must be a string.",
   }),
 
-  images: Joi.array().items(Joi.string()).messages({
-    "array.base": "Images must be an array of strings.",
-    "string.base": "Each image must be a string.",
-  }),
+  images: Joi.array()
+    .items(
+      Joi.object({
+        original: Joi.string().optional().allow("", null),
+        medium: Joi.string().optional().allow("", null),
+        low: Joi.string().optional().allow("", null),
+      })
+    )
+    .optional()
+    .messages({
+      "array.base": "Images must be an array.",
+    }),
 
   is_verified_purchase: Joi.boolean().messages({
     "boolean.base": "Verified purchase value must be boolean.",
   }),
 
-  status: Joi.string()
-    .valid("pending", "published", "hidden", "removed")
-    .messages({
-      "string.base": "Status must be a string.",
-      "any.only": "Invalid status value.",
-    }),
+  status: Joi.string().valid("pending", "published", "hidden", "removed").optional().allow("", null).messages({
+    "string.base": "Status must be a string.",
+    "any.only": "Invalid status value.",
+  }),
 });
 
 export function validateReviewCreate(data) {
