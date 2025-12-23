@@ -19,9 +19,9 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
 
   if (imagesFileBuffer && imagesFileBuffer.length > 0) {
     const uploadPromises = imagesFileBuffer.map((buffer, index) => {
-      uploadImageVariants({
+      return uploadImageVariants({
         fileBuffer: buffer,
-        basePath: `${tenantId}/ProductReviews/${response._id}/images/${index + 1}`,
+        basePath: `${tenantId}/ProductReviews/${existingProduct.product_unique_id}/images/${index + 1}`,
       });
     });
     reviewsData.images = await Promise.all(uploadPromises);
@@ -174,7 +174,7 @@ export const updateReviewService = async (tenantId, id, payload, imagesFileBuffe
 
   if (imagesFileBuffer && imagesFileBuffer.length > 0) {
     const uploadPromises = imagesFileBuffer.map((buffer, index) => {
-      uploadImageVariants({
+      return uploadImageVariants({
         fileBuffer: buffer,
         basePath: `${tenantId}/ProductReviews/${id}/images/${index + 1}`,
       });
@@ -183,7 +183,7 @@ export const updateReviewService = async (tenantId, id, payload, imagesFileBuffe
     payload.images = await Promise.all(uploadPromises);
   }
 
-  const {isValid, message} = validateReviewUpdate(payload);
+  const { isValid, message } = validateReviewUpdate(payload);
   throwIfTrue(!isValid, message);
 
   const productReviewsModelDB = await ProductReviewModel(tenantId);

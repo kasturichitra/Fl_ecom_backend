@@ -122,15 +122,27 @@ app.use("/industryType", industryType);
 app.use("/category", categoryRoutes);
 app.use("/products", productRoutes);
 app.use("/reviews", productsReviewsRoute);
-app.use("/orders", verifyToken, orderRoute);
+app.use(
+  "/orders",
+  // verifyToken,
+  orderRoute
+);
 // app.use("/ticket",verifyToken, ticketRoute);
 app.use("/wishlists", verifyToken, wishlistRoute);
 app.use("/banners", bannerRoutes);
 app.use("/brands", brandRoutes);
-app.use("/cart", verifyToken, cartRoutes);
+app.use(
+  "/cart",
+  // verifyToken,
+  cartRoutes
+);
 app.use("/notifications", verifyToken, notificationRoutes);
 app.use("/configs", verifyToken, configRoutes);
-app.use("/dashboard", verifyToken, dashboardRoutes);
+app.use(
+  "/dashboard",
+  // verifyToken,
+  dashboardRoutes
+);
 app.use("/saleTrends", saleTrendRoutes);
 
 app.use("/contactInfo", contactInfoRoute);

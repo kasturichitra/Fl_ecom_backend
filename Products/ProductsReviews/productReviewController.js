@@ -17,10 +17,11 @@ export const createReviewController = async (req, res) => {
 
     let imagesFileBuffer = [];
 
-    if (image_base64 && Array.isArray(image_base64)) {
-      throwIfTrue(image_base64.length > 5, "Only 5 images can be uploaded at a time");
+    if (image_base64) {
+      const base64Array = Array.isArray(image_base64) ? image_base64 : [image_base64];
+      throwIfTrue(base64Array.length > 5, "Only 5 images can be uploaded at a time");
 
-      imagesFileBuffer = image_base64.map((base64Image) => {
+      imagesFileBuffer = base64Array.map((base64Image) => {
         const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
         return Buffer.from(base64Data, "base64");
       });
@@ -95,19 +96,17 @@ export const getRatingSummaryController = async (req, res) => {
 export const updateReviewController = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      image_base64, 
-      ...payload
-    } = req.body;
+    const { image_base64, ...payload } = req.body;
 
     const tenantId = req.headers["x-tenant-id"];
 
     let imagesFileBuffer = [];
 
-    if (image_base64 && Array.isArray(image_base64)) {
-      throwIfTrue(image_base64.length > 5, "Only 5 images can be uploaded at a time");
+    if (image_base64) {
+      const base64Array = Array.isArray(image_base64) ? image_base64 : [image_base64];
+      throwIfTrue(base64Array.length > 5, "Only 5 images can be uploaded at a time");
 
-      imagesFileBuffer = image_base64.map((base64Image) => {
+      imagesFileBuffer = base64Array.map((base64Image) => {
         const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
         return Buffer.from(base64Data, "base64");
       });

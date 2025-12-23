@@ -8,6 +8,7 @@ import { buildSortObject } from "../utils/buildSortObject.js";
 import { CategoryModel } from "../Category/categoryModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData, fileBuffer) => {
