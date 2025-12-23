@@ -222,8 +222,8 @@ const orderSchema = new mongoose.Schema(
     },
     additional_discount_type: {
       type: String,
-      enum: ["percentage", "amount"],
-      default: "percentage",
+      // enum: ["percentage", "amount"],
+      // default: "percentage",
     },
 
     address: addressSchema,
