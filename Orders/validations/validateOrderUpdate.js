@@ -49,9 +49,9 @@ const orderProductSchemaUpdate = Joi.object({
     "number.base": "Additional discount amount must be a number.",
     "number.min": "Additional discount amount cannot be negative.",
   }),
-  additional_discount_type: Joi.string().valid("percentage", "amount").allow(null).optional().messages({
+  additional_discount_type: Joi.string().valid("percentage", "amount", "coupon").allow(null).optional().messages({
     "string.base": "Additional discount type must be a string.",
-    "any.only": "Additional discount type must be percentage or amount.",
+    "any.only": "Additional discount type must be percentage or amount or coupon",
   }),
   unit_tax_value: Joi.number().min(0).messages({
     "number.base": "Unit tax value must be a number.",
@@ -122,9 +122,9 @@ const orderUpdateSchema = Joi.object({
 
   additional_discount_percentage: Joi.number().min(0),
   additional_discount_amount: Joi.number().min(0),
-  additional_discount_type: Joi.string().valid("percentage", "amount").allow(null).optional().messages({
+  additional_discount_type: Joi.string().valid("percentage", "amount", "coupon").allow(null).optional().messages({
     "string.base": "Additional discount type must be a string.",
-    "any.only": "Additional discount type must be percentage or amount.",
+    "any.only": "Additional discount type must be percentage or amount or coupon",
   }),
 
   shipping_charges: Joi.number().min(0),
