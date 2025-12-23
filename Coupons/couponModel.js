@@ -3,22 +3,22 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 const selectedItemSchema = new mongoose.Schema({
     label: {
-        type: String,
+        type: String,//product or category or brand name
         required: true
     },
     value: {
-        type: String,
+        type: String,//product or category or brand id
         required: true
     }
 })
 
 const couponUserSchema = new mongoose.Schema({
     label: {
-        type: String,
+        type: String,//user name
         required: true
     },
     value: {
-        type: String,
+        type: String,//user id
         required: true
     },
     email_sent: {
