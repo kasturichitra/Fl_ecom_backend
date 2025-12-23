@@ -16,29 +16,26 @@ export const createProductController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
 
-    const data = req.body;
+    const { product_image_base64, product_images_base64, ...data } = req.body;
 
-    let product_image;
-    let product_images = [];
+    let productImageBuffer = null;
+    let productImagesBuffers = [];
 
-    if (req.files?.product_image && req.files.product_image.length > 0) {
-      product_image = `/uploads/productsImages/${req.files.product_image[0].filename}`;
+    // Handle single product_image (hero image)
+    if (product_image_base64) {
+      const base64Data = product_image_base64.replace(/^data:image\/\w+;base64,/, "");
+      productImageBuffer = Buffer.from(base64Data, "base64");
     }
 
-    if (req.files?.product_images && req.files.product_images.length > 0) {
-      product_images = req.files.product_images?.map((file) => `/uploads/productsImages/${file.filename}`);
+    // Handle multiple product_images (gallery images)
+    if (product_images_base64 && Array.isArray(product_images_base64)) {
+      productImagesBuffers = product_images_base64.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
     }
 
-    console.log(product_image, "product_image");
-    console.log(product_images, "product_images");
-
-    const inputData = {
-      ...data,
-      product_image,
-      product_images,
-    };
-
-    const createdProduct = await createProductService(tenantId, inputData);
+    const createdProduct = await createProductService(tenantId, data, productImageBuffer, productImagesBuffers);
     res.status(201).json(successResponse("Product created successfully", { data: createdProduct }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -76,23 +73,31 @@ export const getProductByIdController = async (req, res) => {
 export const updateProductController = async (req, res) => {
   try {
     const { id } = req.params;
-    const productData = req.body;
+    const { product_image_base64, product_images_base64, ...productData } = req.body;
     const tenantId = req.headers["x-tenant-id"];
+
     if (!id) {
       return res.status(400).json(errorResponse("products_unique_ID is required in URL"));
     }
 
-    if (req.files) {
-      if (req.files.product_image && req.files.product_image.length > 0) {
-        productData.product_image = req.files.product_image[0].path;
-      }
+    let productImageBuffer = null;
+    let productImagesBuffers = [];
 
-      if (req.files.product_images && req.files.product_images.length > 0) {
-        productData.product_images = req.files.product_images.map((file) => file.path);
-      }
+    // Handle single product_image (hero image)
+    if (product_image_base64) {
+      const base64Data = product_image_base64.replace(/^data:image\/\w+;base64,/, "");
+      productImageBuffer = Buffer.from(base64Data, "base64");
     }
 
-    const response = await updateProductService(tenantId, id, productData);
+    // Handle multiple product_images (gallery images)
+    if (product_images_base64 && Array.isArray(product_images_base64)) {
+      productImagesBuffers = product_images_base64.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
+    }
+
+    const response = await updateProductService(tenantId, id, productData, productImageBuffer, productImagesBuffers);
     res.status(200).json(successResponse("Product updated successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -110,36 +115,6 @@ export const deleteProductController = async (req, res) => {
 
     const existingProduct = await deleteProductService(tenantId, id);
 
-    const deleteFileIfExists = (filePath) => {
-      if (!filePath) return;
-
-      let cleanedPath = filePath
-        .replace(/\\/g, "/")
-        .replace("/uploads/productsImages/", "/uploads/productImages/")
-        .replace(/^\/+/, "");
-
-      const fullPath = path.resolve(process.cwd(), cleanedPath);
-
-      try {
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-          console.log("Deleted:", fullPath);
-        } else {
-          console.warn("File not found:", fullPath);
-        }
-      } catch (err) {
-        console.warn("Failed to delete:", fullPath, err.message);
-      }
-    };
-
-    // Delete main and multiple product images
-    if (existingProduct.product_image) {
-      deleteFileIfExists(existingProduct.product_image);
-    }
-
-    if (Array.isArray(existingProduct.product_images)) {
-      existingProduct.product_images.forEach(deleteFileIfExists);
-    }
     res.status(200).json(successResponse("Product deleted successfully", { data: existingProduct }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
