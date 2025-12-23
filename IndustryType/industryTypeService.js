@@ -141,7 +141,7 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
 
   // Delete existing image after uploading new image
   if(existingIndustry.image_url) {
-    Object.values(existingIndustry).map(autoDeleteFromS3); 
+    Object.values(existingIndustry.image_url).map(autoDeleteFromS3); 
   }
 
   const updated = await IndustryModel.findOneAndUpdate(
