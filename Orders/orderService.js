@@ -242,6 +242,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   } else if (additional_discount_type === "amount") {
     additional_discount_amount = Math.ceil(additional_discount_amount);
     total_amount = Math.ceil(total_amount - additional_discount_amount);
+  } else if (additional_discount_type === "coupon") {
+    total_amount = Math.ceil(total_amount - additional_discount_amount);
   }
 
   let order_create_date = payload.order_create_date ? new Date(payload.order_create_date) : new Date();
