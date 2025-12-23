@@ -1,37 +1,15 @@
 import Joi from "joi";
 
 const productUpdateValidationSchema = Joi.object({
-  category_unique_id: Joi.string().messages({
-    "string.base": "Category unique ID must be a string.",
-  }),
+  category_unique_id: Joi.string().optional().allow("", null),
+  industry_unique_id: Joi.string().optional().allow("", null),
+  product_unique_id: Joi.string().optional().allow("", null),
+  brand_unique_id: Joi.string().optional().allow("", null),
+  brand_name: Joi.string().optional().allow("", null),
+  category_name: Joi.string().optional().allow("", null),
+  product_name: Joi.string().trim().optional().allow("", null),
 
-  industry_unique_id: Joi.string().messages({
-    "string.base": "Industry unique ID must be a string.",
-  }),
-
-  product_unique_id: Joi.string().messages({
-    "string.base": "Product unique ID must be a string.",
-  }),
-
-  brand_unique_id: Joi.string().messages({
-    "string.base": "Brand ID must be a string.",
-  }),
-
-  brand_name: Joi.string().messages({
-    "string.base": "Brand name must be a string.",
-  }),
-
-  category_name: Joi.string().messages({
-    "string.base": "Category name must be a string.",
-  }),
-
-  product_name: Joi.string().trim().messages({
-    "string.base": "Product name must be a string.",
-  }),
-
-  barcode: Joi.string().trim().messages({
-    "string.base": "Barcode must be a string.",
-  }),
+  barcode: Joi.string().trim().optional().allow("", null),
 
   stock_quantity: Joi.number().min(0).messages({
     "number.base": "Stock quantity must be a number.",
@@ -48,16 +26,14 @@ const productUpdateValidationSchema = Joi.object({
     "number.min": "Maximum order limit must be at least 1.",
   }),
 
-  product_slug: Joi.string(),
-  product_description: Joi.string(),
-  long_description: Joi.string(),
-  product_type: Joi.string(),
-  product_color: Joi.string().messages({
-    "string.base": "Product color must be a string.",
-  }),
-  product_size: Joi.string(),
-  model_number: Joi.string(),
-  sku: Joi.string(),
+  product_slug: Joi.string().optional().allow("", null),
+  product_description: Joi.string().optional().allow("", null),
+  long_description: Joi.string().optional().allow("", null),
+  product_type: Joi.string().optional().allow("", null),
+  product_color: Joi.string().optional().allow("", null),
+  product_size: Joi.string().optional().allow("", null),
+  model_number: Joi.string().optional().allow("", null),
+  sku: Joi.string().optional().allow("", null),
 
   base_price: Joi.number().min(0).messages({
     "number.base": "Base price must be a number.",
@@ -85,16 +61,16 @@ const productUpdateValidationSchema = Joi.object({
     "number.min": "Discount price must be 0 or greater.",
   }),
 
-  currency: Joi.string(),
-  discount_type: Joi.string(),
-  discount_coupon: Joi.string(),
+  currency: Joi.string().optional().allow("", null),
+  discount_type: Joi.string().optional().allow("", null),
+  discount_coupon: Joi.string().optional().allow("", null),
 
   product_gst: Joi.number().min(0).messages({
     "number.base": "GST must be a number.",
     "number.min": "GST must be 0 or greater.",
   }),
 
-  gst_number: Joi.string(),
+  gst_number: Joi.string().optional().allow("", null),
 
   cgst: Joi.number().min(0).messages({
     "number.base": "CGST must be a number.",
@@ -122,7 +98,7 @@ const productUpdateValidationSchema = Joi.object({
   }),
 
   gender: Joi.string().valid("Men", "Women", "Unisex", "Kids", "Other"),
-  tag: Joi.string(),
+  tag: Joi.string().optional().allow("", null),
 
   minimum_age: Joi.number().min(0).messages({
     "number.base": "Minimum age must be a number.",
@@ -134,11 +110,11 @@ const productUpdateValidationSchema = Joi.object({
     "number.min": "Maximum age must be 0 or greater.",
   }),
 
-  age_group: Joi.string(),
+  age_group: Joi.string().optional().allow("", null),
 
-  product_warranty: Joi.string(),
-  warranty_type: Joi.string(),
-  return_policy: Joi.string(),
+  product_warranty: Joi.string().optional().allow("", null),
+  warranty_type: Joi.string().optional().allow("", null),
+  return_policy: Joi.string().optional().allow("", null),
 
   replacement_available: Joi.boolean(),
 
@@ -147,7 +123,7 @@ const productUpdateValidationSchema = Joi.object({
     "number.min": "Shipping charges must be 0 or greater.",
   }),
 
-  delivery_time: Joi.string(),
+  delivery_time: Joi.string().optional().allow("", null),
   cash_on_delivery: Joi.boolean(),
 
   product_image: Joi.object({
