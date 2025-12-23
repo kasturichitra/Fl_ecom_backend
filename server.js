@@ -28,7 +28,8 @@ import couponRoute from "./Coupons/couponRoute.js";
 
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
-import "./CronJobs/saleTrandsCornJobs/saleTrendSchedule.js";
+import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
+import "./CronJobs/CouponsCron/couponsCronSchedule.js";
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";

@@ -153,7 +153,7 @@ export const updateCouponService = async (tenantId, id, updateData) => {
                 // We Explicitly set it to preserve history or prepare for new send.
                 return {
                     ...newUser,
-                    email_sent: existingUser ? existingUser.email_sent : false
+                    email_sent: false
                 };
             });
             users = updateData.user;
