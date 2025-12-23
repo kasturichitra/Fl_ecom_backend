@@ -2,6 +2,17 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 import { addressSchema } from "../Orders/orderModel.js";
 
+
+const couponSchema = new mongoose.Schema({
+  coupon_code: {
+    type: String,
+  },
+  useage_count: {
+    type: Number,
+    default: 0,
+  },
+});
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -57,6 +68,9 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     address: [addressSchema],
+    useage_coupon: {
+      type: [couponSchema]
+    }
   },
   { timestamps: true }
 );

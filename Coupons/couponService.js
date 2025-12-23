@@ -77,7 +77,8 @@ export const generateUniqueCouponCodeService = async (tenantId) => {
 export const getAllCouponsService = async (tenantId, filters, search, page, limit, sort, status) => {
     throwIfTrue(!tenantId, "Tenant ID is required");
     const Coupon = await CouponModel(tenantId);
-    let query = { ...filters };
+    const { product_id, category_id, brand_id, ...cleanedFilters } = filters;
+    let query = { ...cleanedFilters };
 
     if (search) {
         const searchRegex = { $regex: search, $options: "i" };
@@ -99,6 +100,32 @@ export const getAllCouponsService = async (tenantId, filters, search, page, limi
             );
         }
         query.$or = searchOr;
+    }
+
+    // Advanced filtering: Contextual applicability
+    // If identifying info is provided, we want coupons that match THAT specific context OR are global ('Order')
+    if (product_id || category_id || brand_id) {
+        const contextConditions = [
+            { apply_on: "Order" } // Global coupons are always applicable
+        ];
+
+        if (product_id) {
+            contextConditions.push({ apply_on: "Product", "selected_products.value": product_id });
+        }
+        if (category_id) {
+            contextConditions.push({ apply_on: "Category", "selected_categories.value": category_id });
+        }
+        if (brand_id) {
+            contextConditions.push({ apply_on: "Brand", "selected_brands.value": brand_id });
+        }
+
+        if (query.$or) {
+            // If search exists, we need BOTH (search matches AND context matches)
+            query.$and = [{ $or: query.$or }, { $or: contextConditions }];
+            delete query.$or;
+        } else {
+            query.$or = contextConditions;
+        }
     }
 
     const skip = (page - 1) * limit;
