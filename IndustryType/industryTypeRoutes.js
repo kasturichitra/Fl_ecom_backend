@@ -1,4 +1,5 @@
 import express from "express";
+import verifyToken from "../utils/verifyToken.js";
 import {
   createIndustryTypeController,
   deleteIndustrytypeController,
@@ -6,20 +7,19 @@ import {
   //   getIndustrytypesController,
   updateIndustryTypeController,
 } from "./industryTypeController.js";
-import getUploadMiddleware from "../utils/multerConfig.js";
-import verifyToken from "../utils/verifyToken.js";
 
 const route = express.Router();
-
-const upload = getUploadMiddleware("IndustryType");
 
 route.post(
   "/",
   verifyToken,
-  //  upload.single("image"),
   createIndustryTypeController
 );
-route.put("/:id", verifyToken, upload.single("image"), updateIndustryTypeController);
+route.put(
+  "/:id",
+  verifyToken,
+  updateIndustryTypeController
+);
 route.get("/search", getIndustrysSearchController);
 route.delete("/delete/:id", verifyToken, deleteIndustrytypeController);
 

@@ -83,19 +83,27 @@ export const updateIndustryTypeController = async (req, res) => {
     if (!tenantID) return res.status(400).json({ status: "Failed", message: "Tenant ID is required" });
 
     const { id } = req.params;
-    const { industry_name, description, is_active, created_by, updated_by } = req.body;
-    const image_url = req.file?.path;
+    const { industry_name, description, is_active, created_by, updated_by, image_base64 } = req.body;
+    // const image_url = req.file?.path;
+    // const image_url = req.file ? req.file.path : null;
+
+    let fileBuffer = null;
+    if (image_base64) {
+      // Remove base64 header if present
+      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+
+      fileBuffer = Buffer.from(base64Data, "base64");
+    }
 
     const updates = {
       ...(industry_name && { industry_name: industry_name.trim() }),
       ...(description && { description: description.trim() }),
       ...(created_by && { created_by }),
       ...(updated_by && { updated_by }),
-      ...(image_url && { image_url }),
       ...(is_active !== undefined && { is_active: is_active === "true" || is_active === true }),
     };
 
-    const data = await updateIndustrytypeServices(tenantID, id, updates);
+    const data = await updateIndustrytypeServices(tenantID, id, updates, fileBuffer);
 
     res.status(200).json(successResponse("Industry Type updated successfully", { data }));
   } catch (error) {

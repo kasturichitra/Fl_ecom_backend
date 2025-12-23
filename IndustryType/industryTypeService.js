@@ -6,6 +6,7 @@ import IndustryTypeModel from "./industryTypeModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
@@ -116,7 +117,7 @@ export const getIndustrysSearchServices = async (
    UPDATE INDUSTRY
 ----------------------------------------------*/
 
-export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
+export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates, fileBuffer) => {
   if (!tenantID || !industry_unique_id) throw new Error("Tenant ID & Industry ID required");
 
   const IndustryModel = await IndustryTypeModel(tenantID);
@@ -125,9 +126,27 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
   const CategoryModel = (await import("../Category/categoryModel.js")).CategoryModel;
   const categoryModelInstance = await CategoryModel(tenantID);
 
+  const existingIndustry = await IndustryModel.findOne({ industry_unique_id }).lean();
+  throwIfTrue(!existingIndustry, "Industry Type not found");
+  
+  let image_url = null;
+
+  if (fileBuffer) {
+    image_url = await uploadImageVariants({
+      fileBuffer: fileBuffer,
+      // mimeType: data.image_url.mimetype,
+      basePath: `${tenantID}/IndustryType/${industry_unique_id}`,
+    });
+  }
+
+  // Delete existing image after uploading new image
+  if(existingIndustry.image_url) {
+    Object.values(existingIndustry).map(autoDeleteFromS3); 
+  }
+
   const updated = await IndustryModel.findOneAndUpdate(
     { industry_unique_id },
-    { $set: { ...updates, updatedAt: new Date() } },
+    { $set: { ...updates, image_url,  updatedAt: new Date() } },
     { new: true, fields: { image_url: 1, is_active: 1 } }
   ).lean();
 
@@ -139,11 +158,6 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
       { industry_unique_id },
       { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
     );
-  }
-
-  // Delete old image
-  if (updates.image_url && updated.image_url && updated.image_url !== updates.image_url) {
-    fs.unlink(path.resolve(updated.image_url), () => {});
   }
 
   return updated;
