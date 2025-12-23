@@ -97,6 +97,8 @@ io.on("connection", (socket) => {
 morgan.token("body", (req) => {
   const clone = { ...req.body };
   if (clone.image_base64) clone.image_base64 = "[BASE64_REMOVED]";
+  if (clone.product_image) clone.product_image = "[BASE64_REMOVED]";
+  if (clone.product_images) clone.product_images = "[BASE64_REMOVED]";
   return JSON.stringify(clone);
 });
 morgan.token("params", (req) => JSON.stringify(req.params));

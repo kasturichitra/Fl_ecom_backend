@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
+import { imageSchema } from "../lib/imageModel.js";
+
 const productSchema = new mongoose.Schema(
   {
     //  Relationships
@@ -230,11 +232,10 @@ const productSchema = new mongoose.Schema(
 
     // Media
     product_image: {
-      type: String,
-      trim: true,
+      type: imageSchema,
     },
     product_images: {
-      type: [String],
+      type: [imageSchema],
     },
     // product_video: {
     //   type: String,

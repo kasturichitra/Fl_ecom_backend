@@ -17,6 +17,8 @@ import generateUniqueId from "../utils/generateUniqueId.js";
 import generateProductUniqueId from "./utils/generateProductUniqueId.js";
 import SaleTrendModel from "../SaleTrend/saleTrendModel.js";
 import { generateQrPdfBuffer } from "../utils/generateQrPdf.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
 
 /**
  * Calculate all price-related fields for a product
@@ -123,7 +125,7 @@ const calculatePrices = (productData) => {
 // };
 
 // MAIN SERVICE
-export const createProductService = async (tenantId, productData) => {
+export const createProductService = async (tenantId, productData, productImageBuffer, productImagesBuffers) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   // Parse product_attributes from form-data
   productData = parseFormData(productData, "product_attributes");
@@ -186,19 +188,40 @@ export const createProductService = async (tenantId, productData) => {
   // -------------------------------
   // Price calculations & unique ID
   // -------------------------------
-  // console.log(productData,'productData');
-  console.log("Input product data", productData);
   productData = calculatePrices(productData);
   productData.product_unique_id = await generateProductUniqueId(
     productModelDB,
     BrandModelDB,
     productData.brand_unique_id
   );
+
+  // -------------------------------
+  // S3 Image Upload
+  // -------------------------------
+  // Upload single product_image (hero image)
+  if (productImageBuffer) {
+    productData.product_image = await uploadImageVariants({
+      fileBuffer: productImageBuffer,
+      basePath: `${tenantId}/Products/${productData.product_unique_id}/main`,
+    });
+  }
+
+  // Upload multiple product_images (gallery images)
+  if (productImagesBuffers && productImagesBuffers.length > 0) {
+    const uploadPromises = productImagesBuffers.map((buffer, index) =>
+      uploadImageVariants({
+        fileBuffer: buffer,
+        basePath: `${tenantId}/Products/${productData.product_unique_id}/gallery-${index}`,
+      })
+    );
+    productData.product_images = await Promise.all(uploadPromises);
+  }
+
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
+
   // Create product
-  console.log(productData, "dsfsdfdfgfdg");
   return await productModelDB.create(productData);
 };
 
@@ -602,7 +625,13 @@ export const getProductByUniqueIdService = async (tenantId, product_unique_id) =
   return product[0] || null;
 };
 
-export const updateProductService = async (tenantId, product_unique_id, updateData) => {
+export const updateProductService = async (
+  tenantId,
+  product_unique_id,
+  updateData,
+  productImageBuffer,
+  productImagesBuffers
+) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { isValid, message } = validateProductUpdateData(updateData);
@@ -629,16 +658,42 @@ export const updateProductService = async (tenantId, product_unique_id, updateDa
     );
   }
 
-  if (updateData.product_image && existingProduct.product_image) {
-    if (fs.existsSync(existingProduct.product_image)) {
-      fs.unlinkSync(existingProduct.product_image);
+  // -------------------------------
+  // S3 Image Upload & Cleanup
+  // -------------------------------
+  // Handle single product_image (hero image)
+  if (productImageBuffer) {
+    // Delete existing hero image from S3 (all variants)
+    if (existingProduct.product_image) {
+      const imageUrls = Object.values(existingProduct.product_image);
+      await Promise.all(imageUrls.map(autoDeleteFromS3));
     }
+
+    // Upload new hero image
+    updateData.product_image = await uploadImageVariants({
+      fileBuffer: productImageBuffer,
+      basePath: `${tenantId}/Products/${product_unique_id}/main`,
+    });
   }
 
-  if (updateData.product_images && existingProduct.product_images?.length > 0) {
-    existingProduct.product_images.forEach((imgPath) => {
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    });
+  // Handle multiple product_images (gallery images)
+  if (productImagesBuffers && productImagesBuffers.length > 0) {
+    // Delete existing gallery images from S3 (all variants)
+    if (existingProduct.product_images?.length > 0) {
+      const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
+        Object.values(imageObj).map(autoDeleteFromS3)
+      );
+      await Promise.all(deletePromises);
+    }
+
+    // Upload new gallery images
+    const uploadPromises = productImagesBuffers.map((buffer, index) =>
+      uploadImageVariants({
+        fileBuffer: buffer,
+        basePath: `${tenantId}/Products/${product_unique_id}/gallery-${index}`,
+      })
+    );
+    updateData.product_images = await Promise.all(uploadPromises);
   }
 
   const response = await productModelDB.findOneAndUpdate({ product_unique_id }, updateData, {
@@ -661,19 +716,24 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
 
   throwIfTrue(!existingProduct, "Product not found");
 
+  // -------------------------------
+  // S3 Image Cleanup
+  // -------------------------------
+  // Delete single product_image (hero image) from S3 (all 3 variants)
   if (existingProduct.product_image) {
-    if (fs.existsSync(existingProduct.product_image)) {
-      fs.unlinkSync(existingProduct.product_image);
-    }
+    const imageUrls = Object.values(existingProduct.product_image);
+    await Promise.all(imageUrls.map(autoDeleteFromS3));
   }
 
+  // Delete multiple product_images (gallery images) from S3 (all 3 variants each)
   if (existingProduct.product_images?.length > 0) {
-    existingProduct.product_images.forEach((imgPath) => {
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    });
+    const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
+      Object.values(imageObj).map(autoDeleteFromS3)
+    );
+    await Promise.all(deletePromises);
   }
 
-  // 🔹 Finally, remove the product document
+  // Finally, remove the product document
   const response = await productModelDB.findOneAndDelete({
     product_unique_id,
   });
