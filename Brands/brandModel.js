@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
+import { imageSchema } from "../lib/imageModel.js";
 
 const brandSchema = new mongoose.Schema(
   {
@@ -23,12 +24,11 @@ const brandSchema = new mongoose.Schema(
       trim: true,
     },
     brand_image: {
-      type: String,
+      type: imageSchema,
     },
-    brand_images: {
-      type: [String],
-    },
-
+    // brand_images: {
+    //   type: [imageSchema],
+    // },
     // Relations
     categories: [
       {

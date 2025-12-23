@@ -20,9 +20,22 @@ const brandCreateSchema = Joi.object({
     "string.base": "Brand description must be a string.",
   }),
 
-  brand_image: Joi.string().optional(),
-
-  brand_images: Joi.array().items(Joi.string()).optional(),
+  brand_image: Joi.object({
+    original: Joi.string().optional().allow("", null),
+    medium: Joi.string().optional().allow("", null),
+    low: Joi.string().optional().allow("", null),
+  })
+    .optional()
+    .allow(null),
+  brand_images: Joi.array()
+    .items(
+      Joi.object({
+        original: Joi.string().optional().allow("", null),
+        medium: Joi.string().optional().allow("", null),
+        low: Joi.string().optional().allow("", null),
+      })
+    )
+    .optional(),
 
   // Relations
   categories: Joi.array()

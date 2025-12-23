@@ -18,15 +18,20 @@ const brandUpdateSchema = Joi.object({
     "string.base": "Brand description must be a string.",
   }),
 
-  brand_image: Joi.string().messages({
-    "string.base": "Brand image must be a string.",
-  }),
-
+  brand_image: Joi.object({
+    original: Joi.string().optional().allow("", null),
+    medium: Joi.string().optional().allow("", null),
+    low: Joi.string().optional().allow("", null),
+  }).optional(),
   brand_images: Joi.array()
-    .items(Joi.string().messages({ "string.base": "Each image must be a string." }))
-    .messages({
-      "array.base": "Brand images must be an array of strings.",
-    }),
+    .items(
+      Joi.object({
+        original: Joi.string().optional().allow("", null),
+        medium: Joi.string().optional().allow("", null),
+        low: Joi.string().optional().allow("", null),
+      })
+    )
+    .optional(),
 
   // Relations
   categories: Joi.array()
@@ -58,9 +63,7 @@ export function validateBrandUpdate(data) {
     return {
       isValid: false,
       message: "Brand update data must be a valid object.",
-      errors: [
-        { field: "", message: "Brand update data must be a valid object." },
-      ],
+      errors: [{ field: "", message: "Brand update data must be a valid object." }],
     };
   }
 
@@ -74,8 +77,7 @@ export function validateBrandUpdate(data) {
 
     return {
       isValid: false,
-      message:
-        formattedErrors[0]?.message || "Invalid brand update data.",
+      message: formattedErrors[0]?.message || "Invalid brand update data.",
       errors: formattedErrors,
     };
   }

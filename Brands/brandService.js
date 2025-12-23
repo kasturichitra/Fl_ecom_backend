@@ -10,16 +10,13 @@ import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 
 // Create Brand
-export const createBrandService = async (tenantID, brandData) => {
+export const createBrandService = async (tenantID, brandData, fileBuffer) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-
-  const { isValid, message } = validateBrandCreate(brandData);
-  throwIfTrue(!isValid, message);
 
   const brandModelDB = await BrandModel(tenantID);
 
   const normalizedName = brandData.brand_name.trim().toLowerCase();
-  
+
   const existingBrand = await brandModelDB.exists({ brand_name: { $regex: `^${normalizedName}$`, $options: "i" } });
   throwIfTrue(existingBrand, "Brand with this Name already exists");
 
@@ -29,7 +26,26 @@ export const createBrandService = async (tenantID, brandData) => {
   // console.log("brandData", brandData);
 
   brandData.brand_name = toTitleCase(brandData.brand_name);
-  const response = await brandModelDB.create(brandData);
+
+  let brand_image = null;
+
+  if (fileBuffer) {
+    brand_image = await uploadImageVariants({
+      fileBuffer: fileBuffer,
+      // mimeType: data.image_url.mimetype,
+      basePath: `${tenantID}/Brand/${brand_unique_id}`,
+    });
+  }
+
+  const brandDoc = {
+    ...brandData, 
+    brand_image
+  }
+  const { isValid, message } = validateBrandCreate(brandDoc);
+  throwIfTrue(!isValid, message);
+
+  const response = await brandModelDB.create(brandDoc);
+
   return response;
 };
 
@@ -118,12 +134,9 @@ export const getBrandByIdService = async (tenantID, id) => {
 };
 
 // Update Brand
-export const updateBrandService = async (tenantID, id, updateBrandData) => {
+export const updateBrandService = async (tenantID, id, updateBrandData, fileBuffer) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Brand ID is required");
-
-  const { isValid, message } = validateBrandUpdate(updateBrandData);
-  throwIfTrue(!isValid, message);
 
   const brandModelDB = await BrandModel(tenantID);
 
@@ -137,13 +150,25 @@ export const updateBrandService = async (tenantID, id, updateBrandData) => {
   const existingBrand = await brandModelDB.findById(id);
   throwIfTrue(!existingBrand, `Brand not found with id: ${id}`);
 
-  if (updateBrandData.brand_image && existingBrand.brand_image) {
-    if (fs.existsSync(existingBrand.brand_image)) {
-      fs.unlinkSync(existingBrand.brand_image);
-    }
+  let brand_image = null;
+
+  if (fileBuffer) {
+    brand_image = await uploadImageVariants({
+      fileBuffer: fileBuffer,
+      // mimeType: data.image_url.mimetype,
+      basePath: `${tenantID}/Brand/${updateBrandData.brand_unique_id}`,
+    });
   }
 
-  const updated = await brandModelDB.findByIdAndUpdate(id, updateBrandData, {
+  const brandDoc = {
+    ...updateBrandData, 
+    brand_image
+  }; 
+
+  const { isValid, message } = validateBrandUpdate(brandDoc);
+  throwIfTrue(!isValid, message);
+
+  const updated = await brandModelDB.findByIdAndUpdate(id, brandDoc, {
     new: true,
     runValidators: true,
   });
