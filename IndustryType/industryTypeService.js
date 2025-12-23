@@ -128,7 +128,7 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
 
   const existingIndustry = await IndustryModel.findOne({ industry_unique_id }).lean();
   throwIfTrue(!existingIndustry, "Industry Type not found");
-  
+
   let image_url = null;
 
   if (fileBuffer) {
@@ -140,13 +140,14 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
   }
 
   // Delete existing image after uploading new image
-  if(existingIndustry.image_url) {
-    Object.values(existingIndustry.image_url).map(autoDeleteFromS3); 
+  if (existingIndustry.image_url && typeof existingIndustry.image_url === "object") {
+    const urls = Object.values(existingIndustry.image_url).filter((u) => typeof u === "string");
+    await Promise.all(urls.map(autoDeleteFromS3));
   }
 
   const updated = await IndustryModel.findOneAndUpdate(
     { industry_unique_id },
-    { $set: { ...updates, image_url,  updatedAt: new Date() } },
+    { $set: { ...updates, image_url, updatedAt: new Date() } },
     { new: true, fields: { image_url: 1, is_active: 1 } }
   ).lean();
 

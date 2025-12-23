@@ -172,6 +172,11 @@ export const updateReviewService = async (tenantId, id, payload, imagesFileBuffe
   // const { isValid, message } = validateReviewUpdate(payload);
   // throwIfTrue(!isValid, message);
 
+  const productReviewsModelDB = await ProductReviewModel(tenantId);
+
+  const existingReview = await productReviewsModelDB.findById(id).lean();
+  throwIfTrue(!existingReview, "Review not found");
+
   if (imagesFileBuffer && imagesFileBuffer.length > 0) {
     const uploadPromises = imagesFileBuffer.map((buffer, index) => {
       return uploadImageVariants({
@@ -183,10 +188,18 @@ export const updateReviewService = async (tenantId, id, payload, imagesFileBuffe
     payload.images = await Promise.all(uploadPromises);
   }
 
+  if (existingReview.images?.length > 0) {
+    const deletePromises = existingReview.images.flatMap((imageObj) =>
+      Object.values(imageObj)
+        .filter((url) => typeof url === "string")
+        .map(autoDeleteFromS3)
+    );
+    await Promise.all(deletePromises);
+  }
+
   const { isValid, message } = validateReviewUpdate(payload);
   throwIfTrue(!isValid, message);
 
-  const productReviewsModelDB = await ProductReviewModel(tenantId);
   const response = await productReviewsModelDB.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
 
   return response;

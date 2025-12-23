@@ -667,7 +667,7 @@ export const updateProductService = async (
   if (productImageBuffer) {
     // Delete existing hero image from S3 (all variants)
     if (existingProduct.product_image) {
-      const imageUrls = Object.values(existingProduct.product_image);
+      const imageUrls = Object.values(existingProduct.product_image).filter((url) => typeof url === "string");
       await Promise.all(imageUrls.map(autoDeleteFromS3));
     }
 

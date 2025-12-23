@@ -39,9 +39,9 @@ export const createBrandService = async (tenantID, brandData, fileBuffer) => {
   }
 
   const brandDoc = {
-    ...brandData, 
-    brand_image
-  }
+    ...brandData,
+    brand_image,
+  };
   const { isValid, message } = validateBrandCreate(brandDoc);
   throwIfTrue(!isValid, message);
 
@@ -161,10 +161,16 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
     });
   }
 
+  if (existingBrand?.brand_image && typeof existingBrand.brand_image === "object") {
+    // Delete existing image after uploading new image
+    const urls = Object.values(existingBrand.brand_image).filter((u) => typeof u === "string");
+    await Promise.all(urls.map(autoDeleteFromS3));
+  }
+
   const brandDoc = {
-    ...updateBrandData, 
-    brand_image
-  }; 
+    ...updateBrandData,
+    brand_image,
+  };
 
   const { isValid, message } = validateBrandUpdate(brandDoc);
   throwIfTrue(!isValid, message);
