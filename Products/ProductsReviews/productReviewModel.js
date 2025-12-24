@@ -75,6 +75,17 @@ const productReviewSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+productReviewSchema.index({ product_unique_id: 1 });
+productReviewSchema.index({ user_unique_id: 1 });
+productReviewSchema.index({ rating: 1 });
+productReviewSchema.index({ status: 1 });
+productReviewSchema.index({ min_rating: 1 });
+productReviewSchema.index({ max_rating: 1 });
+productReviewSchema.index({ createdAt: -1 });
+
+
+
+
 const ProductReviewModel = async (tenateID) => {
   const db = await getTenanteDB(tenateID);
   return (

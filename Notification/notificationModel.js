@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
+
 const notificationSchema = new mongoose.Schema(
   {
     sender: {//sender is the user who will send the notification
@@ -54,7 +55,7 @@ const notificationSchema = new mongoose.Schema(
     },
 
     relatedId: {
-      type: String, 
+      type: String,
       trim: true
     },
 
@@ -79,6 +80,11 @@ const notificationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+notificationSchema.index({ receiver: 1, read: 1 });
+notificationSchema.index({ type: 1 });
+notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ receiverModel: 1 });
+
 
 export const NotificationModel = async (tenantId) => {
   const tenantDB = await getTenanteDB(tenantId);

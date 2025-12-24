@@ -30,6 +30,8 @@ const cartSchema = new mongoose.Schema(
   }
 );
 
+cartSchema.index({ user_id: 1 });
+
 const CartModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.Cart || db.model("Cart", cartSchema);
