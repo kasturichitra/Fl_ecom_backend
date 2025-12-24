@@ -38,7 +38,7 @@ const categorySchema = new mongoose.Schema(
       trim: true,
     },
     category_image: {
-      type: imageSchema, 
+      type: imageSchema,
     },
     is_active: {
       type: Boolean,
@@ -60,10 +60,9 @@ const categorySchema = new mongoose.Schema(
 
 // -------------------- INDEXES FOR CATEGORY --------------------
 // Common query indexes for best performance
-categorySchema.index({ industry_unique_id: 1 });
+categorySchema.index({ is_active: 1, industry_unique_id: 1 });
 categorySchema.index({ category_unique_id: 1 }, { unique: false }); // unique false because you handle uniqueness manually
 categorySchema.index({ category_name: 1 });
-categorySchema.index({ is_active: 1 });
 categorySchema.index({ created_by: 1 });
 
 // Compound indexes (very useful)

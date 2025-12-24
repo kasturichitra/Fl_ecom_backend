@@ -11,6 +11,7 @@ import { validateCategoryCreate } from "./validations/validateCategoryCreate.js"
 import { validateCategoryUpdate } from "./validations/validateCategoryUpdate.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 /**
  * Create Category
@@ -18,7 +19,8 @@ import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
 export const createCategoryService = async (tenantId, categoryData, fileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const CategoryDB = await CategoryModel(tenantId);
+  // const CategoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB: CategoryDB } = await getTenantModels(tenantId);
 
   // Check unique name
   const normalizedName = categoryData.category_name.trim().toLowerCase();
@@ -59,7 +61,8 @@ export const getAllCategoriesService = async (tenantId, filters, search, page = 
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const skip = (page - 1) * limit;
-  const categoryModelDB = await CategoryModel(tenantId);
+  // const categoryModelDB = await CategoryModel(tenantId);
+  const { categoryModelDB } = await getTenantModels(tenantId);
   const r = (v) => ({ $regex: v, $options: "i" });
 
   const query = {};
@@ -96,8 +99,9 @@ export const getCategoriesByIndustryIdService = async (tenantId, industry_unique
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "industry_unique_id is required");
 
-  const CategoryDB = await CategoryModel(tenantId);
-  return await CategoryDB.find({ industry_unique_id }).sort({ createdAt: -1 }).lean();
+  // const CategoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB } = await getTenantModels(tenantId);
+  return await categoryModelDB.find({ industry_unique_id }).sort({ createdAt: -1 }).lean();
 };
 
 /**
@@ -107,8 +111,9 @@ export const getCategoryByIdService = async (tenantId, targetId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!targetId, "category_unique_id is required");
 
-  const CategoryDB = await CategoryModel(tenantId);
-  return await CategoryDB.findOne({ category_unique_id: targetId }).lean();
+  // const CategoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB } = await getTenantModels(tenantId);
+  return await categoryModelDB.findOne({ category_unique_id: targetId }).lean();
 };
 
 /**
@@ -118,9 +123,11 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
 
-  const CategoryDB = await CategoryModel(tenantId);
-  const ProductModel = (await import("../Products/productModel.js")).default;
-  const productModelDB = await ProductModel(tenantId);
+  // const CategoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB: CategoryDB } = await getTenantModels(tenantId);
+  const { productModelDB } = await getTenantModels(tenantId);
+  // const ProductModel = (await import("../Products/productModel.js")).default;
+  // const productModelDB = await ProductModel(tenantId);
 
   const existingCategory = await CategoryDB.findOne({ category_unique_id }).lean();
   throwIfTrue(!existingCategory, "Category not found");
@@ -175,7 +182,8 @@ export const deleteCategoryService = async (tenantId, category_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
 
-  const CategoryDB = await CategoryModel(tenantId);
+  // const CategoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB: CategoryDB } = await getTenantModels(tenantId);
   const existing = await CategoryDB.findOne({ category_unique_id }).lean();
   throwIfTrue(!existing, "Category not found");
 
@@ -208,7 +216,8 @@ export const categoryBulkUploadService = async (tenantId, filePath, excelHeaders
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const extractedRows = await extractExcel(filePath, excelHeaders);
-  const categoryDB = await CategoryModel(tenantId);
+  // const categoryDB = await CategoryModel(tenantId);
+  const { categoryModelDB: categoryDB } = await getTenantModels(tenantId);
 
   const success = [];
   const errors = [];
@@ -251,8 +260,9 @@ export const getGroupedIndustriesAndCategoriesService = async (tenantId, filters
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { industryPageLimit = 6, categoryPageLimit = 6 } = filters;
-  const IndustryTypeDB = await IndustryTypeModel(tenantId);
-  await CategoryModel(tenantId); // ensure model is registered
+  // const IndustryTypeDB = await IndustryTypeModel(tenantId);
+  // await CategoryModel(tenantId); // ensure model is registered
+  const { industryTypeModelDB: IndustryTypeDB, categoryModelDB: CategoryDB } = await getTenantModels(tenantId);
 
   const industries = await IndustryTypeDB.aggregate([
     { $match: { is_active: true } },
