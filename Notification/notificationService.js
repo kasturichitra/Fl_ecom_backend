@@ -1,3 +1,4 @@
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { NotificationModel } from "./notificationModel.js";
@@ -41,7 +42,8 @@ export const getAllNotificationService = async (
   toDate
 ) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  const NotificationModelDB = await NotificationModel(tenantId);
+  // const NotificationModelDB = await NotificationModel(tenantId);
+  const { notificationModelDB: NotificationModelDB } = await getTenantModels(tenantId);
 
   let filter = {};
 
@@ -88,7 +90,8 @@ export const getAllNotificationService = async (
 
 export const markNotificationAsReadService = async (tenantId, payload) => {
     throwIfTrue(!tenantId, "Tenant ID is required");
-    const NotificationModelDB = await NotificationModel(tenantId);
+    // const NotificationModelDB = await NotificationModel(tenantId);
+    const { notificationModelDB: NotificationModelDB } = await getTenantModels(tenantId);
 
     let idsToUpdate = [];
     if (Array.isArray(payload.ids)) {

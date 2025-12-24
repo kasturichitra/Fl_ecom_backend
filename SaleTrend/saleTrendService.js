@@ -3,12 +3,14 @@ import ProductModel from "../Products/productModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 // Helper to validate products exist
 const validateProductsExist = async (tenantId, productIds) => {
   if (!productIds || productIds.length === 0) return;
-  const ProductModelDB = await ProductModel(tenantId);
-  const foundProducts = await ProductModelDB.find({
+  // const ProductModelDB = await ProductModel(tenantId);
+  const { productModelDB } = await getTenantModels(tenantId);
+  const foundProducts = await productModelDB.find({
     product_unique_id: { $in: productIds },
   }).select("product_unique_id");
 
@@ -25,7 +27,8 @@ export const createSaleTrendService = async (tenantId, data) => {
   throwIfTrue(!data.trend_from, "Trend start date is required");
   throwIfTrue(!data.trend_to, "Trend end date is required");
 
-  const SaleTrendDB = await SaleTrendModel(tenantId);
+  // const SaleTrendDB = await SaleTrendModel(tenantId);
+  const { saleTrendModelDB: SaleTrendDB } = await getTenantModels(tenantId);
 
   // Generate Unique ID
   const trend_unique_id = data.trend_name.replace(/\s+/g, "-").toLowerCase();
@@ -61,9 +64,10 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   }
 
   const sortObj = buildSortObject(sort);
-  const SaleTrendDB = await SaleTrendModel(tenantId);
-  const ProductModelDB = await ProductModel(tenantId);
-
+  // const SaleTrendDB = await SaleTrendModel(tenantId);
+  // const ProductModelDB = await ProductModel(tenantId);
+  const { saleTrendModelDB: SaleTrendDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
+ 
   const totalCount = await SaleTrendDB.countDocuments(query);
 
   const pipeline = [
@@ -144,9 +148,9 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
 
 export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id, products_limit = 10) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  const SaleTrendDB = await SaleTrendModel(tenantId);
-  const ProductModelDB = await ProductModel(tenantId);
-
+  // const SaleTrendDB = await SaleTrendModel(tenantId);
+  // const ProductModelDB = await ProductModel(tenantId);
+  const { saleTrendModelDB: SaleTrendDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
   products_limit = parseInt(products_limit) || 10;
 
   const pipeline = [
@@ -221,7 +225,8 @@ export const getSaleTrendByUniqueIdService = async (tenantId, trend_unique_id, p
 
 export const updateSaleTrendService = async (tenantId, trend_unique_id, updateData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  const SaleTrendDB = await SaleTrendModel(tenantId);
+  // const SaleTrendDB = await SaleTrendModel(tenantId);
+  const { saleTrendModelDB: SaleTrendDB } = await getTenantModels(tenantId);
 
   // If updating products, validate them
   if (updateData.trend_products) {
@@ -241,7 +246,8 @@ export const updateSaleTrendService = async (tenantId, trend_unique_id, updateDa
 export const deleteSaleTrendService = async (tenantId, trend_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!trend_unique_id, "Sale Trend ID is required");
-  const SaleTrendDB = await SaleTrendModel(tenantId);
+  // const SaleTrendDB = await SaleTrendModel(tenantId);
+  const { saleTrendModelDB: SaleTrendDB } = await getTenantModels(tenantId);
 
   const deletedTrend = await SaleTrendDB.findOneAndDelete({ trend_unique_id });
   throwIfTrue(!deletedTrend, "Sale Trend not found");

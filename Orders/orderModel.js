@@ -238,6 +238,16 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+orderSchema.index({ user_id: 1 });
+orderProductSchema.index({ product_unique_id: 1 });
+orderProductSchema.index({ quantity: 1 });
+orderSchema.index({ order_id: 1 });
+orderSchema.index({ order_status: 1 });
+orderSchema.index({ payment_status: 1 });
+orderSchema.index({ order_create_date: 1 });
+orderSchema.index({ transaction_id: 1 });
+orderSchema.index({ order_type: 1 });
+
 const OrdersModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.Orders || db.model("Orders", orderSchema);

@@ -75,6 +75,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ is_active: 1, email: 1 });
+userSchema.index({ role: 1 });
+
 const UserModel = async (tenateID) => {
   const db = await getTenanteDB(tenateID);
   return db.models.User || db.model("User", userSchema);

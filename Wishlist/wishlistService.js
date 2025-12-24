@@ -2,6 +2,7 @@ import ProductModel from "../Products/productModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import WishlistModel from "./wishlistModel.js";
 import CartModel from "../Cart/cartModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 /* ---------------------------------------------
    CREATE / ADD PRODUCT TO WISHLIST
@@ -11,9 +12,9 @@ export const createWishlistServices = async (tenantID, user_id, product_id) => {
   throwIfTrue(!user_id, "User ID is required");
   throwIfTrue(!product_id, "Product ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
-  const cartDB = await CartModel(tenantID);
-
+  // const wishlistDB = await WishlistModel(tenantID);
+  // const cartDB = await CartModel(tenantID);
+  const { wishlistModelDB: wishlistDB, cartModelDB: cartDB } = await getTenantModels(tenantID);
   // Check if product is already in wishlist
   const existingWishlist = await wishlistDB.findOne({ user_id, products: product_id });
   throwIfTrue(existingWishlist, "Product is already in wishlist");
@@ -43,9 +44,9 @@ export const getWishlistProductsServices = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
-  const productDB = await ProductModel(tenantID);
-
+  // const wishlistDB = await WishlistModel(tenantID);
+  // const productDB = await ProductModel(tenantID);
+  const { wishlistModelDB: wishlistDB, productModelDB: productDB } = await getTenantModels(tenantID);
   const wishlist = await wishlistDB.findOne({ user_id }).lean();
 
   if (!wishlist?.products?.length) return [];
@@ -66,7 +67,8 @@ export const getWishlistServices = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
+  // const wishlistDB = await WishlistModel(tenantID);
+  const { wishlistModelDB: wishlistDB } = await getTenantModels(tenantID);
 
   // Find only one wishlist, not array
   const wishlist = await wishlistDB.findOne({ user_id }).lean();
@@ -82,7 +84,8 @@ export const removeWishlistServices = async (tenantID, user_id, product_id) => {
   throwIfTrue(!user_id, "User ID is required");
   throwIfTrue(!product_id, "Product ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
+  // const wishlistDB = await WishlistModel(tenantID);
+  const { wishlistModelDB: wishlistDB } = await getTenantModels(tenantID);
 
   const updated = await wishlistDB.findOneAndUpdate({ user_id }, { $pull: { products: product_id } }, { new: true });
 
@@ -99,8 +102,10 @@ export const moveWishlistToCartServices = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
-  const cartDB = await CartModel(tenantID);
+  // const wishlistDB = await WishlistModel(tenantID);
+  // const cartDB = await CartModel(tenantID);
+
+  const { wishlistModelDB: wishlistDB, cartModelDB: cartDB } = await getTenantModels(tenantID);
 
   const wishlist = await wishlistDB.findOne({ user_id });
   throwIfTrue(!wishlist, "Wishlist not found for this user");
@@ -126,7 +131,8 @@ export const clearWishlistServices = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const wishlistDB = await WishlistModel(tenantID);
+  // const wishlistDB = await WishlistModel(tenantID);
+  const { wishlistModelDB: wishlistDB } = await getTenantModels(tenantID);
 
   const wishlist = await wishlistDB.findOne({ user_id });
 

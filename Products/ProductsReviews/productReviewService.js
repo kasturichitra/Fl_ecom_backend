@@ -1,4 +1,5 @@
 import { uploadImageVariants } from "../../lib/aws-s3/uploadImageVariants.js";
+import { getTenantModels } from "../../lib/tenantModelsCache.js";
 import OrdersModel from "../../Orders/orderModel.js";
 import { buildSortObject } from "../../utils/buildSortObject.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
@@ -11,7 +12,9 @@ import { validateReviewUpdate } from "./validations/validateReviewUpdate.js";
 export const createReviewService = async (tenantId, reviewsData, imagesFileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productModelDB = await ProductModel(tenantId);
+  // const productModelDB = await ProductModel(tenantId);
+  const { productModelDB, productReviewsModelDB } = await getTenantModels(tenantId);
+
   const existingProduct = await productModelDB.findOne({
     product_unique_id: reviewsData.product_unique_id,
   });
@@ -27,7 +30,7 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
     reviewsData.images = await Promise.all(uploadPromises);
   }
 
-  const productReviewsModelDB = await ProductReviewModel(tenantId);
+  // const productReviewsModelDB = await ProductReviewModel(tenantId);
 
   const { isValid, message } = validateReviewCreate(reviewsData);
   throwIfTrue(!isValid, message);
@@ -65,7 +68,8 @@ export const getAllReviewsService = async (tenantId, filters) => {
 
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productReviewsModelDB = await ProductReviewModel(tenantId);
+  // const productReviewsModelDB = await ProductReviewModel(tenantId);
+  const { productReviewsModelDB } = await getTenantModels(tenantId);
 
   const query = {};
 
@@ -117,7 +121,8 @@ export const getAllReviewsService = async (tenantId, filters) => {
 export const getReviewByIdService = async (tenantId, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const productReviewsModelDB = await ProductReviewModel(tenantId);
+  // const productReviewsModelDB = await ProductReviewModel(tenantId);
+  const { productReviewsModelDB } = await getTenantModels(tenantId);
   const response = await productReviewsModelDB.find({ product_unique_id });
 
   return response;
@@ -128,9 +133,10 @@ export const getRatingSummaryService = async (tenantId, filters = {}) => {
 
   const { product_unique_id } = filters;
 
-  const ReviewDB = await ProductReviewModel(tenantId);
+  // const ReviewDB = await ProductReviewModel(tenantId);
+  const { productReviewsModelDB } = await getTenantModels(tenantId);
 
-  const data = await ReviewDB.aggregate([
+  const data = await productReviewsModelDB.aggregate([
     { $match: { product_unique_id } },
 
     {
@@ -172,7 +178,8 @@ export const updateReviewService = async (tenantId, id, payload, imagesFileBuffe
   // const { isValid, message } = validateReviewUpdate(payload);
   // throwIfTrue(!isValid, message);
 
-  const productReviewsModelDB = await ProductReviewModel(tenantId);
+  // const productReviewsModelDB = await ProductReviewModel(tenantId);
+  const { productReviewsModelDB } = await getTenantModels(tenantId);
 
   const existingReview = await productReviewsModelDB.findById(id).lean();
   throwIfTrue(!existingReview, "Review not found");

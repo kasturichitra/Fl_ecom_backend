@@ -46,6 +46,13 @@ const saleTrendSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+saleTrendProductSchema.index({ is_active: 1, product_unique_id: 1 });
+saleTrendSchema.index({ trend_unique_id: 1 });
+saleTrendProductSchema.index({ priority: 1 });
+saleTrendProductSchema.index({ trend_from: 1, trend_to: 1 });
+
+
 const SaleTrendModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.SaleTrends || db.model("SaleTrends", saleTrendSchema);

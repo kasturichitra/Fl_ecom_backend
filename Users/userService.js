@@ -13,6 +13,7 @@ import CartModel from "../Cart/cartModel.js";
 import { NotificationModel } from "../Notification/notificationModel.js";
 import OtpModel from "../Auth/otpModel.js";
 import deviceSessionModel from "../Auth/deviceSessionModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 export const getAllUsersService = async (tenantId, filters) => {
   let {
@@ -63,7 +64,8 @@ export const getAllUsersService = async (tenantId, filters) => {
 
   const sortObj = buildSortObject(sort);
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const users = await usersDB.find(query).sort(sortObj).skip(skip).limit(limit);
 
   const totalCount = await usersDB.countDocuments(query);
@@ -80,7 +82,8 @@ export const getAllUsersService = async (tenantId, filters) => {
 export const getUserByIdService = async (tenantId, id) => {
   throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(id);
 
   user.password = undefined;
@@ -90,7 +93,8 @@ export const getUserByIdService = async (tenantId, id) => {
 
 export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
   /* =========================
@@ -116,7 +120,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch {}
+    } catch { }
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -135,7 +139,8 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
     throw new Error("addressData must be a single object, not an array");
   }
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
@@ -159,7 +164,8 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
 export const updateUserAddressService = async (tenantId, user_id, address_id, addressData) => {
   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
@@ -189,7 +195,8 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
 export const deleteUserAddressService = async (tenantId, user_id, address_id) => {
   throwIfTrue(!tenantId || !user_id || !address_id, "Required fields missing");
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
@@ -223,14 +230,16 @@ export const employeCreateService = async (tenantId, userData) => {
   const validation = validateUserCreate(userData);
   throwIfTrue(!validation.isValid, validation.message);
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   return await usersDB.create(userData);
 };
 
 export const storeFcmTokenService = async (tenantId, user_id, token) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB } = await getTenantModels(tenantId);
   const result = await usersDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
 
   // const updatedUser = await usersDB.findOne({ _id: user_id });
@@ -249,19 +258,20 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
 export const deleteUserAccountService = async (tenantId, user_id) => {
   throwIfTrue(!tenantId || !user_id, "Required fields missing");
 
-  const usersDB = await UserModel(tenantId);
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB: usersDB, orderModelDB: OrderModelDB, wishlistModelDB: WishlistModelDB, cartModelDB: CartModelDB, notificationModelDB: NotificationModelDB, otpModelDB: OtpModelDB, deviceSessionModelDB: DeviceModelDB } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
-  const [OrderModelDB, WishlistModelDB, CartModelDB, NotificationModelDB, OtpModelDB, DeviceModelDB] =
-    await Promise.all([
-      OrdersModel(tenantId),
-      WishlistModel(tenantId),
-      CartModel(tenantId),
-      NotificationModel(tenantId),
-      OtpModel(tenantId),
-      deviceSessionModel(tenantId),
-    ]);
+  // const [OrderModelDB, WishlistModelDB, CartModelDB, NotificationModelDB, OtpModelDB, DeviceModelDB] =
+  //   await Promise.all([
+  //     OrdersModel(tenantId),
+  //     WishlistModel(tenantId),
+  //     CartModel(tenantId),
+  //     NotificationModel(tenantId),
+  //     OtpModel(tenantId),
+  //     deviceSessionModel(tenantId),
+  //   ]);
 
   await Promise.all([
     usersDB.deleteOne({ _id: user_id }),

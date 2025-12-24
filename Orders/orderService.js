@@ -1,4 +1,5 @@
 import CartModel from "../Cart/cartModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import ProductModel from "../Products/productModel.js";
 import UserModel from "../Users/userModel.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
@@ -12,7 +13,8 @@ import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantId, products) => {
-  const Product = await ProductModel(tenantId);
+  // const Product = await ProductModel(tenantId);
+  const { productModelDB: Product } = await getTenantModels(tenantId);
 
   const bulkOps = products.map((item) => ({
     updateOne: {
@@ -25,13 +27,15 @@ const updateStockOnOrder = async (tenantId, products) => {
 };
 
 const verifyOrderProducts = async (tenantId, products) => {
-  const Product = await ProductModel(tenantId);
+  // const Product = await ProductModel(tenantId);
+  const { productModelDB: Product } = await getTenantModels(tenantId);
   const result = await Product.find({ product_unique_id: { $in: products.map((p) => p.product_unique_id) } });
   throwIfTrue(result.length !== products.length, `Some Products are not found`);
 };
 
 const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
-  const CartDB = await CartModel(tenantId);
+  // const CartDB = await CartModel(tenantId);
+  const { cartModelDB: CartDB } = await getTenantModels(tenantId);
 
   const productUniqueIdsToRemove = new Set(products.map((p) => p.product_unique_id));
 
@@ -97,10 +101,11 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
 export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const OrderModelDB = await OrdersModel(tenantId);
-  const UserModelDB = await UserModel(tenantId);
-  const ProductModelDB = await ProductModel(tenantId);
-
+  // const OrderModelDB = await OrdersModel(tenantId);
+  // const UserModelDB = await UserModel(tenantId);
+  // const ProductModelDB = await ProductModel(tenantId);
+  const { orderModelDB: OrderModelDB, userModelDB: UserModelDB, productModelDB: ProductModelDB } =
+    await getTenantModels(tenantId);
   // User validation
   let userDoc = null;
   let username = null;
@@ -344,8 +349,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 // Get all orders for a user
 export const getAllUserOrdersServices = async (tenantId, userID) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  const Order = await OrdersModel(tenantId);
-  console.log(Order.find({ user_id: userID }), " Order.find({ user_id: userID });");
+  // const Order = await OrdersModel(tenantId);
+  const { orderModelDB: Order } = await getTenantModels(tenantId);
 
   return await Order.find({ user_id: userID });
 };
@@ -395,7 +400,8 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
 
   const sortObj = buildSortObject(sort);
 
-  const OrderModelDB = await OrdersModel(tenantId);
+  // const OrderModelDB = await OrdersModel(tenantId);
+  const { orderModelDB: OrderModelDB } = await getTenantModels(tenantId);
 
   const orders = await OrderModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
 
@@ -415,9 +421,9 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   throwIfTrue(!orderID, "Valid Order ID is required");
   throwIfTrue(!updateData || Object.keys(updateData).length === 0, "Update data is required");
 
-  const Order = await OrdersModel(tenantId);
-  const Product = await ProductModel(tenantId);
-
+  // const Order = await OrdersModel(tenantId);
+  // const Product = await ProductModel(tenantId);
+  const { orderModelDB: Order, productModelDB: Product } = await getTenantModels(tenantId);
   const order = await Order.findById(orderID);
   throwIfTrue(!order, "Order not found");
 
@@ -565,9 +571,9 @@ export const getOrderProductService = async (tenantId, orderId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderId, "Valid Order ID is required");
 
-  const Order = await OrdersModel(tenantId);
-  const Product = await ProductModel(tenantId);
-
+  // const Order = await OrdersModel(tenantId);
+  // const Product = await ProductModel(tenantId);
+  const { orderModelDB: Order, productModelDB: Product } = await getTenantModels(tenantId);
   //  Get order
   const order = await Order.findOne({ order_id: orderId });
   if (!order) throw new Error("Order not found");
@@ -594,7 +600,8 @@ export const getOrderSingleProductService = async (tenantId, order_id, product_u
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!order_id, "Valid Order ID is required");
 
-  const Order = await OrdersModel(tenantId);
+  // const Order = await OrdersModel(tenantId);
+  const { orderModelDB: Order } = await getTenantModels(tenantId);
 
   const orderDoc = await Order.findOne({ order_id });
   if (!orderDoc) throw new Error("Order not found");
