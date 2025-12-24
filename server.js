@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { port_number } from "./env.js";
+import compression from "compression";
 // import chatSocket from "./utils/chatSocket.js";
 // Routes
 import authRoutes from "./Auth/authRoute.js";
@@ -37,7 +38,7 @@ import accessLogStream from "./utils/buildLogStream.js";
 const app = express();
 
 /* --------------------- Express Middleware --------------------- */
-
+app.use(compression());
 app.use(
   express.json({
     limit: "50mb",

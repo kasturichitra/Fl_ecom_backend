@@ -285,8 +285,42 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+
+productSchema.index({ industry_unique_id: 1 });
+productSchema.index({ category_unique_id: 1 });
+productSchema.index({ product_unique_id: 1 });
+productSchema.index({ brand_unique_id: 1 });
+productSchema.index({ brand_name: 1 });
+productSchema.index({ product_color: 1 });
+productSchema.index({ stock_availability: 1 });
+
 const ProductModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
   return db.models.Products || db.model("Products", productSchema);
 };
 export default ProductModel;
+
+
+
+//  product_name,
+//     sku,
+//     model_number,
+//     gender,
+//     product_type,
+//     product_color,
+//     product_size,
+//     category_unique_id,
+//     industry_unique_id,
+//     brand_unique_id,
+//     barcode,
+//     stock_availability,
+//     cash_on_delivery,
+//     minimum_age,
+//     maximum_age,
+//     min_price,
+//     max_price,
+//     trend,
+//     sort,
+//     searchTerm,
+//     page = 1,
+//     limit = 10,
