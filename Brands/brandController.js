@@ -28,12 +28,14 @@ export const createBrandController = async (req, res) => {
 // Get All Brands
 export const getAllBrandsController = async (req, res) => {
   try {
+    console.time("API Call"); 
     const filters = req.query;
     const tenantId = req.headers["x-tenant-id"];
 
     const { totalCount, page, limit, totalPages, data } = await getAllBrandsService(tenantId, filters);
 
     res.status(200).json(successResponse("Fetched brands successfully", { totalCount, page, limit, totalPages, data }));
+    console.timeEnd("API Call");
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

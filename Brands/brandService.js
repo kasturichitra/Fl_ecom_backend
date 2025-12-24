@@ -10,6 +10,8 @@ import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
+// import { getTenantDatabases } from "../CronJobs/CornUtils/getTenantDatabases.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData, fileBuffer) => {
@@ -59,70 +61,83 @@ export const getAllBrandsService = async (tenantID, filters) => {
 
   const {
     brand_name,
-    searchTerm, // Search term
+    searchTerm,
     brand_unique_id,
     is_active,
-    categories, // comma separated: "catId1,catId2"
+    categories,
     category_unique_id,
     page = 1,
     limit = 10,
-    sort, // "brand_name:asc,createdAt:desc"
+    sort,
   } = filters;
 
   const skip = (page - 1) * limit;
+  const { brandModelDB, categoryModelDB } = await getTenantModels(tenantID);
 
-  const brandModelDB = await BrandModel(tenantID);
-  const categoryModelDB = await CategoryModel(tenantID);
-  const query = {};
+  // const [brandModelDB, categoryModelDB] = await Promise.all([BrandModel(tenantID), CategoryModel(tenantID)]);
 
-  // Direct match
-  if (brand_name) query.brand_name = { $regex: brand_name, $options: "i" };
-  if (brand_unique_id) query.brand_unique_id = brand_unique_id;
-  // if (typeof is_active !== "undefined") query.is_active = is_active;
+  const match = {};
 
-  if (is_active === "true") query.is_active = true;
-  if (is_active === "false") query.is_active = false;
+  // Direct match filters
+  if (brand_name) match.brand_name = { $regex: brand_name, $options: "i" };
+  if (brand_unique_id) match.brand_unique_id = brand_unique_id;
 
-  // Search term
+  if (is_active === "true") match.is_active = true;
+  if (is_active === "false") match.is_active = false;
+
+  // Search
   if (searchTerm) {
-    query.$or = [
+    match.$or = [
       { brand_name: { $regex: searchTerm, $options: "i" } },
       { brand_unique_id: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
-  // Category filter
+  // Categories
   if (categories) {
-    const catIds = categories.split(",");
-    query.categories = { $in: catIds };
+    match.categories = { $in: categories.split(",") };
   }
 
   if (category_unique_id) {
-    const categoryDoc = await categoryModelDB.findOne({ category_unique_id });
+    const categoryDoc = await categoryModelDB.findOne({ category_unique_id }, { _id: 1 });
 
-    if (categoryDoc) {
-      query.categories = {
-        ...(query.categories || {}),
-        $in: [...(query.categories?.$in || []), categoryDoc._id],
+    if (!categoryDoc) {
+      return {
+        totalCount: 0,
+        page,
+        limit,
+        totalPages: 0,
+        data: [],
       };
-    } else {
-      // No category found; force empty result
-      query.categories = { $in: [] };
     }
+
+    match.categories = {
+      ...(match.categories || {}),
+      $in: [...(match.categories?.$in || []), categoryDoc._id],
+    };
   }
 
-  /// Sorting logic
   const sortObj = buildSortObject(sort);
-  const brands = await brandModelDB.find(query).sort(sortObj).skip(skip).limit(Number(limit));
 
-  const totalCount = await brandModelDB.countDocuments(query);
+  const [result] = await brandModelDB.aggregate([
+    { $match: match },
+
+    {
+      $facet: {
+        data: [{ $sort: sortObj }, { $skip: skip }, { $limit: Number(limit) }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
+
+  const totalCount = result.totalCount[0]?.count || 0;
 
   return {
     totalCount,
     page,
     limit,
     totalPages: Math.ceil(totalCount / limit),
-    data: brands,
+    data: result.data,
   };
 };
 

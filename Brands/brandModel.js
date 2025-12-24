@@ -9,6 +9,7 @@ const brandSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
     },
     brand_unique_id: {
       type: String,
@@ -41,6 +42,7 @@ const brandSchema = new mongoose.Schema(
     is_active: {
       type: Boolean,
       default: true,
+      index: true,
     },
 
     // Created And Updated Info
@@ -55,8 +57,10 @@ const brandSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  }, 
 );
+
+brandSchema.index({ brand_name: 1, is_active: 1 });
 
 const BrandModel = async (tenantID) => {
   const db = await getTenanteDB(tenantID);
