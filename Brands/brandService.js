@@ -157,7 +157,8 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Brand ID is required");
 
-  const brandModelDB = await BrandModel(tenantID);
+  // const brandModelDB = await BrandModel(tenantID);
+  const { brandModelDB } = await getTenantModels(tenantID);
 
   if (updateBrandData.brand_unique_id) {
     const existingBrand = await brandModelDB.findOne({
@@ -199,6 +200,18 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
     new: true,
     runValidators: true,
   });
+
+  // Cascade is_active change to products when provided
+  if (updateBrandData.hasOwnProperty("is_active")) {
+    const isActiveFlag = !!updateBrandData.is_active;
+    const ProductModel = (await import("../Products/productModel.js")).default;
+    const productModelInstance = await ProductModel(tenantID);
+
+    await productModelInstance.updateMany(
+      { brand_unique_id: id },
+      { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
+    );
+  }
 
   return updated;
 };

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 import { imageSchema } from "../lib/imageModel.js";
-import { required } from "joi";
+
 
 const productSchema = new mongoose.Schema(
   {
