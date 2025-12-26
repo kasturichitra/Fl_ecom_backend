@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
 import { imageSchema } from "../lib/imageModel.js";
+import { required } from "joi";
 
 const productSchema = new mongoose.Schema(
   {
@@ -257,6 +258,12 @@ const productSchema = new mongoose.Schema(
       },
     ],
 
+    is_active: {
+      type: Boolean,
+      required: true,
+      default: true,
+    },
+
     // Rating Summary - Aggregated from reviews by cron job
     rating_summary: {
       average_rating: {
@@ -278,17 +285,12 @@ const productSchema = new mongoose.Schema(
         type: Date,
         default: null,
       },
-      is_active: {
-        type: Boolean,
-        default: true,
-      },
     },
   },
   {
     timestamps: true,
   }
 );
-
 
 productSchema.index({ industry_unique_id: 1 });
 productSchema.index({ category_unique_id: 1 });
@@ -303,8 +305,6 @@ const ProductModel = async (tenantID) => {
   return db.models.Products || db.model("Products", productSchema);
 };
 export default ProductModel;
-
-
 
 //  product_name,
 //     sku,
