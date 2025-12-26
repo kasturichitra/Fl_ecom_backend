@@ -105,7 +105,6 @@ export const getCategoriesByIndustryIdService = async (tenantId, industry_unique
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "industry_unique_id is required");
 
-  // const CategoryDB = await CategoryModel(tenantId);
   const { categoryModelDB } = await getTenantModels(tenantId);
   return await categoryModelDB.find({ industry_unique_id }).sort({ createdAt: -1 }).lean();
 };
@@ -117,7 +116,6 @@ export const getCategoryByIdService = async (tenantId, targetId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!targetId, "category_unique_id is required");
 
-  // const CategoryDB = await CategoryModel(tenantId);
   const { categoryModelDB } = await getTenantModels(tenantId);
   return await categoryModelDB.findOne({ category_unique_id: targetId }).lean();
 };

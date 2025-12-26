@@ -1,23 +1,19 @@
-import fs from "fs";
-
-import throwIfTrue from "../utils/throwIfTrue.js";
-import BrandModel from "./brandModel.js";
-import { validateBrandCreate } from "./validations/validateBrandCreate.js";
-import { validateBrandUpdate } from "./validations/validateBrandUpdate.js";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { CategoryModel } from "../Category/categoryModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
-import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
-import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
-import { getTenantModels } from "../lib/tenantModelsCache.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
+import { validateBrandCreate } from "./validations/validateBrandCreate.js";
+import { validateBrandUpdate } from "./validations/validateBrandUpdate.js";
 // import { getTenantDatabases } from "../CronJobs/CornUtils/getTenantDatabases.js";
 
 // Create Brand
 export const createBrandService = async (tenantID, brandData, fileBuffer) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
-  const brandModelDB = await BrandModel(tenantID);
+  const { brandModelDB } = await getTenantModels(tenantID);
 
   const normalizedName = brandData.brand_name.trim().toLowerCase();
 
@@ -146,7 +142,7 @@ export const getBrandByIdService = async (tenantID, id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Brand ID is required");
 
-  const brandModelDB = await BrandModel(tenantID);
+  const { brandModelDB } = await getTenantModels(tenantID);
   const response = await brandModelDB.findById(id);
 
   return response;
@@ -157,7 +153,6 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Brand ID is required");
 
-  // const brandModelDB = await BrandModel(tenantID);
   const { brandModelDB } = await getTenantModels(tenantID);
 
   if (updateBrandData.brand_unique_id) {
@@ -204,10 +199,9 @@ export const updateBrandService = async (tenantID, id, updateBrandData, fileBuff
   // Cascade is_active change to products when provided
   if (updateBrandData.hasOwnProperty("is_active")) {
     const isActiveFlag = !!updateBrandData.is_active;
-    const ProductModel = (await import("../Products/productModel.js")).default;
-    const productModelInstance = await ProductModel(tenantID);
+    const { productModelDB } = await getTenantModels(tenantID);
 
-    await productModelInstance.updateMany(
+    await productModelDB.updateMany(
       { brand_unique_id: id },
       { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
     );
