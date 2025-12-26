@@ -1,25 +1,18 @@
-import fs from "fs";
-
-import throwIfTrue from "../utils/throwIfTrue.js";
-import ProductModel from "./productModel.js";
-import { validateProductData } from "./validations/validateProductCreate.js";
-import { validateProductUpdateData } from "./validations/validateProductUpdate.js";
-import parseFormData from "../utils/parseFormDataIntoJsonData.js";
-import { mergeExistingWithIncomingLists } from "../utils/mergeExistingWithIncomingLists.js";
-import { CategoryModel } from "../Category/categoryModel.js";
-import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
-import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
-import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { toArray, toTitleCase } from "../utils/conversions.js";
-import BrandModel from "../Brands/brandModel.js";
-import generateUniqueId from "../utils/generateUniqueId.js";
-import generateProductUniqueId from "./utils/generateProductUniqueId.js";
-import SaleTrendModel from "../SaleTrend/saleTrendModel.js";
+import { extractExcel, transformRow, validateRow } from "../utils/etl.js";
 import { generateQrPdfBuffer } from "../utils/generateQrPdf.js";
-import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
-import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
-import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { mergeExistingWithIncomingLists } from "../utils/mergeExistingWithIncomingLists.js";
+import parseFormData from "../utils/parseFormDataIntoJsonData.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
+import { generateExcelTemplate } from "./config/generateExcelTemplate.js";
+import { staticExcelHeaders } from "./config/staticExcelHeaders.js";
+import generateProductUniqueId from "./utils/generateProductUniqueId.js";
+import { validateProductData } from "./validations/validateProductCreate.js";
+import { validateProductUpdateData } from "./validations/validateProductUpdate.js";
 
 /**
  * Calculate all price-related fields for a product
@@ -76,25 +69,25 @@ export const createProductService = async (tenantId, productData, productImageBu
   // Parse product_attributes from form-data
   productData = parseFormData(productData, "product_attributes");
   // Normalize incoming is_active variants and coerce string values to boolean
-  if (!Object.prototype.hasOwnProperty.call(productData, "is_active")) {
-    if (Object.prototype.hasOwnProperty.call(productData, "isActive")) {
-      productData.is_active = productData.isActive;
-    } else if (Object.prototype.hasOwnProperty.call(productData, "is_Active")) {
-      productData.is_active = productData.is_Active;
-    }
-  }
-  if (typeof productData.is_active === "string") {
-    productData.is_active = productData.is_active === "true";
-  }
+  // if (!Object.prototype.hasOwnProperty.call(productData, "is_active")) {
+  //   if (Object.prototype.hasOwnProperty.call(productData, "isActive")) {
+  //     productData.is_active = productData.isActive;
+  //   } else if (Object.prototype.hasOwnProperty.call(productData, "is_Active")) {
+  //     productData.is_active = productData.is_Active;
+  //   }
+  // }
+  // if (typeof productData.is_active === "string") {
+  //   productData.is_active = productData.is_active === "true";
+  // }
   // const [CategoryModelDB, BrandModelDB, productModelDB] = await Promise.all([
   //   CategoryModel(tenantId),
   //   BrandModel(tenantId),
   //   ProductModel(tenantId),
   // ]);
-  const { brandModelDB: BrandModelDB, categoryModelDB: CategoryModelDB, productModelDB } = await getTenantModels(tenantId);
+  const { brandModelDB, categoryModelDB, productModelDB } = await getTenantModels(tenantId);
   const [existingBrand, existingCategory] = await Promise.all([
-    BrandModelDB.findOne({ brand_unique_id: productData.brand_unique_id }).lean(),
-    CategoryModelDB.findOne({ category_unique_id: productData.category_unique_id }).lean(),
+    brandModelDB.findOne({ brand_unique_id: productData.brand_unique_id }).lean(),
+    categoryModelDB.findOne({ category_unique_id: productData.category_unique_id }).lean(),
   ]);
   throwIfTrue(!existingBrand, `Brand not found with id: ${productData.brand_unique_id}`);
   throwIfTrue(!existingCategory, `Category not found with id: ${productData.category_unique_id}`);
@@ -149,7 +142,7 @@ export const createProductService = async (tenantId, productData, productImageBu
   productData = calculatePrices(productData);
   productData.product_unique_id = await generateProductUniqueId(
     productModelDB,
-    BrandModelDB,
+    brandModelDB,
     productData.brand_unique_id
   );
 
@@ -308,8 +301,8 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   let trendProductsMap = null;
   if (trend) {
     // const saleTrendModelDb = await SaleTrendModel(tenantId);
-    const { saleTrendModelDB: saleTrendModelDb } = await getTenantModels(tenantId);
-    const saleTrendData = await saleTrendModelDb.findOne({ trend_unique_id: trend }).lean();
+    const { saleTrendModelDB } = await getTenantModels(tenantId);
+    const saleTrendData = await saleTrendModelDB.findOne({ trend_unique_id: trend }).lean();
 
     if (saleTrendData) {
       query.product_unique_id = { $in: saleTrendData.trend_products.map((p) => p.product_unique_id) };
@@ -392,13 +385,20 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   pipeline.push({ $limit: limit });
 
   // Execute aggregation
-  // const data = await productModelDB.aggregate(pipeline);
+  const result = await productModelDB.aggregate([
+    ...pipeline.filter((stage) => !stage.$skip && !stage.$limit),
 
-  // const totalCount = await productModelDB.countDocuments(query);
-  const [data, totalCount] = await Promise.all([
-    productModelDB.aggregate(pipeline),
-    productModelDB.countDocuments(query),
+    {
+      $facet: {
+        data: [...pipeline.filter((stage) => stage.$skip || stage.$limit)],
+        totalCount: [{ $count: "count" }],
+      },
+    },
   ]);
+
+  const data = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
+
   return {
     totalCount,
     page,
@@ -791,10 +791,9 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
 export const downloadExcelTemplateService = async (tenantId, category_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  // const CategoryModelDB = await CategoryModel(tenantId);
-  const { categoryModelDB: CategoryModelDB, brandModelDB } = await getTenantModels(tenantId);
+  const { categoryModelDB, brandModelDB } = await getTenantModels(tenantId);
 
-  const categoryData = await CategoryModelDB.findOne({ category_unique_id });
+  const categoryData = await categoryModelDB.findOne({ category_unique_id });
   throwIfTrue(!categoryData, `Category not found with id: ${category_unique_id}`);
 
   const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : undefined;
@@ -926,15 +925,12 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
       valid.push(transformRow(row.raw, staticExcelHeaders));
     }
   }
-  // const CategoryModelDB = await CategoryModel(tenantId);
-  const { categoryModelDB: CategoryModelDB, brandModelDB: BrandModelDB, productModelDB } = await getTenantModels(tenantId);
-  const existingCategory = await CategoryModelDB.findOne({ category_unique_id });
+  const { categoryModelDB, brandModelDB, productModelDB } = await getTenantModels(tenantId);
+  const existingCategory = await categoryModelDB.findOne({ category_unique_id });
   throwIfTrue(!existingCategory, `Category not found with id: ${category_unique_id}`);
   if (valid.length) {
-    // const ProductModelDB = await ProductModel(tenantId);
-    // const BrandModelDB = await BrandModel(tenantId);
     for (let i = 0; i < valid.length; i++) {
-      const existingBrand = await BrandModelDB.findOne({
+      const existingBrand = await brandModelDB.findOne({
         brand_unique_id: valid[i].brand_unique_id,
       });
       if (!existingBrand) {
@@ -1058,7 +1054,6 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
 export const getProductByIdService = async (tenantId, id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  // const productModelDB = await ProductModel(tenantId);
   const { productModelDB } = await getTenantModels(tenantId);
   const response = await productModelDB.findOne({ _id: id });
 
@@ -1067,8 +1062,8 @@ export const getProductByIdService = async (tenantId, id) => {
 
 //This function is get by products based on subCategory_unique_ID
 export const getProductsBySubUniqueIDService = async (tenantId, category_unique_id) => {
-  if (!tenantId) throw new Error("Tenent ID is required");
-  // const productModelDB = await ProductModel(tenantId);
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
   const { productModelDB } = await getTenantModels(tenantId);
 
   const response = await productModelDB.find({
@@ -1079,11 +1074,10 @@ export const getProductsBySubUniqueIDService = async (tenantId, category_unique_
 };
 
 export const generateProductQrPdfService = async (tenantId, data) => {
-  if (!tenantId) throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { product_unique_id, quantity = 1 } = data;
 
-  // const productModelDB = await ProductModel(tenantId);
   const { productModelDB } = await getTenantModels(tenantId);
   const existingProduct = await productModelDB.findOne({
     product_unique_id: product_unique_id,
