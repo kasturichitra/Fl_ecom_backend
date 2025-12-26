@@ -1,13 +1,12 @@
-import OrdersModel from "../Orders/orderModel.js";
-import UserModel from "../Users/userModel.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
+import { getTenantModels } from "../utils/tenantModels.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   let { from, to, payment_status, order_type, cash_on_delivery, payment_method } = filters;
 
-  const OrderModelDB = await OrdersModel(tenantId);
+  const { orderModelDB } = await getTenantModels(tenantId);
 
   // Apply filters
   const baseQuery = {};
@@ -50,7 +49,7 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   });
 
   // AGGREGATION: GROUP ONLY BY ORDER_STATUS
-  const stats = await OrderModelDB.aggregate([
+  const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
     {
       $group: {
@@ -78,7 +77,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   let { from, to, order_status, order_type, cash_on_delivery } = filters;
 
-  const OrderModelDB = await OrdersModel(tenantId);
+  const { orderModelDB } = await getTenantModels(tenantId);
 
   // Apply filters
   const baseQuery = {};
@@ -123,7 +122,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   });
 
   // AGGREGATE BY PAYMENT METHOD
-  const stats = await OrderModelDB.aggregate([
+  const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
     {
       $group: {
@@ -151,7 +150,7 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
 
   let { from, to, payment_status, payment_method, cash_on_delivery, order_status } = filters;
 
-  const OrderModelDB = await OrdersModel(tenantId);
+  const { orderModelDB } = await getTenantModels(tenantId);
 
   // Build query
   const baseQuery = {};
@@ -197,7 +196,7 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   });
 
   // Aggregate by order_type
-  const stats = await OrderModelDB.aggregate([
+  const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
     {
       $group: {
@@ -226,7 +225,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   let { period, year, from, to } = filters;
 
   // Get the Orders model for this tenant
-  const OrderModelDB = await OrdersModel(tenantId);
+  const { orderModelDB } = await getTenantModels(tenantId);
 
   // Build the match criteria
   let matchCriteria = {};
@@ -281,7 +280,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-  const aggregationResult = await OrderModelDB.aggregate(pipeline);
+  const aggregationResult = await orderModelDB.aggregate(pipeline);
 
   // Initialize all 12 months with default values
   const allMonths = Array.from({ length: 12 }, (_, i) => ({
@@ -310,7 +309,7 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
   let { period, year, from, to } = filters;
 
-  const UserModelDB = await UserModel(tenantId);
+  const { userModelDB } = await getTenantModels(tenantId);
 
   let matchCriteria = {
     role: "user",
@@ -364,7 +363,7 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-  const aggregationResult = await UserModelDB.aggregate(pipeline);
+  const aggregationResult = await userModelDB.aggregate(pipeline);
 
   const allMonths = Array.from({ length: 12 }, (_, index) => ({
     month: index + 1,
@@ -386,7 +385,7 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 };
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
-  const Orders = await OrdersModel(tenantID);
+  const { orderModelDB } = await getTenantModels(tenantID);
   const { category_unique_id, from, to } = filters;
 
   // normalize the ID – prevent "" or " "
@@ -491,13 +490,13 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
     },
   ];
 
-  const brands = await Orders.aggregate(pipeline);
+  const brands = await orderModelDB.aggregate(pipeline);
 
   return { brands };
 };
 
 export const getTopProductsByCategoryService = async (tenantID, filters = {}) => {
-  const Orders = await OrdersModel(tenantID);
+  const { orderModelDB } = await getTenantModels(tenantID);
   const { category_unique_id, from, to } = filters;
 
   // normalize the ID – prevent "" or " "
@@ -588,6 +587,6 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
     },
   ];
 
-  const products = await Orders.aggregate(pipeline);
+  const products = await orderModelDB.aggregate(pipeline);
   return { products };
 };
