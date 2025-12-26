@@ -1,5 +1,5 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
-import { getTenantModels } from "../utils/tenantModels.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
