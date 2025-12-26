@@ -258,6 +258,14 @@ export const orderValidationSchema = Joi.object({
     otherwise: Joi.forbidden(),
   }),
 
+  offline_address: Joi.when("order_type", {
+    is: "Offline",
+    then: Joi.string().trim().optional().allow("", null).messages({
+      "string.base": "Offline address must be a string.",
+    }),
+    otherwise: Joi.forbidden(),
+  }),
+
   shipping_charges: Joi.when("order_type", {
     is: "Online",
     then: Joi.number().min(0).required().messages({

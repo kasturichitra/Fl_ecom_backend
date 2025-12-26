@@ -130,6 +130,7 @@ const orderUpdateSchema = Joi.object({
   shipping_charges: Joi.number().min(0),
 
   currency: Joi.string(),
+  offline_address: Joi.string().optional(),
 });
 
 export function validateOrderUpdate(data) {

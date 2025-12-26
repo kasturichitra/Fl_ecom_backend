@@ -227,6 +227,10 @@ const orderSchema = new mongoose.Schema(
     },
 
     address: addressSchema,
+    offline_address: {
+      type: String,
+      trim: true,
+    },
     base_price: { type: Number, required: true, min: 0 },
     tax_value: { type: Number, default: 0 },
     discount_price: { type: Number, default: 0 },
