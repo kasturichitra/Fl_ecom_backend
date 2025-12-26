@@ -1,12 +1,12 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
-import ConfigModel from "./configModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 
 // Create Config
 export const createConfigService = async (tenantID, configData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
 
   // Check if a config already exists (usually one config per tenant)
   const existingConfig = await configModelDB.findOne({});
@@ -29,7 +29,7 @@ export const getAllConfigsService = async (tenantID, filters) => {
 
   const skip = (page - 1) * limit;
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
   const query = {};
 
   // Search term - searching across various fields
@@ -43,9 +43,19 @@ export const getAllConfigsService = async (tenantID, filters) => {
 
   // Sorting logic
   const sortObj = buildSortObject(sort);
-  const configs = await configModelDB.find(query).sort(sortObj).skip(skip).limit(Number(limit));
+  const result = await configModelDB.aggregate([
+    { $match: query },
 
-  const totalCount = await configModelDB.countDocuments(query);
+    {
+      $facet: {
+        data: [{ $sort: sortObj }, { $skip: skip }, { $limit: Number(limit) }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
+
+  const configs = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
 
   return {
     totalCount,
@@ -61,7 +71,7 @@ export const getConfigByIdService = async (tenantID, id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Config ID is required");
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
   const response = await configModelDB.findById(id);
 
   throwIfTrue(!response, `Config not found with id: ${id}`);
@@ -73,7 +83,7 @@ export const getConfigByIdService = async (tenantID, id) => {
 export const getCurrentConfigService = async (tenantID) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
   const response = await configModelDB.findOne({});
 
   return response;
@@ -84,7 +94,7 @@ export const updateConfigService = async (tenantID, id, updateConfigData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Config ID is required");
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
 
   const existingConfig = await configModelDB.findById(id);
   throwIfTrue(!existingConfig, `Config not found with id: ${id}`);
@@ -102,7 +112,7 @@ export const deleteConfigService = async (tenantID, id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!id, "Config ID is required");
 
-  const configModelDB = await ConfigModel(tenantID);
+  const { configModelDB } = await getTenantModels(tenantID);
 
   const existingConfig = await configModelDB.findById(id);
   throwIfTrue(!existingConfig, `Config not found with id: ${id}`);
