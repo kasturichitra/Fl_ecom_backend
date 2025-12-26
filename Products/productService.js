@@ -75,6 +75,17 @@ export const createProductService = async (tenantId, productData, productImageBu
   throwIfTrue(!tenantId, "Tenant ID is required");
   // Parse product_attributes from form-data
   productData = parseFormData(productData, "product_attributes");
+  // Normalize incoming is_active variants and coerce string values to boolean
+  if (!Object.prototype.hasOwnProperty.call(productData, "is_active")) {
+    if (Object.prototype.hasOwnProperty.call(productData, "isActive")) {
+      productData.is_active = productData.isActive;
+    } else if (Object.prototype.hasOwnProperty.call(productData, "is_Active")) {
+      productData.is_active = productData.is_Active;
+    }
+  }
+  if (typeof productData.is_active === "string") {
+    productData.is_active = productData.is_active === "true";
+  }
   // const [CategoryModelDB, BrandModelDB, productModelDB] = await Promise.all([
   //   CategoryModel(tenantId),
   //   BrandModel(tenantId),
@@ -200,6 +211,7 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     searchTerm,
     page = 1,
     limit = 10,
+    is_active,
   } = filters;
 
   const query = {};
@@ -221,6 +233,13 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
+
+  // --- ACTIVE STATE FILTER ---
+  if (is_active !== undefined) {
+    if (is_active === "true") query.is_active = true;
+    else if (is_active === "false") query.is_active = false;
+    else if (typeof is_active === "boolean") query.is_active = is_active;
+  }
 
   // --- MULTIPLE FILTER SUPPORT ---
   const brandIds = toArray(brand_unique_id);
