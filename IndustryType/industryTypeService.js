@@ -153,11 +153,23 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
   if (!updated) throw new Error("Industry Type not found");
 
   // Cascade is_active
+  // Cascade is_active -> update categories and products (optimized)
   if (updates.hasOwnProperty("is_active")) {
-    await categoryModelInstance.updateMany(
-      { industry_unique_id },
-      { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
-    );
+    const isActiveFlag = !!updates.is_active;
+    const ProductModel = (await import("../Products/productModel.js")).default;
+    const productModelInstance = await ProductModel(tenantID);
+
+    // Run both updates in parallel using updateMany for best performance
+    await Promise.all([
+      categoryModelInstance.updateMany(
+        { industry_unique_id },
+        { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
+      ),
+      productModelInstance.updateMany(
+        { industry_unique_id },
+        { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
+      ),
+    ]);
   }
 
   return updated;
