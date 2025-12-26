@@ -1,11 +1,11 @@
 import path from "path";
+import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import throwIfTrue from "../utils/throwIfTrue.js";
-import IndustryTypeModel from "./industryTypeModel.js";
 import { toTitleCase } from "../utils/conversions.js";
 import generateUniqueId from "../utils/generateUniqueId.js";
-import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
-import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 
 /* ---------------------------------------------
    CREATE INDUSTRY
@@ -14,17 +14,18 @@ import { autoDeleteFromS3 } from "../lib/aws-s3/autoDeleteFromS3.js";
 export const createIndustryTypeServices = async (tenantID, data, fileBuffer, user_id = "69259c7026c2856821c44ced") => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!data.industry_name || !data.industry_name.trim(), "Industry Name is required");
-  const IndustryModel = await IndustryTypeModel(tenantID);
+  // const IndustryModel = await IndustryTypeModel(tenantID);
+  const { industryTypeModelDB } = await getTenantModels(tenantID);
 
   const normalizedName = data.industry_name.trim().toLowerCase();
 
-  const existingIndustry = await IndustryModel.exists({
+  const existingIndustry = await industryTypeModelDB.exists({
     industry_name: { $regex: `^${normalizedName}$`, $options: "i" },
   });
 
   throwIfTrue(existingIndustry, "Industry Type with this Name already exists");
 
-  const industry_unique_id = await generateUniqueId(IndustryModel, "IND", "industry_unique_id");
+  const industry_unique_id = await generateUniqueId(industryTypeModelDB, "IND", "industry_unique_id");
 
   const industry_name = toTitleCase(data.industry_name);
 
@@ -38,7 +39,7 @@ export const createIndustryTypeServices = async (tenantID, data, fileBuffer, use
     });
   }
 
-  return await IndustryModel.create({
+  return await industryTypeModelDB.create({
     ...data,
     industry_name,
     industry_unique_id,
@@ -67,7 +68,7 @@ export const getIndustrysSearchServices = async (
 ) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
-  const IndustryModel = await IndustryTypeModel(tenantID);
+  const { industryTypeModelDB } = await getTenantModels(tenantID);
   const skip = (page - 1) * limit;
   const r = (v) => ({ $regex: v?.trim() || "", $options: "i" });
 
@@ -100,10 +101,19 @@ export const getIndustrysSearchServices = async (
       }
     : filter;
   const sortObj = buildSortObject(sortParam);
-  const [industryData, totalCount] = await Promise.all([
-    IndustryModel.find(query).skip(skip).limit(+limit).sort(sortObj).lean(),
-    IndustryModel.countDocuments(query),
+  const result = await industryTypeModelDB.aggregate([
+    { $match: query },
+
+    {
+      $facet: {
+        data: [{ $sort: sortObj }, { $skip: skip }, { $limit: +limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
   ]);
+
+  const industryData = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
 
   return {
     industryData,
@@ -119,13 +129,13 @@ export const getIndustrysSearchServices = async (
 export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates, fileBuffer) => {
   if (!tenantID || !industry_unique_id) throw new Error("Tenant ID & Industry ID required");
 
-  const IndustryModel = await IndustryTypeModel(tenantID);
+  const { industryTypeModelDB } = await getTenantModels(tenantID);
 
   // Lazy-load CategoryModel ONLY when needed → breaks circular dependency
   const CategoryModel = (await import("../Category/categoryModel.js")).CategoryModel;
   const categoryModelInstance = await CategoryModel(tenantID);
 
-  const existingIndustry = await IndustryModel.findOne({ industry_unique_id }).lean();
+  const existingIndustry = await industryTypeModelDB.findOne({ industry_unique_id }).lean();
   throwIfTrue(!existingIndustry, "Industry Type not found");
 
   let image_url = null;
@@ -144,11 +154,13 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
     await Promise.all(urls.map(autoDeleteFromS3));
   }
 
-  const updated = await IndustryModel.findOneAndUpdate(
-    { industry_unique_id },
-    { $set: { ...updates, image_url, updatedAt: new Date() } },
-    { new: true, fields: { image_url: 1, is_active: 1 } }
-  ).lean();
+  const updated = await industryTypeModelDB
+    .findOneAndUpdate(
+      { industry_unique_id },
+      { $set: { ...updates, image_url, updatedAt: new Date() } },
+      { new: true, fields: { image_url: 1, is_active: 1 } }
+    )
+    .lean();
 
   if (!updated) throw new Error("Industry Type not found");
 
@@ -181,165 +193,13 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "Industry Type Unique ID is required");
 
-  const IndustryModel = await IndustryTypeModel(tenantID);
+  const { industryTypeModelDB } = await getTenantModels(tenantID);
 
   // One query: get image_url + delete atomically
-  const doc = await IndustryModel.findOneAndDelete({ industry_unique_id }).select("image_url").lean();
+  const doc = await industryTypeModelDB.findOneAndDelete({ industry_unique_id }).select("image_url").lean();
 
   if (!doc) throw new Error("Industry Type not found");
   if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
 
   return doc;
 };
-
-// import IndustryTypeModel from "./industryTypeModel.js";
-// import fs from "fs";
-// import path from "path";
-// import throwIfTrue from "../utils/throwIfTrue.js";
-
-// export const createIndustryTypeServices = async (tenantID, data) => {
-//   throwIfTrue(!tenantID, "Tenant ID is required");
-
-//   const industryModelDB = await IndustryTypeModel(tenantID);
-
-//   const existing = await industryModelDB.findOne({
-//     industry_unique_id: data.industry_unique_id,
-//   });
-//   throwIfTrue(existing, "Industry Type with this ID already exists");
-
-//   const newIndustry = await industryModelDB.create({
-//     industry_unique_id: data.industry_unique_id,
-//     industry_name: data.industry_name,
-//     description: data.description || "",
-//     is_active: typeof data.is_active === "boolean" ? data.is_active : true,
-//     created_by: data.created_by || "System",
-//     updated_by: data.updated_by || null,
-//     image_url: data.image_url || null,
-//   });
-
-//   return newIndustry;
-// };
-
-// export const getIndustrysSearchServices = async (
-//   tenantID,
-//   search = "",
-//   industry_name,
-//   industry_unique_id,
-//   is_active,
-//   created_by,
-//   startDate,
-//   endDate,
-//   page = 1,
-//   limit = 10
-// ) => {
-//   throwIfTrue(!tenantID, "Tenant ID is required");
-
-//   const IndustryModel = await IndustryTypeModel(tenantID);
-
-//   const skip = (page - 1) * limit;
-
-//   const globalSearch = search
-//     ? {
-//         $or: [
-//           { industry_name: { $regex: search, $options: "i" } },
-//           { industry_unique_id: { $regex: search, $options: "i" } },
-//           { description: { $regex: search, $options: "i" } },
-//           { created_by: { $regex: search, $options: "i" } },
-//         ],
-//       }
-//     : {};
-
-//   const filterSearch = {};
-
-//   if (industry_name) {
-//     filterSearch.industry_name = { $regex: industry_name, $options: "i" };
-//   }
-
-//   if (industry_unique_id) {
-//     filterSearch.industry_unique_id = {
-//       $regex: industry_unique_id,
-//       $options: "i",
-//     };
-//   }
-
-//   if (is_active !== undefined) {
-//     filterSearch.is_active = is_active === "true";
-//   }
-
-//   if (created_by) {
-//     filterSearch.created_by = { $regex: created_by, $options: "i" };
-//   }
-
-//   if (startDate || endDate) {
-//     filterSearch.createdAt = {};
-//     if (startDate) filterSearch.createdAt.$gte = new Date(startDate);
-//     if (endDate) filterSearch.createdAt.$lte = new Date(endDate);
-//   }
-
-//   const finalQuery = search ? { $and: [globalSearch, filterSearch] } : { ...filterSearch };
-
-//   const industryData = await IndustryModel.find(finalQuery).skip(skip).limit(Number(limit)).sort({ createdAt: -1 });
-
-//   const totalCount = await IndustryModel.countDocuments(finalQuery);
-
-//   return {
-//     industryData,
-//     totalCount,
-//     currentPage: page,
-//     totalPages: Math.ceil(totalCount / limit),
-//   };
-// };
-
-// export const updateIndustrytypeServices = async (tenantID, industry_unique_id, updates) => {
-//   throwIfTrue(!tenantID, "Tenant ID is required");
-//   throwIfTrue(!industry_unique_id, "Industry Unique ID is required");
-
-//   const industryModelDB = await IndustryTypeModel(tenantID);
-
-//   const existingIndustry = await industryModelDB.findOne({ industry_unique_id });
-
-//   throwIfTrue(!existingIndustry, "Industry Type not found");
-
-//   if (updates.image_url && existingIndustry.image_url) {
-//     const oldImagePath = path.resolve(existingIndustry.image_url);
-//     if (fs.existsSync(oldImagePath)) {
-//       try {
-//         fs.unlinkSync(oldImagePath);
-//       } catch (err) {
-//         console.error("Error deleting old image:", err.message);
-//       }
-//     }
-//   }
-
-//   updates.updatedAt = new Date();
-
-//   const updatedIndustry = await industryModelDB.findOneAndUpdate(
-//     { industry_unique_id },
-//     { $set: updates },
-//     { new: true }
-//   );
-
-//   return updatedIndustry;
-// };
-
-// export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) => {
-//   throwIfTrue(!tenantID, "Tenant ID is required");
-//   throwIfTrue(!industry_unique_id, "Industry Type Unique ID is required");
-
-//   const industryModelDB = await IndustryTypeModel(tenantID);
-
-//   const existing = await industryModelDB.findOne({ industry_unique_id });
-
-//   throwIfTrue(!existing, "Industry Type not found");
-
-//   if (existing.image_url && fs.existsSync(existing.image_url)) {
-//     try {
-//       fs.unlinkSync(existing.image_url);
-//     } catch (unlinkErr) {
-//       console.error("Error deleting image:", unlinkErr.message);
-//     }
-//   }
-//   const response = await industryModelDB.findOneAndDelete({ industry_unique_id });
-
-//   return response;
-// };
