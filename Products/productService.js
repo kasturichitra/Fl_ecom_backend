@@ -164,6 +164,8 @@ export const createProductService = async (tenantId, productData, productImageBu
     productData.product_images = await Promise.all(uploadPromises);
   }
 
+  console.log("Final product data to be created: ", productData);
+
   // Validation
   const { isValid, message } = validateProductData(productData);
   throwIfTrue(!isValid, message);
