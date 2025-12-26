@@ -1,14 +1,10 @@
-import CartModel from "../Cart/cartModel.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
-import ProductModel from "../Products/productModel.js";
-import UserModel from "../Users/userModel.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { fcm } from "../utils/firebase-admin.js";
 import generateNextOrderId from "../utils/generateOrderId.js";
 import { getFcmToken } from "../utils/getFcmToken.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
-import OrdersModel from "./orderModel.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 
 //   Decrease product stock (called after order is saved)
@@ -104,8 +100,11 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   // const OrderModelDB = await OrdersModel(tenantId);
   // const UserModelDB = await UserModel(tenantId);
   // const ProductModelDB = await ProductModel(tenantId);
-  const { orderModelDB: OrderModelDB, userModelDB: UserModelDB, productModelDB: ProductModelDB } =
-    await getTenantModels(tenantId);
+  const {
+    orderModelDB: OrderModelDB,
+    userModelDB: UserModelDB,
+    productModelDB: ProductModelDB,
+  } = await getTenantModels(tenantId);
   // User validation
   let userDoc = null;
   let username = null;
@@ -403,9 +402,23 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   // const OrderModelDB = await OrdersModel(tenantId);
   const { orderModelDB: OrderModelDB } = await getTenantModels(tenantId);
 
-  const orders = await OrderModelDB.find(query).skip(skip).limit(limit).sort(sortObj);
+  /* -------------------------------------------------------------
+     🔥 OPTIMIZED QUERY with $facet (Single DB Call)
+  -------------------------------------------------------------- */
+  const pipeline = [
+    { $match: query },
+    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
 
-  const totalCount = await OrderModelDB.countDocuments(query);
+  const result = await OrderModelDB.aggregate(pipeline);
+  const orders = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
 
   return {
     totalCount,

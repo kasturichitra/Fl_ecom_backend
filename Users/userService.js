@@ -1,19 +1,10 @@
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
-import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
-import throwIfTrue from "../utils/throwIfTrue.js";
-import UserModel from "./userModel.js";
-import { validateUserCreate } from "./validationUser.js";
-import { buildSortObject } from "../utils/buildSortObject.js";
-import { fcm } from "../utils/firebase-admin.js";
-import OrdersModel from "../Orders/orderModel.js";
-import WishlistModel from "../Wishlist/wishlistModel.js";
-import CartModel from "../Cart/cartModel.js";
-import { NotificationModel } from "../Notification/notificationModel.js";
-import OtpModel from "../Auth/otpModel.js";
-import deviceSessionModel from "../Auth/deviceSessionModel.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
+import { validateUserCreate } from "./validationUser.js";
 
 export const getAllUsersService = async (tenantId, filters) => {
   let {
@@ -66,9 +57,24 @@ export const getAllUsersService = async (tenantId, filters) => {
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const users = await usersDB.find(query).sort(sortObj).skip(skip).limit(limit);
 
-  const totalCount = await usersDB.countDocuments(query);
+  /* -------------------------------------------------------------
+     🔥 OPTIMIZED QUERY with $facet (Single DB Call)
+  -------------------------------------------------------------- */
+  const pipeline = [
+    { $match: query },
+    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
+
+  const result = await usersDB.aggregate(pipeline);
+  const users = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
 
   return {
     totalCount,
@@ -120,7 +126,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch { }
+    } catch {}
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -259,7 +265,15 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   throwIfTrue(!tenantId || !user_id, "Required fields missing");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB, orderModelDB: OrderModelDB, wishlistModelDB: WishlistModelDB, cartModelDB: CartModelDB, notificationModelDB: NotificationModelDB, otpModelDB: OtpModelDB, deviceSessionModelDB: DeviceModelDB } = await getTenantModels(tenantId);
+  const {
+    userModelDB: usersDB,
+    orderModelDB: OrderModelDB,
+    wishlistModelDB: WishlistModelDB,
+    cartModelDB: CartModelDB,
+    notificationModelDB: NotificationModelDB,
+    otpModelDB: OtpModelDB,
+    deviceSessionModelDB: DeviceModelDB,
+  } = await getTenantModels(tenantId);
   const user = await usersDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
