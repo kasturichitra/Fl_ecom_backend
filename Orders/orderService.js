@@ -447,6 +447,13 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     order.address = updateData.address;
   }
 
+  // Handle Offline Address Update (for Offline orders)
+  if (Object.prototype.hasOwnProperty.call(updateData, "offline_address")) {
+    const hasShipped = order.order_Products.some((p) => ["Shipped", "Delivered"].includes(p.status));
+    throwIfTrue(hasShipped, "Cannot change offline address after any item is shipped");
+    order.offline_address = updateData.offline_address;
+  }
+
   // Handle Individual Product Status Updates
   if (updateData.order_Products && Array.isArray(updateData.order_Products)) {
     for (const updateProd of updateData.order_Products) {
