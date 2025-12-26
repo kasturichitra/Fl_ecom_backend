@@ -1,7 +1,5 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
-import CartModel from "./cartModel.js";
-import ProductModel from "../Products/productModel.js";
-import WishlistModel from "../Wishlist/wishlistModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 export const addToCartService = async (tenantID, cartData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
@@ -9,8 +7,7 @@ export const addToCartService = async (tenantID, cartData) => {
   throwIfTrue(!cartData?.product_unique_id, "Product unique ID is required");
   throwIfTrue(!cartData?.quantity || cartData?.quantity < 1, "Valid quantity is required");
 
-  const cartModelDB = await CartModel(tenantID);
-  const wishlistDB = await WishlistModel(tenantID);
+  const { cartModelDB, wishlistDB } = await getTenantModels(tenantID);
 
   let cart = await cartModelDB.findOne({ user_id: cartData.user_id });
 
@@ -40,7 +37,10 @@ export const addToCartService = async (tenantID, cartData) => {
   }
 
   // Remove only the products that are added to cart from wishlist
-  const existingWishlist = await wishlistDB.findOne({ user_id: cartData.user_id, products: cartData.product_unique_id });
+  const existingWishlist = await wishlistDB.findOne({
+    user_id: cartData.user_id,
+    products: cartData.product_unique_id,
+  });
   if (existingWishlist) {
     existingWishlist.products = existingWishlist.products.filter((item) => item !== cartData.product_unique_id);
     await existingWishlist.save();
@@ -53,8 +53,7 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const cartModelDB = await CartModel(tenantID);
-  const productModelDB = await ProductModel(tenantID);
+  const { cartModelDB, productModelDB } = await getTenantModels(tenantID);
 
   const cart = await cartModelDB.findOne({ user_id });
 
@@ -103,7 +102,7 @@ export const removeFromCartService = async (tenantID, user_id, product_unique_id
   throwIfTrue(!user_id, "User ID is required");
   throwIfTrue(!product_unique_id, "Product unique ID is required");
 
-  const cartModelDB = await CartModel(tenantID);
+  const { cartModelDB } = await getTenantModels(tenantID);
 
   const cart = await cartModelDB.findOne({ user_id });
   throwIfTrue(!cart, "Cart not found for this user");
@@ -121,8 +120,7 @@ export const updateCartQuantityService = async (tenantID, user_id, product_uniqu
   throwIfTrue(!product_unique_id, "Product unique ID is required");
   throwIfTrue(!quantity || quantity < 1, "Valid quantity is required");
 
-  const cartModelDB = await CartModel(tenantID);
-  const productModelDB = await ProductModel(tenantID);
+  const { cartModelDB, productModelDB } = await getTenantModels(tenantID);
 
   const cart = await cartModelDB.findOne({ user_id });
   throwIfTrue(!cart, "Cart not found for this user");
@@ -152,7 +150,7 @@ export const clearCartService = async (tenantID, user_id) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!user_id, "User ID is required");
 
-  const cartModelDB = await CartModel(tenantID);
+  const { cartModelDB } = await getTenantModels(tenantID);
 
   const cart = await cartModelDB.findOne({ user_id });
   throwIfTrue(!cart, "Cart not found for this user");
