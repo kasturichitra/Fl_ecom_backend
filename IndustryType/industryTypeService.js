@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";

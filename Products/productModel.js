@@ -278,6 +278,10 @@ const productSchema = new mongoose.Schema(
         type: Date,
         default: null,
       },
+      is_active: {
+        type: Boolean,
+        default: true,
+      },
     },
   },
   {

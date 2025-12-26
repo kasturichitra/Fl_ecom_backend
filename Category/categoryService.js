@@ -166,6 +166,7 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
 
   // Auto inactive all products if category inactivated
   if ("is_active" in updates) {
+    console.log("Updating products is_active to ", !!updates.is_active);
     await productModelDB.updateMany(
       { category_unique_id },
       { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
