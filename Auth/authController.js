@@ -10,6 +10,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import deviceSessionModel from "./deviceSessionModel.js";
 import otpModel from "./otpModel.js";
 import { DEVICE_SESSION_EXPIRY_TIME } from "../lib/constants.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 export const registerUserController = async (req, res) => {
   try {
@@ -32,17 +33,16 @@ export const registerUserController = async (req, res) => {
       });
     }
 
-    const otpDb = await otpModel(tenantId);
-    const usersDB = await UserModel(tenantId);
+    const { otpModelDB, userModelDB } = await getTenantModels(tenantId);
 
-    const existingUser = await usersDB.findOne({
+    const existingUser = await userModelDB.findOne({
       $or: [{ email }, { phone_number }],
     });
     throwIfTrue(existingUser, `User with phone number ${phone_number} or email ${email} already exists`);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await usersDB.create({
+    const user = await userModelDB.create({
       username,
       email,
       phone_number,
@@ -52,7 +52,7 @@ export const registerUserController = async (req, res) => {
 
     const { otp_id } = await generateAndSendOtp(
       { user_id: user._id, device_id, purpose: "SIGN_UP", email, phone_number },
-      otpDb
+      otpModelDB
     );
 
     res.status(201).json({
@@ -86,10 +86,8 @@ export const loginUserController = async (req, res) => {
       });
     }
 
-    const deviceSessionDb = await deviceSessionModel(tenantId);
-    const usersDB = await UserModel(tenantId);
-    const otpDb = await otpModel(tenantId);
-    const existingUser = await usersDB.findOne({ $or: [{ email }, { phone_number }] });
+    const { deviceSessionModelDB, userModelDB, otpModelDB } = await getTenantModels(tenantId);
+    const existingUser = await userModelDB.findOne({ $or: [{ email }, { phone_number }] });
     throwIfTrue(!existingUser, "User not found");
 
     if (!existingUser.is_active) return res.json(errorResponse("OTP Verification is required"));
@@ -97,7 +95,11 @@ export const loginUserController = async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
     throwIfTrue(!isValidPassword, "Invalid password");
 
-    let device = await deviceSessionDb.findOne({ user_id: existingUser._id, device_id: device_id, revoked_at: null });
+    let device = await deviceSessionModelDB.findOne({
+      user_id: existingUser._id,
+      device_id: device_id,
+      revoked_at: null,
+    });
 
     // 🟡 NEW DEVICE
     if (!device) {
@@ -108,7 +110,7 @@ export const loginUserController = async (req, res) => {
         email,
         phone_number,
       };
-      const { otp_id } = await generateAndSendOtp(options, otpDb);
+      const { otp_id } = await generateAndSendOtp(options, otpModelDB);
       return res.json({ requireOtp: true, reason: "NEW_DEVICE", otp_id });
     }
 
@@ -121,7 +123,7 @@ export const loginUserController = async (req, res) => {
         email,
         phone_number,
       };
-      const { otp_id } = await generateAndSendOtp(options, otpDb);
+      const { otp_id } = await generateAndSendOtp(options, otpModelDB);
       return res.json({ requireOtp: true, reason: "DEVICE_SESSION_EXPIRED", otp_id });
     }
 
@@ -154,10 +156,9 @@ export const resendOtpController = async (req, res) => {
     const { otp_id } = req.body;
     throwIfTrue(!otp_id, "otp_id is required");
 
-    const otpDb = await otpModel(tenantId);
-    const userDb = await UserModel(tenantId);
+    const { otpModelDB } = await getTenantModels(tenantId);
 
-    const oldOtp = await otpDb.findOne({
+    const oldOtp = await otpModelDB.findOne({
       _id: otp_id,
       consumed_at: null,
       expires_at: { $gt: new Date() },
@@ -176,7 +177,7 @@ export const resendOtpController = async (req, res) => {
 
     throwIfTrue(!oldOtp, "OTP expired. Please restart login.");
 
-    const existingUser = await userDb.findOne({ _id: oldOtp.user_id });
+    const existingUser = await userModelDB.findOne({ _id: oldOtp.user_id });
     throwIfTrue(!existingUser, "User not found");
 
     // 🔥 Invalidate old OTP
@@ -192,7 +193,7 @@ export const resendOtpController = async (req, res) => {
         email: existingUser.email,
         phone_number: existingUser.phone_number,
       },
-      otpDb
+      otpModelDB
     );
 
     res.status(200).json({
@@ -211,11 +212,9 @@ export const verifyOtpController = async (req, res) => {
 
   const { otp, device_name, otp_id } = req.body;
 
-  const otpDb = await otpModel(tenantId);
-  const deviceSessionDb = await deviceSessionModel(tenantId);
-  const userDb = await UserModel(tenantId);
+  const { otpModelDB, deviceSessionModelDB, userModelDB } = await getTenantModels(tenantId);
 
-  const record = await otpDb.findOne({
+  const record = await otpModelDB.findOne({
     _id: otp_id,
     consumed_at: null,
     expires_at: { $gt: new Date() },
@@ -235,9 +234,9 @@ export const verifyOtpController = async (req, res) => {
 
   // 🔵 SIGNUP FLOW
   if (purpose === "SIGN_UP") {
-    await userDb.findByIdAndUpdate(user_id, { is_active: true });
+    await userModelDB.findByIdAndUpdate(user_id, { is_active: true });
 
-    await deviceSessionDb.create({
+    await deviceSessionModelDB.create({
       user_id,
       device_id,
       device_name,
@@ -252,7 +251,7 @@ export const verifyOtpController = async (req, res) => {
 
   // 🟡 NEW DEVICE
   if (purpose === "NEW_DEVICE") {
-    await deviceSessionDb.create({
+    await deviceSessionModelDB.create({
       user_id,
       device_id,
       device_name,
@@ -267,7 +266,7 @@ export const verifyOtpController = async (req, res) => {
 
   // 🔴 PASSWORD EXPIRED
   if (purpose === "DEVICE_SESSION_EXPIRED") {
-    await deviceSessionDb.updateOne(
+    await deviceSessionModelDB.updateOne(
       { user_id, device_id },
       { expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME) }
     );
@@ -299,10 +298,9 @@ export const forgotPasswordController = async (req, res) => {
     });
   }
 
-  const usersDB = await UserModel(tenantId);
-  const otpDb = await otpModel(tenantId);
+  const { userModelDB, otpModelDB } = await getTenantModels(tenantId);
 
-  const user = await usersDB.findOne({ $or: [{ email }, { phone_number }] });
+  const user = await userModelDB.findOne({ $or: [{ email }, { phone_number }] });
 
   // Always return success to prevent user enumeration
   if (!user) {
@@ -317,7 +315,7 @@ export const forgotPasswordController = async (req, res) => {
       email: user.email,
       phone_number: user.phone_number,
     },
-    otpDb
+    otpModelDB
   );
 
   res.json({ requireOtp: true, reason: "FORGOT_PASSWORD", otp_id });
@@ -330,9 +328,9 @@ export const verifyForgotOtpController = async (req, res) => {
 
     const { otp_id, otp } = req.body;
 
-    const otpDb = await otpModel(tenantId);
+    const { otpModelDB } = await getTenantModels(tenantId);
 
-    const record = await otpDb.findOne({
+    const record = await otpModelDB.findOne({
       _id: otp_id,
       purpose: "FORGOT_PASSWORD",
       consumed_at: null,
@@ -396,17 +394,16 @@ export const resetPasswordController = async (req, res) => {
       throw new Error("Invalid reset token");
     }
 
-    const usersDB = await UserModel(tenantId);
-    const deviceSessionDb = await deviceSessionModel(tenantId);
+    const { userModelDB, deviceSessionModelDB } = await getTenantModels(tenantId);
 
-    const user = await usersDB.findById(payload.user_id);
+    const user = await userModelDB.findById(payload.user_id);
     throwIfTrue(!user, "User not found");
 
     user.password = await bcrypt.hash(req.body.newPassword, 10);
     await user.save();
 
     // 🔥 Revoke ALL device sessions
-    await deviceSessionDb.updateMany({ user_id: user._id }, { revoked_at: new Date() });
+    await deviceSessionModelDB.updateMany({ user_id: user._id }, { revoked_at: new Date() });
 
     // 🧹 Clear reset cookie
     res.clearCookie("reset_token", {
@@ -421,6 +418,15 @@ export const resetPasswordController = async (req, res) => {
 
 export const getMeController = async (req, res) => {
   try {
+    // If auth middleware didn't attach user
+    if (!req.user) {
+      return res.status(200).json({
+        status: "success",
+        isAuthenticated: false,
+        user: null,
+      });
+    }
+
     return res.status(200).json({
       status: "success",
       isAuthenticated: true,
@@ -433,6 +439,10 @@ export const getMeController = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json(errorResponse(error.message));
+    // ONLY real server errors should be 500
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch auth session",
+    });
   }
 };

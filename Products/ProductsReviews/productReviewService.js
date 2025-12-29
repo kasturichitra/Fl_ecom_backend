@@ -10,7 +10,7 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   // const productModelDB = await ProductModel(tenantId);
-  const { productModelDB, productReviewsModelDB, ordersModelDB } = await getTenantModels(tenantId);
+  const { productModelDB, productReviewsModelDB, orderModelDB } = await getTenantModels(tenantId);
 
   const existingProduct = await productModelDB.findOne({
     product_unique_id: reviewsData.product_unique_id,
@@ -29,15 +29,17 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
 
   // const productReviewsModelDB = await ProductReviewModel(tenantId);
 
-  const existingReview = await productReviewsModelDB.findOne({ product_unique_id: reviewsData?.product_unique_id, user_unique_id: reviewsData?.user_unique_id }).lean();
-  throwIfTrue(existingReview, "Review already exists");
+  const existingReview = await productReviewsModelDB
+    .findOne({ product_unique_id: reviewsData?.product_unique_id, user_unique_id: reviewsData?.user_unique_id })
+    .lean();
+  throwIfTrue(existingReview, "You have already reviewed this product");
 
   const { isValid, message } = validateReviewCreate(reviewsData);
   throwIfTrue(!isValid, message);
 
   let response = await productReviewsModelDB.create(reviewsData);
 
-  const order = await ordersModelDB.findOne({
+  const order = await orderModelDB.findOne({
     user_id: reviewsData.user_unique_id,
     "products.product_unique_id": reviewsData.product_unique_id,
   });

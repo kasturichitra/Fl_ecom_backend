@@ -2,7 +2,7 @@ import express from "express";
 
 import verifyToken from "../utils/verifyToken.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
-import { getContactInfo, updateContactInfo } from "./contactInfoController.js";
+import { getContactInfo, getInTouchInfo, updateContactInfo } from "./contactInfoController.js";
 
 const router = express.Router();
 const upload = getUploadMiddleware("contactInfo");
@@ -11,6 +11,7 @@ const upload = getUploadMiddleware("contactInfo");
 router.get("/", getContactInfo);
 
 router.put("/create", upload.single("logo_image"), updateContactInfo);
+router.post('/getintouch',getInTouchInfo)
 
 
 export default router;
