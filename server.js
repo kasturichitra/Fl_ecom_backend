@@ -149,7 +149,7 @@ app.use("/saleTrends", saleTrendRoutes);
 app.use("/contactInfo", contactInfoRoute);
 app.use("/coupons", couponRoute);
 
-// app.use("/", verifyToken, userRoutes);
+app.use("/", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running with Socket.IO support");
