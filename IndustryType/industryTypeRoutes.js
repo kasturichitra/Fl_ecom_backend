@@ -11,18 +11,48 @@ import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 
-route.post("/", verifyToken, createIndustryTypeController);
-route.put("/:id", verifyToken, updateIndustryTypeController);
+route.post(
+  "/",
+  verifyToken,
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "create-industry",
+  }),
+  createIndustryTypeController
+);
+
+route.put(
+  "/:id",
+  verifyToken,
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 10,
+    keyPrefix: "update-industry",
+  }),
+  updateIndustryTypeController
+);
+
 route.get(
   "/search",
-  // rateLimiter({
-  //   windowSizeInSeconds: 60, // 1 minute
-  //   maxRequests: 5,
-  //   keyPrefix: "get-industries",
-  // }),
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-industries",
+  }),
   getIndustrysSearchController
 );
-route.delete("/delete/:id", verifyToken, deleteIndustrytypeController);
+
+route.delete(
+  "/delete/:id",
+  verifyToken,
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 10,
+    keyPrefix: "delete-industry",
+  }),
+  deleteIndustrytypeController
+);
 
 // route.get("/", getIndustrytypesController);
 

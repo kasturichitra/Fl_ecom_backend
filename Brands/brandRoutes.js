@@ -5,32 +5,55 @@ import {
   getBrandByIdController,
   updateBrandController,
 } from "./brandController.js";
-// import getUploadMiddleware from "../utils/multerConfig.js";
 import verifyToken from "../utils/verifyToken.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const router = express.Router();
-// const upload = getUploadMiddleware("brands");
 
 // Create brand
 router.post(
   "/",
   verifyToken,
-  // upload.fields([
-  //   { name: "brand_image", maxCount: 1 },
-  //   { name: "brand_images", maxCount: 10 },
-  // ]),
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "create-brand",
+  }),
   createBrandController
 );
 
 // Get all brands (with filters, pagination, sorting)
-router.get("/", getAllBrandsController);
+router.get(
+  "/",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-all-brands",
+  }),
+  getAllBrandsController
+);
 
 // Get brand by ID
-router.get("/:id", getBrandByIdController);
+router.get(
+  "/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-brand-by-id",
+  }),
+  getBrandByIdController
+);
 
 // Update brand
-router.put("/:id", verifyToken,
-  //  upload.single("brand_image"),
-    updateBrandController);
+router.put(
+  "/:id",
+  verifyToken,
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 10,
+    keyPrefix: "update-brand",
+  }),
+  updateBrandController
+);
 
 export default router;

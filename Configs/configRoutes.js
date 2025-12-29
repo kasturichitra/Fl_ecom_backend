@@ -7,25 +7,74 @@ import {
   updateConfigController,
   deleteConfigController,
 } from "./configController.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const router = express.Router();
 
 // Create config
-router.post("/", createConfigController);
+router.post(
+  "/",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "create-config",
+  }),
+  createConfigController
+);
 
 // Get current config (convenience endpoint)
-router.get("/current", getCurrentConfigController);
+router.get(
+  "/current",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-current-config",
+  }),
+  getCurrentConfigController
+);
 
 // Get all configs (with filters, pagination, sorting)
-router.get("/", getAllConfigsController);
+router.get(
+  "/",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-all-configs",
+  }),
+  getAllConfigsController
+);
 
 // Get config by ID
-router.get("/:id", getConfigByIdController);
+router.get(
+  "/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-config-by-id",
+  }),
+  getConfigByIdController
+);
 
 // Update config
-router.put("/:id", updateConfigController);
+router.put(
+  "/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "update-config",
+  }),
+  updateConfigController
+);
 
 // Delete config
-router.delete("/:id", deleteConfigController);
+router.delete(
+  "/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "delete-config",
+  }),
+  deleteConfigController
+);
 
 export default router;
