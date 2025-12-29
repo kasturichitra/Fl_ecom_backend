@@ -7,7 +7,7 @@ export const addToCartService = async (tenantID, cartData) => {
   throwIfTrue(!cartData?.product_unique_id, "Product unique ID is required");
   throwIfTrue(!cartData?.quantity || cartData?.quantity < 1, "Valid quantity is required");
 
-  const { cartModelDB, wishlistDB } = await getTenantModels(tenantID);
+  const { cartModelDB, wishlistModelDB } = await getTenantModels(tenantID);
 
   let cart = await cartModelDB.findOne({ user_id: cartData.user_id });
 
@@ -37,7 +37,7 @@ export const addToCartService = async (tenantID, cartData) => {
   }
 
   // Remove only the products that are added to cart from wishlist
-  const existingWishlist = await wishlistDB.findOne({
+  const existingWishlist = await wishlistModelDB.findOne({
     user_id: cartData.user_id,
     products: cartData.product_unique_id,
   });
