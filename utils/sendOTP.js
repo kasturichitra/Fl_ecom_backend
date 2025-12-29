@@ -32,7 +32,7 @@ const transporter = nodemailer.createTransport({
 // Function to send email using Nodemailer
 export const sendEmail = async (email, message, subject = "OTP Verification") => {
   const mailOptions = {
-    from: `"Your App Name" <${process.env.SMTP_USER}>`, // Sender address
+    from: `${process.env.SMTP_USER}`, // Sender address
     to: email, // Recipient
     subject: subject, // Subject line
     text: message, // Plain text body
