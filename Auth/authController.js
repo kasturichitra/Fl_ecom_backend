@@ -421,6 +421,15 @@ export const resetPasswordController = async (req, res) => {
 
 export const getMeController = async (req, res) => {
   try {
+    // If auth middleware didn't attach user
+    if (!req.user) {
+      return res.status(200).json({
+        status: "success",
+        isAuthenticated: false,
+        user: null,
+      });
+    }
+
     return res.status(200).json({
       status: "success",
       isAuthenticated: true,
@@ -433,6 +442,10 @@ export const getMeController = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json(errorResponse(error.message));
+    // ONLY real server errors should be 500
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch auth session",
+    });
   }
 };

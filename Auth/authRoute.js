@@ -1,4 +1,5 @@
 import { Router } from "express";
+import verifyTokenOptional from "../utils/verifyTokenOptional.js";
 import {
   forgotPasswordController,
   getMeController,
@@ -10,7 +11,6 @@ import {
   verifyForgotOtpController,
   verifyOtpController,
 } from "./authController.js";
-import verifyToken from "../utils/verifyToken.js";
 
 const route = Router();
 
@@ -23,6 +23,6 @@ route.post("/resend-otp", resendOtpController);
 route.post("/forgot-password", forgotPasswordController);
 route.post("/verify-forgot-otp", verifyForgotOtpController);
 route.post("/reset-password", resetPasswordController);
-route.get("/me", verifyToken, getMeController);
+route.get("/me", verifyTokenOptional, getMeController);
 
 export default route;
