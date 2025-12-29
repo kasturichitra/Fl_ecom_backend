@@ -1,8 +1,6 @@
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { fcm } from "../utils/firebase-admin.js";
 import generateNextOrderId from "../utils/generateOrderId.js";
-import { getFcmToken } from "../utils/getFcmToken.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
@@ -372,6 +370,9 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     limit = 10,
     sort,
   } = filters;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
 
   const skip = (page - 1) * limit;
 

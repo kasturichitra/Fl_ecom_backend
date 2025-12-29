@@ -1,10 +1,7 @@
 import { uploadImageVariants } from "../../lib/aws-s3/uploadImageVariants.js";
 import { getTenantModels } from "../../lib/tenantModelsCache.js";
-import OrdersModel from "../../Orders/orderModel.js";
 import { buildSortObject } from "../../utils/buildSortObject.js";
 import throwIfTrue from "../../utils/throwIfTrue.js";
-import ProductModel from "../productModel.js";
-import ProductReviewModel from "./productReviewModel.js";
 import { validateReviewCreate } from "./validations/validateReviewCreate.js";
 import { validateReviewUpdate } from "./validations/validateReviewUpdate.js";
 
@@ -13,7 +10,7 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   // const productModelDB = await ProductModel(tenantId);
-  const { productModelDB, productReviewsModelDB } = await getTenantModels(tenantId);
+  const { productModelDB, productReviewsModelDB, ordersModelDB } = await getTenantModels(tenantId);
 
   const existingProduct = await productModelDB.findOne({
     product_unique_id: reviewsData.product_unique_id,
@@ -32,14 +29,15 @@ export const createReviewService = async (tenantId, reviewsData, imagesFileBuffe
 
   // const productReviewsModelDB = await ProductReviewModel(tenantId);
 
+  const existingReview = await productReviewsModelDB.findOne({ product_unique_id: reviewsData?.product_unique_id, user_unique_id: reviewsData?.user_unique_id }).lean();
+  throwIfTrue(existingReview, "Review already exists");
+
   const { isValid, message } = validateReviewCreate(reviewsData);
   throwIfTrue(!isValid, message);
 
   let response = await productReviewsModelDB.create(reviewsData);
 
-  const ordersModelDb = await OrdersModel(tenantId);
-
-  const order = await ordersModelDb.findOne({
+  const order = await ordersModelDB.findOne({
     user_id: reviewsData.user_unique_id,
     "products.product_unique_id": reviewsData.product_unique_id,
   });
