@@ -193,7 +193,6 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     industry_unique_id,
     brand_unique_id,
     category_name,
-    // industry_name,  
     brand_name,
     barcode,
     stock_availability,
@@ -212,36 +211,31 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
 
   const query = {};
 
-  page = parseInt(page) || 1;
-  limit = parseInt(limit) || 10;
+  page = parseInt(page);
+  limit = parseInt(limit);
   const skip = (page - 1) * limit;
 
-  // --- STRING REGEX FIELDS ---
+  /* -------------------- BASIC FILTERS -------------------- */
   if (product_name) query.product_name = { $regex: product_name, $options: "i" };
   if (sku) query.sku = { $regex: sku, $options: "i" };
   if (model_number) query.model_number = { $regex: model_number, $options: "i" };
 
-  // --- EXACT MATCH FIELDS ---
   if (gender) query.gender = gender;
   if (product_type) query.product_type = product_type;
   if (product_color) query.product_color = product_color;
   if (product_size) query.product_size = product_size;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
-  if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
+  if (cash_on_delivery !== undefined) query.cash_on_delivery = cash_on_delivery;
 
   if (category_name) query.category_name = category_name;
-  // if (industry_name) query.industry_name = industry_name;
   if (brand_name) query.brand_name = brand_name;
 
-  // --- ACTIVE STATE FILTER ---
   if (is_active !== undefined) {
-    if (is_active === "true") query.is_active = true;
-    else if (is_active === "false") query.is_active = false;
-    else if (typeof is_active === "boolean") query.is_active = is_active;
+    query.is_active = is_active === "true" || is_active === true;
   }
 
-  // --- MULTIPLE FILTER SUPPORT ---
+  /* -------------------- MULTI SELECT -------------------- */
   const brandIds = toArray(brand_unique_id);
   if (brandIds) query.brand_unique_id = { $in: brandIds };
 
@@ -251,23 +245,16 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   const industryIds = toArray(industry_unique_id);
   if (industryIds) query.industry_unique_id = { $in: industryIds };
 
-  // --- MAIN SEARCH TERM ---
+  /* -------------------- SEARCH -------------------- */
   if (searchTerm) {
     query.$or = [
       { product_name: { $regex: searchTerm, $options: "i" } },
-      { product_size: { $regex: searchTerm, $options: "i" } },
       { product_description: { $regex: searchTerm, $options: "i" } },
       { product_slug: { $regex: searchTerm, $options: "i" } },
       { product_color: { $regex: searchTerm, $options: "i" } },
-      { model_number: { $regex: searchTerm, $options: "i" } },
-      { product_type: { $regex: searchTerm, $options: "i" } },
       { sku: { $regex: searchTerm, $options: "i" } },
       { barcode: { $regex: searchTerm, $options: "i" } },
       { tag: { $regex: searchTerm, $options: "i" } },
-      { country_of_origin: { $regex: searchTerm, $options: "i" } },
-      { brand_unique_id: { $regex: searchTerm, $options: "i" } },
-      { category_unique_id: { $regex: searchTerm, $options: "i" } },
-      { industry_unique_id: { $regex: searchTerm, $options: "i" } },
       { brand_name: { $regex: searchTerm, $options: "i" } },
       { category_name: { $regex: searchTerm, $options: "i" } },
       {
@@ -285,38 +272,32 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     ];
   }
 
-  // --- AGE RANGE ---
+  /* -------------------- AGE RANGE -------------------- */
   if (minimum_age || maximum_age) {
-    query.minimum_age = {};
-    query.maximum_age = {};
-    if (minimum_age) query.minimum_age.$gte = Number(minimum_age);
-    if (maximum_age) query.maximum_age.$lte = Number(maximum_age);
+    if (minimum_age) query.minimum_age = { $gte: Number(minimum_age) };
+    if (maximum_age) query.maximum_age = { $lte: Number(maximum_age) };
   }
 
-  // --- PRICE RANGE ---
+  /* -------------------- PRICE RANGE -------------------- */
   if (min_price || max_price) {
     query.final_price = {};
     if (min_price) query.final_price.$gte = Number(min_price);
     if (max_price) query.final_price.$lte = Number(max_price);
   }
 
-  // Sorting
   const sortObj = buildSortObject(sort);
+  const { productModelDB, saleTrendModelDB } = await getTenantModels(tenantId);
 
-  // const productModelDB = await ProductModel(tenantId);
-  const { productModelDB } = await getTenantModels(tenantId);
-
-  // Fetch trend data if trend filter is active
+  /* -------------------- TREND SUPPORT -------------------- */
   let trendProductsMap = null;
   if (trend) {
-    // const saleTrendModelDb = await SaleTrendModel(tenantId);
-    const { saleTrendModelDB } = await getTenantModels(tenantId);
     const saleTrendData = await saleTrendModelDB.findOne({ trend_unique_id: trend }).lean();
 
     if (saleTrendData) {
-      query.product_unique_id = { $in: saleTrendData.trend_products.map((p) => p.product_unique_id) };
+      query.product_unique_id = {
+        $in: saleTrendData.trend_products.map((p) => p.product_unique_id),
+      };
 
-      // Create a map of product_unique_id to priority
       trendProductsMap = {};
       saleTrendData.trend_products.forEach((p) => {
         trendProductsMap[p.product_unique_id] = p.priority;
@@ -324,9 +305,10 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     }
   }
 
-  // Build aggregation pipeline dynamically
+  /* -------------------- AGGREGATION -------------------- */
   const pipeline = [
     { $match: query },
+
     {
       $lookup: {
         from: "brands",
@@ -338,73 +320,36 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
     { $addFields: { brand_name: "$brand.brand_name" } },
     { $project: { brand: 0 } },
-
-    // --- Lookup reviews ---
-    {
-      $lookup: {
-        from: "productsreviews",
-        localField: "product_unique_id",
-        foreignField: "product_unique_id",
-        as: "reviews",
-      },
-    },
-
-    // --- Add average rating field ---
-    {
-      $addFields: {
-        average_rating: { $avg: "$reviews.rating" },
-        total_reviews: { $size: "$reviews" },
-      },
-    },
-
-    // Optionally remove heavy review array
-    {
-      $project: {
-        reviews: 0,
-      },
-    },
   ];
 
-  // If trend is active, inject priority field and sort by it
   if (trendProductsMap) {
-    const priorityCases = Object.entries(trendProductsMap).map(([productId, priority]) => ({
-      case: { $eq: ["$product_unique_id", productId] },
-      then: priority,
-    }));
-
     pipeline.push({
       $addFields: {
         trend_priority: {
           $switch: {
-            branches: priorityCases,
-            default: 9999, // Products not in trend go to end
+            branches: Object.entries(trendProductsMap).map(([id, priority]) => ({
+              case: { $eq: ["$product_unique_id", id] },
+              then: priority,
+            })),
+            default: 9999,
           },
         },
       },
     });
 
-    // Sort by trend_priority first, then by other sort criteria
     pipeline.push({ $sort: { trend_priority: 1, ...sortObj } });
   } else {
-    // Normal sorting without trend priority
     pipeline.push({ $sort: sortObj });
   }
 
-  pipeline.push({ $skip: skip });
-  pipeline.push({ $limit: limit });
-
-  // Execute aggregation
-  const result = await productModelDB.aggregate([
-    ...pipeline.filter((stage) => !stage.$skip && !stage.$limit),
-
-    {
-      $facet: {
-        data: [...pipeline.filter((stage) => stage.$skip || stage.$limit)],
-        totalCount: [{ $count: "count" }],
-      },
+  pipeline.push({
+    $facet: {
+      data: [{ $skip: skip }, { $limit: limit }],
+      totalCount: [{ $count: "count" }],
     },
-  ]);
+  });
 
+  const result = await productModelDB.aggregate(pipeline);
   const data = result[0].data;
   const totalCount = result[0].totalCount[0]?.count || 0;
 
