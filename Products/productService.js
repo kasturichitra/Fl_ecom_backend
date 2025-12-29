@@ -192,6 +192,9 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
     category_unique_id,
     industry_unique_id,
     brand_unique_id,
+    category_name,
+    // industry_name,  
+    brand_name,
     barcode,
     stock_availability,
     cash_on_delivery,
@@ -227,6 +230,10 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (stock_availability) query.stock_availability = stock_availability;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
 
+  if (category_name) query.category_name = category_name;
+  // if (industry_name) query.industry_name = industry_name;
+  if (brand_name) query.brand_name = brand_name;
+
   // --- ACTIVE STATE FILTER ---
   if (is_active !== undefined) {
     if (is_active === "true") query.is_active = true;
@@ -261,6 +268,8 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
       { brand_unique_id: { $regex: searchTerm, $options: "i" } },
       { category_unique_id: { $regex: searchTerm, $options: "i" } },
       { industry_unique_id: { $regex: searchTerm, $options: "i" } },
+      { brand_name: { $regex: searchTerm, $options: "i" } },
+      { category_name: { $regex: searchTerm, $options: "i" } },
       {
         "product_attributes.attribute_code": {
           $regex: searchTerm,
