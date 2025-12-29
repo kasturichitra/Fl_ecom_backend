@@ -197,9 +197,12 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
 
   // One query: get image_url + delete atomically
   const doc = await industryTypeModelDB.findOneAndDelete({ industry_unique_id }).select("image_url").lean();
+  throwIfTrue(!doc, "Industry Type not found");
+  
+  // Delete the relevant s3 files
+  await Promise.all(Object.values(doc.image_url).map(autoDeleteFromS3));
 
-  if (!doc) throw new Error("Industry Type not found");
-  if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
+  // if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
 
   return doc;
 };
