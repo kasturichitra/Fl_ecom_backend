@@ -44,7 +44,6 @@ export const sendEmail = async (email, message, subject = "OTP Verification") =>
 };
 
 export const sendMobileOTP = async (mobileNumber, otp) => {
-  // const uniqueRef = Date.now().toString().slice(-6);
   const message = `OTP: ${otp} for user verification - NTARBZ`;
   const response = await sendSMS(mobileNumber, message);
   return response;
