@@ -136,6 +136,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
       let unit_base_price = Number(item.unit_base_price); // Tax-inclusive MRP
       let unit_discount_price = Number(item.unit_discount_price || 0); // Discount amount
       let unit_discounted_price = Number(item.unit_discounted_price || 0); // Price after product discount
+      let unit_gross_price = Number(item.unit_gross_price || 0); // Price after product discount
       let unit_tax_value = Number(item.unit_tax_value || 0); // Tax extracted from discounted price
       let unit_final_price = Number(item.unit_final_price); // Final price per unit (tax-inclusive)
 
@@ -203,6 +204,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
         unit_discounted_price,
         unit_tax_value,
         unit_final_price,
+        unit_gross_price,
 
         // Additional discount details if provided
         additional_discount_percentage,
@@ -211,6 +213,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
         // Calculate totals by multiplying unit values by quantity
         total_base_price: Math.ceil(unit_base_price * quantity),
+        total_gross_price: Math.ceil(unit_gross_price * quantity),
         total_discount_price: Math.ceil(unit_discount_price * quantity),
         total_tax_value: Math.ceil(unit_tax_value * quantity),
         total_final_price: Math.ceil(unit_final_price * quantity), // Total price (tax-inclusive)
@@ -221,6 +224,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
   // These represent the aggregate values across all products in the order
   let base_price = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_base_price, 0));
+
+  let gross_price = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_gross_price, 0));
 
   let discount_price = Math.ceil(productsWithTotals.reduce((sum, item) => sum + item.total_discount_price, 0));
 
@@ -264,6 +269,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     order_cancel_date,
     order_create_date,
     base_price,
+    gross_price,
     tax_value,
     discount_price,
     shipping_charges,
@@ -294,6 +300,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     await UserModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
   }
 
+  console.log("✅✅ order Doc is ", orderDoc);
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 

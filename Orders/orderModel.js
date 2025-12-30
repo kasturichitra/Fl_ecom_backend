@@ -87,6 +87,12 @@ const orderProductSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  // Gross price per unit (origial price i.e. discounted - tax value)
+  unit_gross_price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
   // Discount amount per unit (subtracted from base price)
   unit_discount_price: {
     type: Number,
@@ -125,6 +131,12 @@ const orderProductSchema = new mongoose.Schema({
   },
   // Total base price is base price * quantity
   total_base_price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  // Total gross price is gross price * quantity
+  total_gross_price: {
     type: Number,
     required: true,
     min: 0,
@@ -232,6 +244,7 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
     base_price: { type: Number, required: true, min: 0 },
+    gross_price: { type: Number, required: true, min: 0 },
     tax_value: { type: Number, default: 0 },
     discount_price: { type: Number, default: 0 },
     total_amount: { type: Number, required: true, min: 0 },
