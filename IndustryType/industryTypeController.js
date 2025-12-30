@@ -13,7 +13,7 @@ import {
 export const createIndustryTypeController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
-    
+
     const { image_base64, ...rest } = req.body;
 
     let fileBuffer = null;
@@ -84,12 +84,9 @@ export const updateIndustryTypeController = async (req, res) => {
 
     const { id } = req.params;
     const { industry_name, description, is_active, created_by, updated_by, image_base64 } = req.body;
-    // const image_url = req.file?.path;
-    // const image_url = req.file ? req.file.path : null;
 
     let fileBuffer = null;
     if (image_base64) {
-      // Remove base64 header if present
       const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
 
       fileBuffer = Buffer.from(base64Data, "base64");
