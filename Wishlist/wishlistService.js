@@ -107,9 +107,9 @@ export const moveWishlistToCartServices = async (tenantID, user_id) => {
 
   const cartProducts = wishlist.products.map((item) => ({ product_unique_id: item, quantity: 1 }));
   cart.products.push(...cartProducts);
-  wishlist.products = [];
+  // wishlist.products = [];
 
-  await wishlist.save();
+  // await wishlist.save();
   await cart.save();
 
   return cart;
