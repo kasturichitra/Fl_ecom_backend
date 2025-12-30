@@ -63,7 +63,7 @@ export const generateUniqueCouponCodeService = async (tenantId) => {
 
   while (!isUnique) {
     newCode = generateNanoId();
-    const existing = await Coupon.findOne({ coupon_code: newCode });
+    const existing = await couponModelDB.findOne({ coupon_code: newCode });
     if (!existing) {
       isUnique = true;
     }
