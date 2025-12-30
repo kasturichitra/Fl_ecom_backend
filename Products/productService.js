@@ -43,22 +43,22 @@ const calculatePrices = (productData) => {
 
   // Step 4: Calculate discounted price (after discount, still tax-inclusive)
   const discountedPrice = basePrice - discountAmount;
-  productData.discounted_price = Math.ceil(discountedPrice);
+  productData.discounted_price = discountedPrice;
 
   // Step 5: Use REVERSE GST to extract taxable value and tax from discounted price
   // discounted_price is tax-inclusive, so we extract the tax portion
   const taxableValue = discountedPrice / (1 + taxPercentage / 100);
   const taxValue = discountedPrice - taxableValue;
 
-  productData.tax_value = Math.ceil(taxValue);
+  productData.tax_value = Math.floor(taxValue);
 
-  // Step 6: Calculate gross price (base + tax on base, for reference)
+  // Step 6: Calculate gross price (discounted - tax on discounted price, for reference)
   // This represents the price WITH tax but BEFORE any discount
-  const grossPrice = basePrice; // Since base is already tax-inclusive
+  const grossPrice = discountedPrice - taxValue;
   productData.gross_price = Math.ceil(grossPrice);
 
   // Step 7: Final price is the discounted price (tax-inclusive)
-  const finalPrice = Math.ceil(discountedPrice);
+  const finalPrice = discountedPrice;
   productData.final_price = finalPrice;
 
   return productData;

@@ -3,7 +3,6 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 import { imageSchema } from "../lib/imageModel.js";
 
-
 const productSchema = new mongoose.Schema(
   {
     //  Relationships
@@ -92,7 +91,7 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Gross price = base + tax (price with tax, before discount)
+    // Gross price = discounted - tax i.e. the original price
     gross_price: {
       type: Number,
     },
@@ -116,7 +115,7 @@ const productSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
-    // Discount amount (calculated from discount_percentage × gross_price)
+    // Discount amount (calculated from discount_percentage on base_price)
     discount_price: {
       type: Number,
       min: 0,
