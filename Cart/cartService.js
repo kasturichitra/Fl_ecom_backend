@@ -11,6 +11,8 @@ export const addToCartService = async (tenantID, cartData) => {
 
   let cart = await cartModelDB.findOne({ user_id: cartData.user_id });
 
+  let isNewlyAdded = null;
+
   if (cart) {
     const productIndex = cart.products.findIndex((item) => item.product_unique_id === cartData.product_unique_id);
 
@@ -24,6 +26,7 @@ export const addToCartService = async (tenantID, cartData) => {
     }
 
     await cart.save();
+    isNewlyAdded = false;
   } else {
     cart = await cartModelDB.create({
       user_id: cartData.user_id,
@@ -34,6 +37,7 @@ export const addToCartService = async (tenantID, cartData) => {
         },
       ],
     });
+    isNewlyAdded = true;
   }
 
   // Remove only the products that are added to cart from wishlist
@@ -46,7 +50,7 @@ export const addToCartService = async (tenantID, cartData) => {
   //   await existingWishlist.save();
   // }
 
-  return cart;
+  return { cart, isNewlyAdded };
 };
 
 export const getCartByUserIdService = async (tenantID, user_id) => {
