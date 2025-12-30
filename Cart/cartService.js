@@ -37,14 +37,14 @@ export const addToCartService = async (tenantID, cartData) => {
   }
 
   // Remove only the products that are added to cart from wishlist
-  const existingWishlist = await wishlistModelDB.findOne({
-    user_id: cartData.user_id,
-    products: cartData.product_unique_id,
-  });
-  if (existingWishlist) {
-    existingWishlist.products = existingWishlist.products.filter((item) => item !== cartData.product_unique_id);
-    await existingWishlist.save();
-  }
+  // const existingWishlist = await wishlistModelDB.findOne({
+  //   user_id: cartData.user_id,
+  //   products: cartData.product_unique_id,
+  // });
+  // if (existingWishlist) {
+  //   existingWishlist.products = existingWishlist.products.filter((item) => item !== cartData.product_unique_id);
+  //   await existingWishlist.save();
+  // }
 
   return cart;
 };
