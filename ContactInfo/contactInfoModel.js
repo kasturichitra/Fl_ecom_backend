@@ -54,6 +54,12 @@ const contactInfoSchema = new mongoose.Schema(
     invoice_template: {
       type: String,
     },
+    welcome_message: {
+      type: String,
+    },
+    business_name: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
