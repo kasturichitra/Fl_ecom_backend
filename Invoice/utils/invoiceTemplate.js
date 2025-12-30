@@ -99,7 +99,8 @@ const templates = {
       .totals { display: flex; justify-content: flex-end; margin-top: 30px; }
       .totals-table { width: 350px; }
       .totals-table td { border: none; padding: 10px 15px; }
-      .totals-table .total-row { background: #2c3e50; color: white; font-size: 18px; }
+      .totals-table .total-row { background: #2c3e50; color: white !important; font-size: 18px; }
+      .totals-table .total-row td { color: white !important; }
       .footer { margin-top: 50px; padding-top: 30px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; font-size: 14px; }
     `,
     header: (order) => `
@@ -219,9 +220,10 @@ const templates = {
       tbody tr:hover { background: #f0f4f8; }
       .totals { display: flex; justify-content: flex-end; margin-top: 40px; }
       .totals-table { width: 400px; border: 2px solid #2c5f8d; border-radius: 8px; overflow: hidden; }
-      .totals-table td { border: none; background: white; padding: 14px 20px; font-size: 15px; }
+      .totals-table td { border: none; background: transparent; padding: 14px 20px; font-size: 15px; }
       .totals-table tr { border-bottom: 1px solid #e1e8ed; }
       .totals-table .total-row { background: #1e3a5f; color: white; font-size: 20px; border: none; }
+      .totals-table .total-row td { color: white !important; }
       .footer { background: #1e3a5f; color: white; padding: 30px 60px; text-align: center; font-size: 13px; line-height: 2; }
       .footer p { opacity: 0.9; }
     `,
@@ -337,10 +339,10 @@ const templates = {
       tbody tr:hover { background: #f5f3ed; }
       .totals { display: flex; justify-content: flex-end; margin-top: 45px; }
       .totals-table { width: 400px; border: 3px solid #4a7c2c; border-radius: 8px; overflow: hidden; }
-      .totals-table td { border: none; background: white; padding: 16px 25px; font-size: 16px; }
+      .totals-table td { border: none; background: transparent; padding: 16px 25px; font-size: 16px; }
       .totals-table tr:not(:last-child) { border-bottom: 1px solid #e8e3d6; }
       .totals-table .total-row { background: #2d5016; color: white; }
-      .totals-table .total-row td { padding: 22px 25px; font-size: 24px; font-weight: 700; color: white; }
+      .totals-table .total-row td { padding: 22px 25px; font-size: 24px; font-weight: 700; color: white !important; }
       .footer { background: linear-gradient(180deg, white 0%, #fafaf8 100%); padding: 40px 60px; border-top: 3px double #4a7c2c; text-align: center; color: #666; line-height: 2; font-size: 15px; }
       .footer-ornament { color: #4a7c2c; font-size: 28px; margin-bottom: 20px; }
       .bottom-bar { height: 8px; background: linear-gradient(90deg, #2d5016 0%, #4a7c2c 50%, #2d5016 100%); }
