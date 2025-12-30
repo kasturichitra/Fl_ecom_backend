@@ -47,12 +47,14 @@ export const updateContactInfoService = async (tenantId, updateData, fileBuffer)
 export const getInTouchService = async (tenantID, data) => {
   const { email } = data;
 
-  const message = "welcome to Ntar";
-  const subject = "Hi bro nice to meet you";
+  throwIfTrue(!email, "email is required");
+  throwIfTrue(!tenantID, "tenantID is required");
 
-  throwIfTrue(!email, "email required");
+  const { contactInfoModelDB } = await getTenantModels(tenantID);
 
-  const result = await sendEmail(email, message, subject);
+  const { welcome_message, business_name } = await contactInfoModelDB.findOne();
+
+  const result = await sendEmail(email, `Welcome to ${business_name}`, welcome_message);
 
   return result;
 };

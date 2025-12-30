@@ -30,7 +30,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Function to send email using Nodemailer
-export const sendEmail = async (email, message, subject = "OTP Verification") => {
+export const sendEmail = async (email, subject, message) => {
   const mailOptions = {
     from: `${process.env.SMTP_USER}`, // Sender address
     to: email, // Recipient

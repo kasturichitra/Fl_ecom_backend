@@ -60,6 +60,12 @@ const contactInfoSchema = Joi.object({
   invoice_template: Joi.string().optional().allow("", null).messages({
     "string.base": "Invoice template must be a string.",
   }),
+  welcome_message: Joi.string().optional().allow("", null).messages({
+    "string.base": "Welcome message must be a string.",
+  }),
+  business_name: Joi.string().optional().allow("", null).messages({
+    "string.base": "Business name must be a string.",
+  }),
 });
 
 function validateContactInfo(data) {
