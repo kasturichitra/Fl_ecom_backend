@@ -11,7 +11,7 @@ import {
   updateUserController,
 } from "./userController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
-import rateLimiter from "../../lib/redis/rateLimiter.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 const upload = getUploadMiddleware("user");

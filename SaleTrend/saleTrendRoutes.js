@@ -9,7 +9,7 @@ import {
   // removeProductsFromTrendController,
 } from "./saleTrendController.js";
 import verifyToken from "../utils/verifyToken.js";
-import rateLimiter from "../../lib/redis/rateLimiter.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 

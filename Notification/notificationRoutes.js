@@ -1,6 +1,6 @@
 import express from "express";
 import { getAllNotificationController, markNotificationAsReadController } from "./notificationController.js";
-import rateLimiter from "../../lib/redis/rateLimiter.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 

@@ -7,7 +7,7 @@ import {
   clearWishlistController,
   moveWishlistToCartController,
 } from "./wishlistController.js";
-import rateLimiter from "../../lib/redis/rateLimiter.js";
+import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 
