@@ -443,7 +443,7 @@ export const updateProductService = async (
   // Handle single product_image (hero image)
   if (productImageBuffer) {
     // Delete existing hero image from S3 (all variants)
-    if (existingProduct.product_image) {
+    if (existingProduct.product_image && typeof existingProduct.product_image === "object") {
       const imageUrls = Object.values(existingProduct.product_image).filter((url) => typeof url === "string");
       await Promise.all(imageUrls.map(autoDeleteFromS3));
     }
@@ -458,7 +458,7 @@ export const updateProductService = async (
   // Handle multiple product_images (gallery images)
   if (productImagesBuffers && productImagesBuffers.length > 0) {
     // Delete existing gallery images from S3 (all variants)
-    if (existingProduct.product_images?.length > 0) {
+    if (existingProduct.product_images?.length > 0 && typeof existingProduct.product_images === "object") {
       const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
         Object.values(imageObj)
           .filter((url) => typeof url === "string")
