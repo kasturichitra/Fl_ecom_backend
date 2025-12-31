@@ -29,43 +29,91 @@ export const getAdminFaqTreeService = async (tenantId) => {
 };
 
 export const createFaqService = async (tenantId, data) => {
-  let {
-    parent_question_id,
+  const {
+    parent_question_id = null,
     question_text,
     answer_text,
     issue_type,
     escalation_allowed = false,
     priority = 0,
     type,
+    sub_category = null,
+    escalation_label = "Still need help?",
+    keywords = [],
   } = data;
 
   const { faqModelDB } = await getTenantModels(tenantId);
 
+  /* -------------------------------------------------------------------------- */
+  /*                         1️⃣ BASIC PARENT EXISTENCE CHECK                   */
+  /* -------------------------------------------------------------------------- */
+  let parentFaq = null;
+
   if (parent_question_id) {
-    let existingQuestion = await faqModelDB.findOne({ question_id: parent_question_id });
-    throwIfTrue(!existingQuestion, "Parent question not found");
+    parentFaq = await faqModelDB.findOne({ question_id: parent_question_id });
+    throwIfTrue(!parentFaq, "Parent question not found");
   }
 
-  const question_id = `FAQ-${type}-${issue_type}`.toUpperCase();
+  /* -------------------------------------------------------------------------- */
+  /*                         2️⃣ PREPARE PAYLOAD FOR VALIDATION                  */
+  /* -------------------------------------------------------------------------- */
+  const faqPayloadForValidation = {
+    question_text,
+    answer_text,
+    issue_type,
+    type,
+    parent_question_id,
+    escalation_allowed,
+    priority,
+    sub_category,
+    keywords,
+  };
 
+  /* -------------------------------------------------------------------------- */
+  /*                         3️⃣ VALIDATE USING JOI                              */
+  /* -------------------------------------------------------------------------- */
+  const { isValid, message } = validateFaqCreate(faqPayloadForValidation);
+
+  throwIfTrue(!isValid, message);
+
+  /* -------------------------------------------------------------------------- */
+  /*                         4️⃣ GENERATE QUESTION ID                            */
+  /* -------------------------------------------------------------------------- */
+  const question_id = `FAQ-${issue_type}-${type}-${Date.now()}`.toUpperCase();
+
+  /* -------------------------------------------------------------------------- */
+  /*                         5️⃣ FINAL DB PAYLOAD                                */
+  /* -------------------------------------------------------------------------- */
   const faqPayload = {
     question_id,
     question_text,
     answer_text,
     issue_type,
+    sub_category,
     type,
-    parent_question_id: parent_question_id || null,
-    escalation_allowed,
+    parent_question_id,
+    escalation_allowed: type === "leaf" ? escalation_allowed : false,
+    escalation_label,
     priority,
+    keywords,
     created_by: "admin",
     is_active: true,
   };
 
-  const { isValid, message } = validateFaqCreate(faqPayload);
-
-  throwIfTrue(!isValid, message);
-
+  /* -------------------------------------------------------------------------- */
+  /*                         6️⃣ CREATE FAQ                                      */
+  /* -------------------------------------------------------------------------- */
   const faq = await faqModelDB.create(faqPayload);
+
+  /* -------------------------------------------------------------------------- */
+  /*                         7️⃣ LINK TO PARENT (TREE INTEGRITY)                 */
+  /* -------------------------------------------------------------------------- */
+  if (parent_question_id) {
+    await faqModelDB.updateOne(
+      { question_id: parent_question_id },
+      { $push: { next_questions: question_id } }
+    );
+  }
 
   return faq;
 };

@@ -1,68 +1,102 @@
 import Joi from "joi";
 
-const createFaqSchema = Joi.object({
-  question_id: Joi.string().required().messages({
-    "string.base": "Question ID must be a string.",
-    "any.required": "Question ID is required.",
-  }),
+/**
+ * FAQ CREATION VALIDATION
+ *
+ * Rules enforced here:
+ * 1. root FAQs cannot have a parent
+ * 2. followup & leaf FAQs MUST have a parent
+ * 3. leaf FAQs MUST have an answer
+ * 4. followup FAQs CANNOT allow escalation
+ * 5. root FAQs SHOULD NOT have answers
+ * 6. Admin cannot manually control next_questions
+ */
 
-  question_text: Joi.string().required().trim().messages({
+const createFaqSchema = Joi.object({
+  // ❓ Question text is mandatory for all FAQ types
+  question_text: Joi.string().trim().min(3).required().messages({
     "string.base": "Question text must be a string.",
+    "string.min": "Question text must be at least 3 characters.",
     "any.required": "Question text is required.",
   }),
 
-  answer_text: Joi.string().optional().allow("", null).trim().messages({
-    "string.base": "Answer text must be a string.",
-  }),
+  // 📝 Answer text
+  // - REQUIRED only for leaf FAQs
+  // - NOT allowed for root FAQs
+  answer_text: Joi.string()
+    .trim()
+    .allow("", null)
+    .when("type", {
+      is: "leaf",
+      then: Joi.required().messages({
+        "any.required": "Leaf FAQ must have an answer.",
+      }),
+      otherwise: Joi.optional(),
+    }),
 
-  issue_type: Joi.string().valid("order", "payment", "delivery", "returns", "account", "general").required().messages({
-    "string.base": "Issue type must be a string.",
-    "any.only": "Issue type must be one of: order, payment, delivery, returns, account, general.",
-    "any.required": "Issue type is required.",
-  }),
+  // 📂 High-level classification
+  issue_type: Joi.string()
+    .valid("order", "payment", "delivery", "returns", "account", "general")
+    .required()
+    .messages({
+      "any.only":
+        "Issue type must be one of order, payment, delivery, returns, account, general.",
+      "any.required": "Issue type is required.",
+    }),
 
-  type: Joi.string().valid("root", "followup", "leaf").required().messages({
-    "string.base": "Type must be a string.",
-    "any.only": "Type must be one of: root, followup, leaf.",
-    "any.required": "Type is required.",
-  }),
+  // 🌳 FAQ type controls hierarchy behavior
+  type: Joi.string()
+    .valid("root", "followup", "leaf")
+    .required()
+    .messages({
+      "any.only": "Type must be one of root, followup, leaf.",
+      "any.required": "FAQ type is required.",
+    }),
 
-  sub_category: Joi.string().optional().allow("", null).trim().messages({
-    "string.base": "Sub category must be a string.",
-  }),
+  // 🔗 Parent question logic
+  parent_question_id: Joi.string()
+    .allow(null)
+    .when("type", {
+      is: "root",
+      then: Joi.valid(null).messages({
+        "any.only": "Root FAQ cannot have a parent.",
+      }),
+      otherwise: Joi.required().messages({
+        "any.required": "Followup and leaf FAQs must have a parent.",
+      }),
+    }),
 
-  parent_question_id: Joi.string().optional().allow(null).messages({
-    "string.base": "Parent question ID must be a string.",
-  }),
+  // 🚨 Escalation logic
+  escalation_allowed: Joi.boolean()
+    .when("type", {
+      is: "leaf",
+      then: Joi.optional(),
+      otherwise: Joi.valid(false).messages({
+        "any.only": "Only leaf FAQs can allow escalation.",
+      }),
+    }),
 
-  next_questions: Joi.array().items(Joi.string()).optional().allow(null).messages({
-    "array.base": "Next questions must be an array of strings.",
-  }),
+  escalation_label: Joi.string()
+    .trim()
+    .allow("", null)
+    .optional(),
 
-  escalation_allowed: Joi.boolean().optional().messages({
-    "boolean.base": "Escalation allowed must be a boolean.",
-  }),
+  // 🔢 Display order (lower = higher priority)
+  priority: Joi.number().integer().min(0).optional(),
 
-  escalation_label: Joi.string().optional().allow("", null).messages({
-    "string.base": "Escalation label must be a string.",
-  }),
+  // 🔍 Optional refinement
+  sub_category: Joi.string().trim().allow("", null).optional(),
 
-  priority: Joi.number().integer().optional().messages({
-    "number.base": "Priority must be a number.",
-  }),
+  // 🏷️ Optional search tags
+  keywords: Joi.array()
+    .items(Joi.string().trim())
+    .optional(),
 
-  keywords: Joi.array().items(Joi.string()).optional().allow(null).messages({
-    "array.base": "Keywords must be an array of strings.",
-  }),
-
-  created_by: Joi.string().valid("system", "admin").optional().messages({
-    "string.base": "Created by must be a string.",
-    "any.only": "Created by must be either system or admin.",
-  }),
-
-  is_active: Joi.boolean().optional().messages({
-    "boolean.base": "Is active must be a boolean.",
-  }),
+  // 🚫 These must NOT be set by admin during creation
+  next_questions: Joi.forbidden(),
+  question_id: Joi.forbidden(),
+  created_by: Joi.forbidden(),
+  is_active: Joi.forbidden(),
 });
 
 export function validateFaqCreate(data) {
