@@ -70,7 +70,7 @@ export const loginUserController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     throwIfTrue(!tenantId, "Tenant ID is Required");
 
-    const { email, phone_number, password, device_name } = req.body;
+    const { email, phone_number, password, device_name, is_admin } = req.body;
 
     // Check for device_id cookie, generate new UUID if not present
     let device_id = req.cookies.device_id;
@@ -86,15 +86,24 @@ export const loginUserController = async (req, res) => {
       });
     }
 
-    const { deviceSessionModelDB, userModelDB, otpModelDB } = await getTenantModels(tenantId);
-    const existingUser = await userModelDB.findOne({ $or: [{ email }, { phone_number }] });
+    const { deviceSessionModelDB, userModelDB, otpModelDB, roleModelDB } = await getTenantModels(tenantId);
+
+    const existingUser = await userModelDB.findOne({ $or: [{ email }, { phone_number }] }).populate({
+      path: "role_id",
+      model: roleModelDB,
+    })
+
+    console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
+    if (is_admin) {
+      throwIfTrue(existingUser.role_id.name !== "admin" && existingUser.role_id.name !== "employee", "User is not allowed this penal");
+    }
 
     if (!existingUser.is_active) return res.json(errorResponse("OTP Verification is required"));
 
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
     throwIfTrue(!isValidPassword, "Invalid password");
-
+  
     let device = await deviceSessionModelDB.findOne({
       user_id: existingUser._id,
       device_id: device_id,
