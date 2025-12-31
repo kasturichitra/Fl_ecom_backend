@@ -4,7 +4,7 @@ import {
   getAdminFaqTreeController,
   createFaqController,
   updateFaqController,
-  //   toggleFaqStatusController,
+  toggleFaqStatusController,
   //   reorderFaqsController,
   //   getRootFaqsController,
   //   getChildFaqsController,
@@ -23,7 +23,7 @@ router.post("/admin", createFaqController);
 router.put("/admin/:id", updateFaqController);
 
 // // Enable / Disable FAQ
-// router.patch("/admin/:question_id/toggle", toggleFaqStatusController);
+router.patch("/admin/toggle/:id", toggleFaqStatusController);
 
 // // Reorder children under same parent
 // router.patch("/admin/reorder", reorderFaqsController);

@@ -4,6 +4,8 @@ import { validateFaqCreate } from "./validations/validateFaqCreate.js";
 import { validateFaqUpdate } from "./validations/validateFaqUpdate.js";
 
 export const getAdminFaqTreeService = async (tenantId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  
   const { faqModelDB } = await getTenantModels(tenantId);
 
   const faqs = await faqModelDB.find({}).sort({ priority: 1 }).lean();
@@ -30,6 +32,8 @@ export const getAdminFaqTreeService = async (tenantId) => {
 };
 
 export const createFaqService = async (tenantId, data) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
   const {
     parent_question_id = null,
     question_text,
@@ -117,6 +121,9 @@ export const createFaqService = async (tenantId, data) => {
 };
 
 export const updateFaqService = async (tenantId, faqId, data) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!faqId, "FAQ ID is required");
+
   const { faqModelDB } = await getTenantModels(tenantId);
 
   const faq = await faqModelDB.findOne({ question_id: faqId });
@@ -139,3 +146,19 @@ export const updateFaqService = async (tenantId, faqId, data) => {
 
   return updatedFaq;
 };
+
+export const toggleFaqStatusService = async (tenantId, question_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!question_id, "FAQ ID is required");
+
+  const { faqModelDB } = await getTenantModels(tenantId);
+
+  const faq = await faqModelDB.findOne({ question_id });
+  throwIfTrue(!faq, "FAQ not found");
+
+  faq.is_active = !faq.is_active;
+
+  const updatedFaq = await faq.save();
+
+  return updatedFaq;
+}
