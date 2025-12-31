@@ -103,7 +103,7 @@ export const loginUserController = async (req, res) => {
 
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
     throwIfTrue(!isValidPassword, "Invalid password");
-
+  
     let device = await deviceSessionModelDB.findOne({
       user_id: existingUser._id,
       device_id: device_id,
