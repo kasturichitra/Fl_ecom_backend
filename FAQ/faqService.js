@@ -1,6 +1,7 @@
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateFaqCreate } from "./validations/validateFaqCreate.js";
+import { validateFaqUpdate } from "./validations/validateFaqUpdate.js";
 
 export const getAdminFaqTreeService = async (tenantId) => {
   const { faqModelDB } = await getTenantModels(tenantId);
@@ -109,11 +110,32 @@ export const createFaqService = async (tenantId, data) => {
   /*                         7️⃣ LINK TO PARENT (TREE INTEGRITY)                 */
   /* -------------------------------------------------------------------------- */
   if (parent_question_id) {
-    await faqModelDB.updateOne(
-      { question_id: parent_question_id },
-      { $push: { next_questions: question_id } }
-    );
+    await faqModelDB.updateOne({ question_id: parent_question_id }, { $push: { next_questions: question_id } });
   }
 
   return faq;
+};
+
+export const updateFaqService = async (tenantId, faqId, data) => {
+  const { faqModelDB } = await getTenantModels(tenantId);
+
+  const faq = await faqModelDB.findOne({ question_id: faqId });
+  throwIfTrue(!faq, "FAQ not found");
+
+  const allowedUpdates = ["question_text", "answer_text", "escalation_allowed", "priority"];
+
+  allowedUpdates.forEach((key) => {
+    if (data[key] !== undefined && data[key] !== null) {
+      faq[key] = data[key];
+    }
+  });
+
+  const validationJSON = allowedUpdates.reduce((acc, key) => ({ ...acc, [key]: faq[key] }), {});
+
+  const { isValid, message } = validateFaqUpdate(validationJSON, faq);
+  throwIfTrue(!isValid, message);
+
+  const updatedFaq = await faq.save();
+
+  return updatedFaq;
 };

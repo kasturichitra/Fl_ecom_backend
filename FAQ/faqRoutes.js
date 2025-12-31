@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
   getAdminFaqTreeController,
   createFaqController,
-  //   updateFaqController,
+  updateFaqController,
   //   toggleFaqStatusController,
   //   reorderFaqsController,
   //   getRootFaqsController,
@@ -20,7 +20,7 @@ router.get("/admin/tree", getAdminFaqTreeController);
 router.post("/admin", createFaqController);
 
 // // Update FAQ content
-// router.put("/admin/:question_id", updateFaqController);
+router.put("/admin/:id", updateFaqController);
 
 // // Enable / Disable FAQ
 // router.patch("/admin/:question_id/toggle", toggleFaqStatusController);

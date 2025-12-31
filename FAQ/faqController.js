@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { getAdminFaqTreeService, createFaqService } from "./faqService.js";
+import { getAdminFaqTreeService, createFaqService, updateFaqService } from "./faqService.js";
 
 export const getAdminFaqTreeController = async (req, res) => {
   try {
@@ -19,6 +19,19 @@ export const createFaqController = async (req, res) => {
 
     const response = await createFaqService(tenantId, faqPayload);
     res.status(200).json(successResponse("Faq created successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const updateFaqController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: faqId } = req.params;
+    const faqPayload = req.body;
+
+    const response = await updateFaqService(tenantId, faqId, faqPayload);
+    res.status(200).json(successResponse("Faq updated successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

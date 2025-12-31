@@ -1,67 +1,56 @@
 import Joi from "joi";
 
+/**
+ * FAQ UPDATE VALIDATION
+ *
+ * Update rules:
+ * 1. Hierarchy & identity fields are FORBIDDEN
+ * 2. Only leaf FAQs can allow escalation
+ * 3. Leaf FAQs must have an answer
+ * 4. Root FAQs should not have answers
+ */
+
 const updateFaqSchema = Joi.object({
-  question_id: Joi.string().optional().messages({
-    "string.base": "Question ID must be a string.",
-  }),
-
-  question_text: Joi.string().optional().trim().messages({
+  // ✅ Editable fields
+  question_text: Joi.string().trim().min(3).optional().messages({
     "string.base": "Question text must be a string.",
+    "string.min": "Question text must be at least 3 characters.",
   }),
 
-  answer_text: Joi.string().optional().allow("", null).trim().messages({
+  answer_text: Joi.string().trim().allow("", null).optional().messages({
     "string.base": "Answer text must be a string.",
-  }),
-
-  issue_type: Joi.string().valid("order", "payment", "delivery", "returns", "account", "general").optional().messages({
-    "string.base": "Issue type must be a string.",
-    "any.only": "Issue type must be one of: order, payment, delivery, returns, account, general.",
-  }),
-
-  type: Joi.string().valid("root", "followup", "leaf").optional().messages({
-    "string.base": "Type must be a string.",
-    "any.only": "Type must be one of: root, followup, leaf.",
-  }),
-
-  sub_category: Joi.string().optional().allow("", null).trim().messages({
-    "string.base": "Sub category must be a string.",
-  }),
-
-  parent_question_id: Joi.string().optional().allow(null).messages({
-    "string.base": "Parent question ID must be a string.",
-  }),
-
-  next_questions: Joi.array().items(Joi.string()).optional().allow(null).messages({
-    "array.base": "Next questions must be an array of strings.",
   }),
 
   escalation_allowed: Joi.boolean().optional().messages({
     "boolean.base": "Escalation allowed must be a boolean.",
   }),
 
-  escalation_label: Joi.string().optional().allow("", null).messages({
+  escalation_label: Joi.string().trim().allow("", null).optional().messages({
     "string.base": "Escalation label must be a string.",
   }),
 
-  priority: Joi.number().integer().optional().messages({
+  priority: Joi.number().integer().min(0).optional().messages({
     "number.base": "Priority must be a number.",
   }),
 
-  keywords: Joi.array().items(Joi.string()).optional().allow(null).messages({
+  keywords: Joi.array().items(Joi.string().trim()).optional().messages({
     "array.base": "Keywords must be an array of strings.",
-  }),
-
-  created_by: Joi.string().valid("system", "admin").optional().messages({
-    "string.base": "Created by must be a string.",
-    "any.only": "Created by must be either system or admin.",
   }),
 
   is_active: Joi.boolean().optional().messages({
     "boolean.base": "Is active must be a boolean.",
   }),
+
+  // 🚫 FORBIDDEN fields (hard rules)
+  question_id: Joi.forbidden(),
+  issue_type: Joi.forbidden(),
+  type: Joi.forbidden(),
+  parent_question_id: Joi.forbidden(),
+  next_questions: Joi.forbidden(),
+  created_by: Joi.forbidden(),
 });
 
-export function validateFaqUpdate(data) {
+export function validateFaqUpdate(data, existingFaq) {
   if (!data || typeof data !== "object") {
     return {
       isValid: false,
@@ -82,6 +71,31 @@ export function validateFaqUpdate(data) {
       isValid: false,
       message: formattedErrors[0]?.message || "Invalid FAQ update data.",
       errors: formattedErrors,
+    };
+  }
+
+  /* ---------------- CONDITIONAL RULES ---------------- */
+
+  // 1️⃣ Leaf FAQs must have an answer
+  if (existingFaq.type === "leaf" && "answer_text" in data && !data.answer_text) {
+    return {
+      isValid: false,
+      message: "Leaf FAQ must have an answer.",
+      errors: [{ field: "answer_text", message: "Leaf FAQ must have an answer." }],
+    };
+  }
+
+  // 2️⃣ Non-leaf FAQs cannot allow escalation
+  if (existingFaq.type !== "leaf" && data.escalation_allowed === true) {
+    return {
+      isValid: false,
+      message: "Only leaf FAQs can allow escalation.",
+      errors: [
+        {
+          field: "escalation_allowed",
+          message: "Only leaf FAQs can allow escalation.",
+        },
+      ],
     };
   }
 
