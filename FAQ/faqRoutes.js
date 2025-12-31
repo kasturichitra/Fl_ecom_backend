@@ -6,7 +6,7 @@ import {
   updateFaqController,
   toggleFaqStatusController,
   reorderFaqController,
-  //   getRootFaqsController,
+  getRootFaqController,
   //   getChildFaqsController,
   //   getFaqAnswerController,
 } from "./faqController.js";
@@ -31,7 +31,7 @@ router.patch("/admin/reorder", reorderFaqController);
 // /* ================= USER ROUTES ================= */
 
 // // Get root FAQs
-// router.get("/root", getRootFaqsController);
+router.get("/root", getRootFaqController);
 
 // // Get children of a FAQ
 // router.get("/:question_id/children", getChildFaqsController);

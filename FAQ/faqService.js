@@ -5,7 +5,7 @@ import { validateFaqUpdate } from "./validations/validateFaqUpdate.js";
 
 export const getAdminFaqTreeService = async (tenantId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  
+
   const { faqModelDB } = await getTenantModels(tenantId);
 
   const faqs = await faqModelDB.find({}).sort({ priority: 1 }).lean();
@@ -161,15 +161,12 @@ export const toggleFaqStatusService = async (tenantId, question_id) => {
   const updatedFaq = await faq.save();
 
   return updatedFaq;
-}
+};
 
 export const reorderFaqService = async (tenantId, data) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const {
-    parent_question_id, 
-    ordered_question_ids
-  } = data;
+  const { parent_question_id, ordered_question_ids } = data;
 
   const { faqModelDB } = await getTenantModels(tenantId);
 
@@ -183,4 +180,21 @@ export const reorderFaqService = async (tenantId, data) => {
   await faqModelDB.bulkWrite(bulkOps);
 
   return true;
-}
+};
+
+export const getRootFaqService = async (tenantId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  const { faqModelDB } = await getTenantModels(tenantId);
+  const results = await faqModelDB
+    .find({
+      type: "root",
+      is_active: true,
+    })
+    .sort({
+      priority: 1,
+    })
+    .select("question_id question_text answer_text")
+    .lean();
+
+  return results;
+};

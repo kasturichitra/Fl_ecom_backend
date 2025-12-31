@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { getAdminFaqTreeService, createFaqService, updateFaqService, toggleFaqStatusService, reorderFaqService } from "./faqService.js";
+import { getAdminFaqTreeService, createFaqService, updateFaqService, toggleFaqStatusService, reorderFaqService, getRootFaqService } from "./faqService.js";
 
 export const getAdminFaqTreeController = async (req, res) => {
   try {
@@ -56,6 +56,17 @@ export const reorderFaqController = async (req, res) => {
 
     const response = await reorderFaqService(tenantId, faqPayload);
     res.status(200).json(successResponse("Faq reordered successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getRootFaqController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+
+    const response = await getRootFaqService(tenantId);
+    res.status(200).json(successResponse("Faq tree fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
