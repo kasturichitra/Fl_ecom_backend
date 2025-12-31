@@ -31,6 +31,8 @@ import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js"
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
 import "./CronJobs/CouponsCron/couponsCronSchedule.js";
+import "./CronJobs/BusinessCron/businessTaxSchedule.js";
+
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";

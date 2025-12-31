@@ -57,6 +57,11 @@ const userSchema = new mongoose.Schema(
       ref: "Role",
       // If not set, falls back to legacy 'role' field
     },
+    account_type: {
+      type: String,
+      enum: ["Personal", "Business"],
+      default: "Personal",
+    },
     is_active: {
       type: Boolean,
       default: true,
