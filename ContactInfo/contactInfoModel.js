@@ -60,6 +60,9 @@ const contactInfoSchema = new mongoose.Schema(
     business_name: {
       type: String,
     },
+    business_description: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

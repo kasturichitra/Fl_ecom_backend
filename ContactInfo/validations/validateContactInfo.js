@@ -66,6 +66,9 @@ const contactInfoSchema = Joi.object({
   business_name: Joi.string().optional().allow("", null).messages({
     "string.base": "Business name must be a string.",
   }),
+  business_description: Joi.string().optional().allow("", null).messages({
+    "string.base": "Business description must be a string.",
+  }),
 });
 
 function validateContactInfo(data) {
@@ -73,7 +76,9 @@ function validateContactInfo(data) {
     return {
       isValid: false,
       message: "Contact info data must be a valid object.",
-      errors: [{ field: "", message: "Contact info data must be a valid object." }],
+      errors: [
+        { field: "", message: "Contact info data must be a valid object." },
+      ],
     };
   }
 
