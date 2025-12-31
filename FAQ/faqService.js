@@ -198,3 +198,21 @@ export const getRootFaqService = async (tenantId) => {
 
   return results;
 };
+
+export const getChildFaqService = async (tenantId, parentQuestionId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  const { faqModelDB } = await getTenantModels(tenantId);
+
+  const result = await faqModelDB
+    .find({
+      parent_question_id: parentQuestionId,
+      is_active: true,
+    })
+    .sort({
+      priority: 1,
+    })
+    .select("question_id question_text answer_text")
+    .lean();
+
+  return result;
+};

@@ -7,6 +7,7 @@ import {
   toggleFaqStatusController,
   reorderFaqController,
   getRootFaqController,
+  getChildFaqController,
   //   getChildFaqsController,
   //   getFaqAnswerController,
 } from "./faqController.js";
@@ -34,7 +35,7 @@ router.patch("/admin/reorder", reorderFaqController);
 router.get("/root", getRootFaqController);
 
 // // Get children of a FAQ
-// router.get("/:question_id/children", getChildFaqsController);
+router.get("/child/:id", getChildFaqController);
 
 // // Get FAQ answer (leaf)
 // router.get("/:question_id", getFaqAnswerController);
