@@ -2,13 +2,13 @@ import { Router } from "express";
 
 import {
   getAdminFaqTreeController,
-//   createFaqController,
-//   updateFaqController,
-//   toggleFaqStatusController,
-//   reorderFaqsController,
-//   getRootFaqsController,
-//   getChildFaqsController,
-//   getFaqAnswerController,
+  createFaqController,
+  //   updateFaqController,
+  //   toggleFaqStatusController,
+  //   reorderFaqsController,
+  //   getRootFaqsController,
+  //   getChildFaqsController,
+  //   getFaqAnswerController,
 } from "./faqController.js";
 
 const router = Router();
@@ -17,7 +17,7 @@ const router = Router();
 router.get("/admin/tree", getAdminFaqTreeController);
 
 // // Create FAQ (root or child)
-// router.post("/admin", createFaqController);
+router.post("/admin", createFaqController);
 
 // // Update FAQ content
 // router.put("/admin/:question_id", updateFaqController);
