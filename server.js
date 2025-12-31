@@ -26,7 +26,8 @@ import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 import verifyToken from "./utils/verifyToken.js";
 import contactInfoRoute from "./ContactInfo/contactInfoRoute.js";
 import couponRoute from "./Coupons/couponRoute.js";
-import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js"
+import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js"; 
+import faqRoutes from "./FAQ/faqRoutes.js";
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
@@ -151,6 +152,7 @@ app.use("/saleTrends", saleTrendRoutes);
 app.use("/contactInfo", contactInfoRoute);
 app.use("/coupons", couponRoute);
 app.use("/invoices", invoiceRoute);
+app.use("/faq", faqRoutes);
 
 app.use("/", userRoutes);
 
