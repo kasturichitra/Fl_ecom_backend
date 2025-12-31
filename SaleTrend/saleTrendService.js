@@ -120,6 +120,7 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
                             brand_name: "$$matchedProduct.brand_name",
                             final_price: "$$matchedProduct.final_price",
                             gross_price: "$$matchedProduct.gross_price",
+                            base_price: "$$matchedProduct.base_price",
                             product_image: "$$matchedProduct.product_image",
                             stock_quantity: "$$matchedProduct.stock_quantity",
                             discount_percentage: "$$matchedProduct.discount_percentage",

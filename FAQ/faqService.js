@@ -5,7 +5,7 @@ import { validateFaqCreate } from "./validations/validateFaqCreate.js";
 export const getAdminFaqTreeService = async (tenantId) => {
   const { faqModelDB } = await getTenantModels(tenantId);
 
-  const faqs = await faqModelDB.find({}).sort({ priority: -1 }).lean();
+  const faqs = await faqModelDB.find({}).sort({ priority: 1 }).lean();
 
   const map = {};
   faqs.forEach(
