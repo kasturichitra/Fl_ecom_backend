@@ -5,7 +5,7 @@ import {
   createFaqController,
   updateFaqController,
   toggleFaqStatusController,
-  //   reorderFaqsController,
+  reorderFaqController,
   //   getRootFaqsController,
   //   getChildFaqsController,
   //   getFaqAnswerController,
@@ -26,7 +26,7 @@ router.put("/admin/:id", updateFaqController);
 router.patch("/admin/toggle/:id", toggleFaqStatusController);
 
 // // Reorder children under same parent
-// router.patch("/admin/reorder", reorderFaqsController);
+router.patch("/admin/reorder", reorderFaqController);
 
 // /* ================= USER ROUTES ================= */
 

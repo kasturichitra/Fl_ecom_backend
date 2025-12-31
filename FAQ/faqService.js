@@ -162,3 +162,25 @@ export const toggleFaqStatusService = async (tenantId, question_id) => {
 
   return updatedFaq;
 }
+
+export const reorderFaqService = async (tenantId, data) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const {
+    parent_question_id, 
+    ordered_question_ids
+  } = data;
+
+  const { faqModelDB } = await getTenantModels(tenantId);
+
+  const bulkOps = ordered_question_ids.map((id, index) => ({
+    updateOne: {
+      filter: { question_id: id, parent_question_id },
+      update: { $set: { priority: index } },
+    },
+  }));
+
+  await faqModelDB.bulkWrite(bulkOps);
+
+  return true;
+}
