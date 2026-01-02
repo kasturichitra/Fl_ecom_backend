@@ -80,6 +80,7 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
       stock_quantity: 1,
       max_order_limit: 1,
       product_image: 1,
+      discount_percentage: 1,
     }
   );
 
