@@ -1,20 +1,36 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { assignTicketService, createTicketService, getAllTicketsService } from "./ticketService.js";
+import {
+  assignTicketService,
+  createTicketService,
+  getAllTicketsService,
+  getTicketByIdService,
+  resolveTicketService,
+} from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
 
-    let payload = req.body;
+    const { relevant_images, ...data } = req.body;
 
-    payload = {
-      ...payload,
+    let relevantImagesBuffers = [];
+
+    // Handle multiple relevant_images (gallery)
+    if (relevant_images && Array.isArray(relevant_images)) {
+      relevantImagesBuffers = relevant_images.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
+    }
+
+    const payload = {
+      ...data,
       raised_by: req.user._id.toString(),
       user_email: req.user.email,
     };
 
     console.log("payload", payload);
-    const response = await createTicketService(tenantId, payload);
+    const response = await createTicketService(tenantId, payload, relevantImagesBuffers);
 
     res.status(201).json(successResponse("Ticket created successfully", { data: response }));
   } catch (error) {
@@ -36,6 +52,19 @@ export const getAllTicketsController = async (req, res) => {
   }
 };
 
+export const getTicketByIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: ticket_id } = req.params;
+
+    const response = await getTicketByIdService(tenantId, ticket_id);
+
+    res.status(200).json(successResponse("Ticket fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
 export const assignTicketController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
@@ -49,6 +78,24 @@ export const assignTicketController = async (req, res) => {
     const response = await assignTicketService(tenantId, payload);
 
     res.status(200).json(successResponse("Ticket assigned successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const resolveTicketController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: ticket_id } = req.params;
+
+    const payload = {
+      ...req.body,
+      ticket_id,
+    };
+
+    const response = await resolveTicketService(tenantId, payload);
+
+    res.status(200).json(successResponse("Ticket resolved successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

@@ -176,6 +176,14 @@ export const orderValidationSchema = Joi.object({
     "date.base": "Order cancel date must be a valid date.",
   }),
 
+  order_delivery_date: Joi.date().allow(null).messages({
+    "date.base": "Order cancel date must be a valid date.",
+  }),
+  
+  order_refund_date: Joi.date().allow(null).messages({
+    "date.base": "Order cancel date must be a valid date.",
+  }),
+
   order_status: Joi.string()
     .valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned")
     .default("Pending")

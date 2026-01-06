@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
+import { imageSchema } from "../lib/imageModel.js";
 
 const ticketSchema = new mongoose.Schema(
   {
@@ -67,6 +68,8 @@ const ticketSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    relevant_images: [imageSchema],
 
     resolved_at: Date,
   },

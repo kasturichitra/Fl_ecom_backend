@@ -41,6 +41,8 @@ const createTicketSchema = Joi.object({
 
   resolved_by: Joi.string().trim().hex().length(24).allow(null).optional(),
   resolved_at: Joi.date().optional(),
+
+  relevant_images: Joi.array().items(Joi.any()).optional(), // Allow array of image objects
 });
 
 function validateTicketCreate(data) {

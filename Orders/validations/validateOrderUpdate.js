@@ -106,6 +106,14 @@ const orderUpdateSchema = Joi.object({
     "date.base": "Order cancel date must be a valid date.",
   }),
 
+  order_delivery_date: Joi.date().messages({
+    "date.base": "Order delivery date must be a valid date.",
+  }),
+
+  order_return_date: Joi.date().messages({
+    "date.base": "Order return date must be a valid date.",
+  }),
+
   order_status: Joi.string().valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned").messages({
     "string.base": "Order status must be a string.",
     "any.only": "Invalid order status.",

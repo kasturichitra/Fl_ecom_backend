@@ -205,6 +205,14 @@ const orderSchema = new mongoose.Schema(
       default: "Pending",
     },
 
+    order_delivery_date: {
+      type: Date,
+    },
+    
+    order_refund_date: {
+      type: Date,
+    },
+
     // Customer details for offline orders
     customer_name: {
       type: String,

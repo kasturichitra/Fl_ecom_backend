@@ -44,6 +44,8 @@ const updateTicketSchema = Joi.object({
   // 🔗 FAQ Link (Allowed if updating)
   faq_question_id: Joi.string().trim().optional(),
   faq_path: Joi.array().items(Joi.string().trim()).optional(),
+
+  relevant_images: Joi.array().items(Joi.any()).optional(),
 });
 
 export function validateTicketUpdate(data) {
