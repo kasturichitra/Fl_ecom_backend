@@ -49,7 +49,8 @@ const notificationSchema = new mongoose.Schema(
         "offer",
         "wallet",
         "system",
-        "custom"
+        "custom",
+        "ticket"
       ],
       default: "custom",
     },
@@ -61,7 +62,7 @@ const notificationSchema = new mongoose.Schema(
 
     relatedModel: {//relatedModel is the model of the related model
       type: String,
-      enum: ["Order", "OfferBanner"],
+      enum: ["Order", "OfferBanner", "Ticket"],
     },
 
     link: {
