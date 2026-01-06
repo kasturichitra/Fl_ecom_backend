@@ -144,6 +144,42 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
+    /* Assigned To User                  */
+    /* ---------------------------------- */
+    {
+      $lookup: {
+        from: "users",
+        localField: "assigned_to",
+        foreignField: "_id",
+        as: "assigned_to",
+      },
+    },
+    {
+      $unwind: {
+        path: "$assigned_to",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    /* ---------------------------------- */
+    /* Resolved By User                  */
+    /* ---------------------------------- */
+    {
+      $lookup: {
+        from: "users",
+        localField: "resolved_by",
+        foreignField: "_id",
+        as: "resolved_by",
+      },
+    },
+    {
+      $unwind: {
+        path: "$resolved_by",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    /* ---------------------------------- */
     /* 3️⃣ FAQ Question                    */
     /* ---------------------------------- */
     {
@@ -245,8 +281,6 @@ export const resolveTicketService = async (tenantId, payload) => {
   return existingTicket;
 };
 
-
-
 /**
  * Send notification and email to all admin users in background
  * This function runs asynchronously without blocking the main ticket creation
@@ -290,7 +324,9 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
 
     // Wait for everything to complete
     await Promise.all([adminNotificationPromise, ...emailPromises]);
-    console.log(`Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`);
+    console.log(
+      `Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`
+    );
   } catch (error) {
     console.error("Error in notifyAdminsInBackground:", error);
   }
