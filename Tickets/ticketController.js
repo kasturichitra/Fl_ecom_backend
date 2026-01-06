@@ -11,16 +11,26 @@ export const createTicketController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
 
-    let payload = req.body;
+    const { relevant_images, ...data } = req.body;
 
-    payload = {
-      ...payload,
+    let relevantImagesBuffers = [];
+
+    // Handle multiple relevant_images (gallery)
+    if (relevant_images && Array.isArray(relevant_images)) {
+      relevantImagesBuffers = relevant_images.map((base64Image) => {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        return Buffer.from(base64Data, "base64");
+      });
+    }
+
+    const payload = {
+      ...data,
       raised_by: req.user._id.toString(),
       user_email: req.user.email,
     };
 
     console.log("payload", payload);
-    const response = await createTicketService(tenantId, payload);
+    const response = await createTicketService(tenantId, payload, relevantImagesBuffers);
 
     res.status(201).json(successResponse("Ticket created successfully", { data: response }));
   } catch (error) {

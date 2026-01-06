@@ -1,3 +1,4 @@
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import validateTicketCreate from "./validations/validateTicketCreate.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
@@ -11,9 +12,10 @@ import { buildSortObject } from "../utils/buildSortObject.js";
         faq_question_id: "Question-001",
         faq_path: "",
         message: "Nice",
+        relevant_images: ["base64string1", "base64string2"]
     }
 */
-export const createTicketService = async (tenantId, payload) => {
+export const createTicketService = async (tenantId, payload, relevantImagesBuffers) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { faqModelDB, ticketModelDB } = await getTenantModels(tenantId);
@@ -23,6 +25,19 @@ export const createTicketService = async (tenantId, payload) => {
   const ticket_id = `${existingFaq.question_id}_${Date.now()}`;
 
   payload = { ...payload, ticket_id };
+
+  // -------------------------------
+  // S3 Image Upload
+  // -------------------------------
+  if (relevantImagesBuffers && relevantImagesBuffers.length > 0) {
+    const uploadPromises = relevantImagesBuffers.map((buffer, index) =>
+      uploadImageVariants({
+        fileBuffer: buffer,
+        basePath: `${tenantId}/Tickets/${ticket_id}/relevant-${index}`,
+      })
+    );
+    payload.relevant_images = await Promise.all(uploadPromises);
+  }
 
   const { isValid, message } = validateTicketCreate(payload);
   throwIfTrue(!isValid, message);
