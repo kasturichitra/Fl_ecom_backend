@@ -193,7 +193,7 @@ export const getRootFaqService = async (tenantId) => {
     .sort({
       priority: 1,
     })
-    .select("question_id question_text answer_text")
+    .select("question_id question_text answer_text escalation_allowed")
     .lean();
 
   return results;
@@ -211,7 +211,7 @@ export const getChildFaqService = async (tenantId, parentQuestionId) => {
     .sort({
       priority: 1,
     })
-    .select("question_id question_text answer_text")
+    .select("question_id question_text answer_text escalation_allowed")
     .lean();
 
   return result;
