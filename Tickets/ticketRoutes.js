@@ -1,18 +1,10 @@
-import express from "express";
-import {
-    // createTicketController,
-    // getAllTicketsController,
-    // getTicketByIdController,
-    // updateTicketController,
-    // addMessageToTicketController
-} from "./ticketController.js";
+import { Router } from "express";
+import { createTicketController, getAllTicketsController } from "./ticketController.js";
+import verifyToken from "../utils/verifyToken.js";
 
-const route = express.Router();
+const router = Router();
 
-// route.post("/", createTicketController);
-// route.get("/", getAllTicketsController);
-// route.get("/:id", getTicketByIdController);
-// route.put("/:id", updateTicketController);
-// route.post("/message/:id", addMessageToTicketController);
+router.post("/", verifyToken, createTicketController);
+router.get("/admin", verifyToken, getAllTicketsController);
 
-export default route;
+export default router;
