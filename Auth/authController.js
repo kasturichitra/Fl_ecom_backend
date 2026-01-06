@@ -95,15 +95,17 @@ export const loginUserController = async (req, res) => {
 
     console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
+
+    // Check if user account is active
+    throwIfTrue(!existingUser.is_active, "Your account has been deactivated. Please contact support for assistance.");
+
     if (is_admin) {
       throwIfTrue(existingUser.role_id.name !== "admin" && existingUser.role_id.name !== "employee", "User is not allowed this penal");
     }
 
-    if (!existingUser.is_active) return res.json(errorResponse("OTP Verification is required"));
-
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
     throwIfTrue(!isValidPassword, "Invalid password");
-  
+
     let device = await deviceSessionModelDB.findOne({
       user_id: existingUser._id,
       device_id: device_id,
