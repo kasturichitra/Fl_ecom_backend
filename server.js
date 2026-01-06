@@ -28,6 +28,7 @@ import contactInfoRoute from "./ContactInfo/contactInfoRoute.js";
 import couponRoute from "./Coupons/couponRoute.js";
 import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js"; 
 import faqRoutes from "./FAQ/faqRoutes.js";
+import ticketRoutes from "./Tickets/ticketRoutes.js";
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
@@ -153,6 +154,7 @@ app.use("/contactInfo", contactInfoRoute);
 app.use("/coupons", couponRoute);
 app.use("/invoices", invoiceRoute);
 app.use("/faq", faqRoutes);
+app.use("/tickets", ticketRoutes);
 
 app.use("/", userRoutes);
 
