@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { createTicketService, getAllTicketsService } from "./ticketService.js";
+import { assignTicketService, createTicketService, getAllTicketsService } from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
   try {
@@ -31,6 +31,24 @@ export const getAllTicketsController = async (req, res) => {
     const response = await getAllTicketsService(tenantId, filters);
 
     res.status(200).json(successResponse("Tickets fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const assignTicketController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: ticket_id } = req.params;
+
+    const payload = {
+      ...req.body,
+      ticket_id,
+    };
+
+    const response = await assignTicketService(tenantId, payload);
+
+    res.status(200).json(successResponse("Ticket assigned successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

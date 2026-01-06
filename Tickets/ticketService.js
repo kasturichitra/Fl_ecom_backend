@@ -24,7 +24,7 @@ export const createTicketService = async (tenantId, payload) => {
 
   payload = { ...payload, ticket_id };
 
-  const { isValid, message } = await validateTicketCreate(payload);
+  const { isValid, message } = validateTicketCreate(payload);
   throwIfTrue(!isValid, message);
 
   const createdTicket = await ticketModelDB.create(payload);
@@ -62,4 +62,27 @@ export const getAllTicketsService = async (tenantId, filters) => {
   const { ticketModelDB } = await getTenantModels(tenantId);
   const tickets = await ticketModelDB.find(query).sort(sortObj).skip(skip).limit(limit).lean();
   return tickets;
+};
+
+/*
+    Example JSON
+    {
+        ticket_id: "Ticket-001",
+        assigned_to: "User-001",
+    }
+*/
+export const assignTicketService = async (tenantId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { ticketModelDB } = await getTenantModels(tenantId);
+
+  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
+  throwIfTrue(!existingTicket, "Ticket not found");
+
+  existingTicket.assigned_to = payload.assigned_to;
+  existingTicket.status = "assigned";
+  existingTicket.assigned_at = new Date();
+
+  await existingTicket.save();
+  return existingTicket;
 };
