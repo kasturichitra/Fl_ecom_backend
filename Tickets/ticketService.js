@@ -152,7 +152,6 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
 /*
     Example JSON
     {
-        ticket_id: "Ticket-001",
         assigned_to: "User-001",
     }
 */
@@ -167,6 +166,29 @@ export const assignTicketService = async (tenantId, payload) => {
   existingTicket.assigned_to = payload.assigned_to;
   existingTicket.status = "assigned";
   existingTicket.assigned_at = new Date();
+
+  await existingTicket.save();
+  return existingTicket;
+};
+
+/*
+  Example JSON
+  {
+    "resolved_by": "User-001"
+  }
+*/
+
+export const resolveTicketService = async (tenantId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { ticketModelDB } = await getTenantModels(tenantId);
+
+  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
+  throwIfTrue(!existingTicket, "Ticket not found");
+
+  existingTicket.resolved_by = payload.resolved_by;
+  existingTicket.status = "resolved";
+  existingTicket.resolved_at = new Date();
 
   await existingTicket.save();
   return existingTicket;
