@@ -196,6 +196,8 @@ export const assignTicketService = async (tenantId, payload) => {
   const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
   throwIfTrue(!existingTicket, "Ticket not found");
 
+  throwIfTrue(existingTicket.status !== "pending", "Ticket is not in pending state");
+
   existingTicket.assigned_to = payload.assigned_to;
   existingTicket.status = "assigned";
   existingTicket.assigned_at = new Date();
@@ -218,6 +220,8 @@ export const resolveTicketService = async (tenantId, payload) => {
 
   const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
   throwIfTrue(!existingTicket, "Ticket not found");
+
+  throwIfTrue(existingTicket.status === "resolved", "Ticket is already resolved");
 
   existingTicket.resolved_by = payload.resolved_by;
   existingTicket.status = "resolved";
