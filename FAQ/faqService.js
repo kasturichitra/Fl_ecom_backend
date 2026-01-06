@@ -173,7 +173,7 @@ export const reorderFaqService = async (tenantId, data) => {
   const bulkOps = ordered_question_ids.map((id, index) => ({
     updateOne: {
       filter: { question_id: id, parent_question_id },
-      update: { $set: { priority: index } },
+      update: { $set: { priority: index + 1 } },
     },
   }));
 
