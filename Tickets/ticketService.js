@@ -3,6 +3,8 @@ import { getTenantModels } from "../lib/tenantModelsCache.js";
 import validateTicketCreate from "./validations/validateTicketCreate.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { sendAdminNotification } from "../utils/notificationHelper.js";
+import { sendEmailNotification, generateTicketEmailTemplate } from "./utils/sendEmail.js";
 
 /*
     Example JSON 
@@ -43,6 +45,18 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
   throwIfTrue(!isValid, message);
 
   const createdTicket = await ticketModelDB.create(payload);
+
+  // Send notifications and emails to admin in background (non-blocking)
+  notifyAdminsInBackground(tenantId, {
+    ticket_id: createdTicket.ticket_id,
+    user_email: payload.user_email,
+    faq_question_id: payload.faq_question_id,
+    message: payload.message,
+    relevant_images: payload.relevant_images || [],
+  }).catch((err) => {
+    console.error("Background notification failed:", err);
+  });
+
   return createdTicket;
 };
 
@@ -229,4 +243,55 @@ export const resolveTicketService = async (tenantId, payload) => {
 
   await existingTicket.save();
   return existingTicket;
+};
+
+
+
+/**
+ * Send notification and email to all admin users in background
+ * This function runs asynchronously without blocking the main ticket creation
+ */
+const notifyAdminsInBackground = async (tenantId, ticketData) => {
+  try {
+    const { userModelDB } = await getTenantModels(tenantId);
+
+    // Get all active admin users
+    const adminUsers = await userModelDB.find({ role: "admin", is_active: true });
+
+    if (!adminUsers || adminUsers.length === 0) {
+      console.log("No active admin users found");
+      return;
+    }
+
+    // 1️⃣ Send ONE in-app notification to all admins (Broadcast)
+    // adminId is passed as null or first admin ID because sendAdminNotification handles broadcasting to the "admins" room
+    const adminNotificationPromise = sendAdminNotification(tenantId, adminUsers[0]._id, {
+      title: "New Support Ticket Created",
+      message: `Ticket ${ticketData.ticket_id} has been created by ${ticketData.user_email}`,
+      type: "ticket",
+      relatedId: ticketData.ticket_id,
+      relatedModel: "Ticket",
+      link: `/admin/tickets/${ticketData.ticket_id}`,
+    }).catch((err) => console.error("Failed to send admin in-app notification:", err.message));
+
+    // 2️⃣ Send individual emails to each admin user
+    const emailPromises = adminUsers.map(async (admin) => {
+      try {
+        const emailHtml = generateTicketEmailTemplate(ticketData);
+        await sendEmailNotification({
+          to: admin.email,
+          subject: `New Support Ticket: ${ticketData.ticket_id}`,
+          html: emailHtml,
+        });
+      } catch (err) {
+        console.error(`Failed to send email to admin ${admin.email}:`, err.message);
+      }
+    });
+
+    // Wait for everything to complete
+    await Promise.all([adminNotificationPromise, ...emailPromises]);
+    console.log(`Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`);
+  } catch (error) {
+    console.error("Error in notifyAdminsInBackground:", error);
+  }
 };
