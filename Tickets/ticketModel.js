@@ -33,6 +33,10 @@ const ticketSchema = new mongoose.Schema(
       default: [],
     },
 
+    order_id: {
+      type: String,
+    },
+
     // 📝 User message
     message: {
       type: String,
@@ -52,7 +56,7 @@ const ticketSchema = new mongoose.Schema(
     assigned_to: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // employee/admin
-      default: null, 
+      default: null,
     },
 
     assigned_at: Date,

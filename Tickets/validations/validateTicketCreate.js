@@ -27,6 +27,7 @@ const createTicketSchema = Joi.object({
 
   // 🆔 Identity & System Fields (Allowed)
   ticket_id: Joi.string().trim().optional(),
+  order_id: Joi.string().trim().optional(),
 
   raised_by: Joi.string().trim().hex().length(24).optional().messages({
     "string.hex": "Raised By must be a valid ObjectId.",
