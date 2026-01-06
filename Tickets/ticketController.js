@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { assignTicketService, createTicketService, getAllTicketsService } from "./ticketService.js";
+import { assignTicketService, createTicketService, getAllTicketsService, getTicketByIdService } from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
   try {
@@ -31,6 +31,19 @@ export const getAllTicketsController = async (req, res) => {
     const response = await getAllTicketsService(tenantId, filters);
 
     res.status(200).json(successResponse("Tickets fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getTicketByIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: ticket_id } = req.params;
+
+    const response = await getTicketByIdService(tenantId, ticket_id);
+
+    res.status(200).json(successResponse("Ticket fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

@@ -93,7 +93,7 @@ export const loginUserController = async (req, res) => {
       model: roleModelDB,
     })
 
-    console.log("Existing User", existingUser);
+    // console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
 
     // Check if user account is active
