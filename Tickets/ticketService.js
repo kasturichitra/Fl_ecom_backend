@@ -61,8 +61,26 @@ export const getAllTicketsService = async (tenantId, filters) => {
   const skip = (page - 1) * limit;
 
   const { ticketModelDB } = await getTenantModels(tenantId);
-  const tickets = await ticketModelDB.find(query).sort(sortObj).skip(skip).limit(limit).lean();
-  return tickets;
+  const [result] = await ticketModelDB.aggregate([
+    { $match: query },
+
+    {
+      $facet: {
+        data: [{ $sort: sortObj }, { $skip: skip }, { $limit: Number(limit) }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
+
+  const totalCount = result.totalCount[0]?.count || 0;
+
+  return {
+    totalCount,
+    page,
+    limit,
+    totalPages: Math.ceil(totalCount / limit),
+    data: result.data,
+  };
 };
 
 export const getTicketByIdService = async (tenantId, ticketId) => {
