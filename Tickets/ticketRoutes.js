@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { createTicketController } from "./ticketController.js";
+import { createTicketController, getAllTicketsController } from "./ticketController.js";
 import verifyToken from "../utils/verifyToken.js";
 
 const router = Router();
 
-router.post("/", verifyToken,  createTicketController); 
+router.post("/", verifyToken, createTicketController);
+router.get("/admin", verifyToken, getAllTicketsController);
 
 export default router;
