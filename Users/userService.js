@@ -262,40 +262,20 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
 };
 
 export const deleteUserAccountService = async (tenantId, user_id) => {
-  throwIfTrue(!tenantId || !user_id, "Required fields missing");
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!user_id, "User ID is Required");
 
-  // const usersDB = await UserModel(tenantId);
-  const {
-    userModelDB: usersDB,
-    orderModelDB: OrderModelDB,
-    wishlistModelDB: WishlistModelDB,
-    cartModelDB: CartModelDB,
-    notificationModelDB: NotificationModelDB,
-    otpModelDB: OtpModelDB,
-    deviceSessionModelDB: DeviceModelDB,
-  } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
-  // const [OrderModelDB, WishlistModelDB, CartModelDB, NotificationModelDB, OtpModelDB, DeviceModelDB] =
-  //   await Promise.all([
-  //     OrdersModel(tenantId),
-  //     WishlistModel(tenantId),
-  //     CartModel(tenantId),
-  //     NotificationModel(tenantId),
-  //     OtpModel(tenantId),
-  //     deviceSessionModel(tenantId),
-  //   ]);
+  // Toggle is_active status
+  user.is_active = !user.is_active;
 
-  await Promise.all([
-    usersDB.deleteOne({ _id: user_id }),
-    OrderModelDB.deleteMany({ user: user_id }),
-    WishlistModelDB.deleteMany({ user: user_id }),
-    CartModelDB.deleteMany({ user: user_id }),
-    NotificationModelDB.deleteMany({ user: user_id }),
-    OtpModelDB.deleteMany({ user: user_id }),
-    DeviceModelDB.deleteMany({ user: user_id }),
-  ]);
+  const updatedUser = await user.save();
 
-  return { message: "User and associated data deleted successfully" };
+  return {
+    message: `User account ${updatedUser.is_active ? 'activated' : 'deactivated'} successfully`,
+    is_active: updatedUser.is_active
+  };
 };
