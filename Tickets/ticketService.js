@@ -3,8 +3,14 @@ import { getTenantModels } from "../lib/tenantModelsCache.js";
 import validateTicketCreate from "./validations/validateTicketCreate.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendAdminNotification } from "../utils/notificationHelper.js";
-import { sendEmailNotification, generateTicketEmailTemplate } from "./utils/sendEmail.js";
+import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
+import {
+  sendEmailNotification,
+  generateTicketEmailTemplate,
+  generateTicketResolvedForUserEmail,
+  generateTicketAssignedToEmployeeEmail,
+  generateTicketAssignedToUserEmail,
+} from "./utils/sendEmail.js";
 import mongoose from "mongoose";
 
 /*
@@ -258,18 +264,52 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
 export const assignTicketService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { ticketModelDB } = await getTenantModels(tenantId);
+  const { ticketModelDB, userModelDB } = await getTenantModels(tenantId);
 
-  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
+  const existingTicket = await ticketModelDB.findOne({
+    ticket_id: payload.ticket_id,
+  });
+
   throwIfTrue(!existingTicket, "Ticket not found");
-
   throwIfTrue(existingTicket.status !== "pending", "Ticket is not in pending state");
+
+  const existingUser = await userModelDB.findOne({
+    _id: payload.assigned_to,
+  });
+
+  throwIfTrue(!existingUser, "User not found");
 
   existingTicket.assigned_to = payload.assigned_to;
   existingTicket.status = "assigned";
   existingTicket.assigned_at = new Date();
 
   await existingTicket.save();
+
+  // 🔥 populate AFTER save
+  await existingTicket.populate("assigned_to raised_by");
+
+  notifyUsersInBackground({
+    tenantId,
+    ticketData: existingTicket,
+    user_id: existingTicket.assigned_to,
+    templateFunction: generateTicketAssignedToEmployeeEmail,
+    subject: "Support ticket has been assigned to you",
+    message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to you`,
+  }).catch((err) => {
+    console.error("Background notification failed for generateTicketAssignedToEmployeeEmail:", err);
+  });
+
+  notifyUsersInBackground({
+    tenantId,
+    ticketData: existingTicket,
+    user_id: existingTicket.raised_by,
+    templateFunction: generateTicketAssignedToUserEmail,
+    subject: "Your ticket has been assigned to customer care",
+    message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to customer care and we will get back to you soon`,
+  }).catch((err) => {
+    console.error("Background notification failed for generateTicketAssignedToUserEmail:", err);
+  });
+
   return existingTicket;
 };
 
@@ -283,10 +323,13 @@ export const assignTicketService = async (tenantId, payload) => {
 export const resolveTicketService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { ticketModelDB } = await getTenantModels(tenantId);
+  const { ticketModelDB, userModelDB } = await getTenantModels(tenantId);
 
-  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
+  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id }).populate("resolved_by");
   throwIfTrue(!existingTicket, "Ticket not found");
+
+  const existingUser = await userModelDB.findOne({ _id: payload.resolved_by });
+  throwIfTrue(!existingUser, "User not found");
 
   throwIfTrue(existingTicket.status === "resolved", "Ticket is already resolved");
 
@@ -295,6 +338,16 @@ export const resolveTicketService = async (tenantId, payload) => {
   existingTicket.resolved_at = new Date();
 
   await existingTicket.save();
+
+  notifyUsersInBackground({
+    tenantId,
+    ticketData: existingTicket,
+    user_id: existingTicket.raised_by,
+    templateFunction: generateTicketResolvedForUserEmail,
+  }).catch((err) => {
+    console.error("Background notification failed:", err);
+  });
+
   return existingTicket;
 };
 
@@ -344,6 +397,48 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
     console.log(
       `Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`
     );
+  } catch (error) {
+    console.error("Error in notifyAdminsInBackground:", error);
+  }
+};
+
+const notifyUsersInBackground = async ({
+  tenantId,
+  ticketData = {},
+  user_id = "",
+  templateFunction = () => "",
+  subject = "",
+  message = "",
+}) => {
+  try {
+    const { userModelDB } = await getTenantModels(tenantId);
+
+    // First get the user who raised the ticket
+    const user = await userModelDB.findOne({ _id: user_id });
+
+    if (!user) {
+      console.log("User not found");
+      return;
+    }
+
+    // 1️⃣ Send ONE in-app notification to the user who raised the ticket
+    const userNotificationPromise = sendUserNotification(tenantId, user_id, {
+      title: subject,
+      message: message,
+      type: "ticket",
+      relatedId: ticketData.ticket_id,
+      relatedModel: "Ticket",
+      link: `/user/tickets/${ticketData.ticket_id}`,
+    }).catch((err) => console.error("Failed to send user in-app notification:", err.message));
+
+    const emailHtml = templateFunction(ticketData);
+    await sendEmailNotification({
+      to: user.email,
+      subject: subject,
+      html: emailHtml,
+    });
+    // Wait for everything to complete
+    await Promise.all([userNotificationPromise]);
   } catch (error) {
     console.error("Error in notifyAdminsInBackground:", error);
   }
