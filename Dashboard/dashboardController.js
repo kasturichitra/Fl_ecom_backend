@@ -6,6 +6,7 @@ import {
   getOrdersTrendService,
   getTopBrandsByCategoryService,
   getTopProductsByCategoryService,
+  getTotalCountsService,
   getUsersTrendService,
 } from "./dashboardService.js";
 
@@ -95,3 +96,16 @@ export const getOrdersByOrderTypeController = async (req, res) => {
     res.status(500).json(errorResponse("Error fetching orders by order type:", error));
   }
 };
+
+
+
+export const getTotalCountsController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+
+    const data = await getTotalCountsService(tenantID);
+    res.status(200).json(successResponse("Total counts fetched successfully", { data }));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching total counts:", error));
+  }
+}

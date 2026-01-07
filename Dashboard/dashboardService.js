@@ -435,13 +435,13 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                        {
-                          $eq: [
-                            { $toString: "$category_unique_id" }, // convert DB value → string
-                            "$$selectedCategory", // already string
-                          ],
-                        },
-                      ]
+                      {
+                        $eq: [
+                          { $toString: "$category_unique_id" }, // convert DB value → string
+                          "$$selectedCategory", // already string
+                        ],
+                      },
+                    ]
                     : []),
                 ],
               },
@@ -538,10 +538,10 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                        {
-                          $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
-                        },
-                      ]
+                      {
+                        $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
+                      },
+                    ]
                     : []),
                 ],
               },
@@ -590,3 +590,186 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
   const products = await orderModelDB.aggregate(pipeline);
   return { products };
 };
+
+
+
+export const getTotalCountsService = async (tenantId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const {
+    orderModelDB,
+    industryTypeModelDB,
+    categoryModelDB,
+    productModelDB,
+    brandModelDB,
+    userModelDB,
+    couponModelDB,
+    notificationModelDB,
+    saleTrendModelDB,
+  } = await getTenantModels(tenantId);
+
+  // Fetch all statistics concurrently for maximum performance
+  const [
+    orderStats,
+    industryStats,
+    categoryStats,
+    productStats,
+    brandStats,
+    userStats,
+    couponStats,
+    notificationStats,
+    saleTrendStats,
+  ] = await Promise.all([
+    // 1. Order Collection Stats
+    orderModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          offlineOrders: { $sum: { $cond: [{ $eq: ["$order_type", "Offline"] }, 1, 0] } },
+          onlineOrders: { $sum: { $cond: [{ $eq: ["$order_type", "Online"] }, 1, 0] } },
+          totalProductsSold: { $sum: { $sum: "$order_products.quantity" } },
+          pendingCount: { $sum: { $cond: [{ $eq: ["$order_status", "Pending"] }, 1, 0] } },
+          processingCount: { $sum: { $cond: [{ $eq: ["$order_status", "Processing"] }, 1, 0] } },
+          shippedCount: { $sum: { $cond: [{ $eq: ["$order_status", "Shipped"] }, 1, 0] } },
+          deliveredCount: { $sum: { $cond: [{ $eq: ["$order_status", "Delivered"] }, 1, 0] } },
+          cancelledCount: { $sum: { $cond: [{ $eq: ["$order_status", "Cancelled"] }, 1, 0] } },
+          returnedCount: { $sum: { $cond: [{ $eq: ["$order_status", "Returned"] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 2. Industry Type Collection Stats
+    industryTypeModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 3. Category Collection Stats
+    categoryModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 4. Product Collection Stats
+    productModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 5. Brand Collection Stats
+    brandModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 6. User Collection Stats
+    userModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          users: { $sum: { $cond: [{ $eq: ["$role", "user"] }, 1, 0] } },
+          employees: { $sum: { $cond: [{ $eq: ["$role", "employee"] }, 1, 0] } },
+          admins: { $sum: { $cond: [{ $eq: ["$role", "admin"] }, 1, 0] } },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 7. Coupon Collection Stats
+    couponModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$status", "Active"] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$status", "Inactive"] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 8. Notification Collection Stats
+    notificationModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          unread: { $sum: { $cond: [{ $eq: ["$read", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+    // 9. Sale Trend Collection Stats
+    saleTrendModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
+  ]);
+
+  // Helper patterns for defaults
+  const activeInactiveDefault = { total: 0, active: 0, inactive: 0 };
+
+  return {
+    orderCounts: orderStats[0] || {
+      totalOrders: 0,
+      offlineOrders: 0,
+      onlineOrders: 0,
+      totalProductsSold: 0,
+      pendingCount: 0,
+      processingCount: 0,
+      shippedCount: 0,
+      deliveredCount: 0,
+      cancelledCount: 0,
+      returnedCount: 0,
+    },
+    industryCounts: industryStats[0] || activeInactiveDefault,
+    categoryCounts: categoryStats[0] || activeInactiveDefault,
+    productCounts: productStats[0] || activeInactiveDefault,
+    brandCounts: brandStats[0] || activeInactiveDefault,
+    userCounts: userStats[0] || {
+      total: 0,
+      users: 0,
+      employees: 0,
+      admins: 0,
+      active: 0,
+      inactive: 0,
+    },
+    couponCounts: couponStats[0] || activeInactiveDefault,
+    notificationCounts: notificationStats[0] || { total: 0, unread: 0 },
+    saleTrendCounts: saleTrendStats[0] || activeInactiveDefault,
+  };
+};
+
