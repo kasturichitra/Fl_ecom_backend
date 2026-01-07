@@ -19,7 +19,11 @@ import mongoose from "mongoose";
         user_id: "User-001",
         user_email: "example@example.com",
         faq_question_id: "Question-001",
-        faq_path: "",
+        faq_path: [
+            "Question-001",
+            "Question-002",
+            "Question-003"
+        ],
         message: "Nice",
         relevant_images: ["base64string1", "base64string2"]
     }
