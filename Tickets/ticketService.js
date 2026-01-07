@@ -5,6 +5,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { sendAdminNotification } from "../utils/notificationHelper.js";
 import { sendEmailNotification, generateTicketEmailTemplate } from "./utils/sendEmail.js";
+import mongoose from "mongoose";
 
 /*
     Example JSON 
@@ -63,7 +64,7 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
 export const getAllTicketsService = async (tenantId, filters) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { page = 1, limit = 10, searchTerm, sort, status, from, to } = filters;
+  let { page = 1, limit = 10, searchTerm, sort, status, from, to, assigned_to } = filters;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
@@ -80,6 +81,10 @@ export const getAllTicketsService = async (tenantId, filters) => {
   }
 
   if (status) query.status = status;
+  if (assigned_to) {
+    throwIfTrue(!mongoose.Types.ObjectId.isValid(assigned_to), "Invalid MongoDB ID for assigned_to");
+    query.assigned_to = new mongoose.Types.ObjectId(assigned_to);
+  }
 
   if (from) query.createdAt = { $gte: new Date(from) };
   if (to) query.createdAt = { $lte: new Date(to) };
@@ -92,6 +97,18 @@ export const getAllTicketsService = async (tenantId, filters) => {
   const { ticketModelDB } = await getTenantModels(tenantId);
   const [result] = await ticketModelDB.aggregate([
     { $match: query },
+
+    /* 🔹 Lookup resolved_by */
+    {
+      $lookup: {
+        from: "users",
+        localField: "resolved_by",
+        foreignField: "_id",
+        as: "resolved_by",
+        pipeline: [{ $project: { username: 1, _id: 0 } }],
+      },
+    },
+    { $unwind: { path: "$resolved_by", preserveNullAndEmptyArrays: true } },
 
     {
       $facet: {

@@ -35,7 +35,7 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const { userModelDB, roleModelDB, permissionModelDB } = getTenantModels(tenantId);
+    const { userModelDB, roleModelDB, permissionModelDB } = await getTenantModels(tenantId);
 
     const user = await userModelDB
       .findById(decoded.id)
