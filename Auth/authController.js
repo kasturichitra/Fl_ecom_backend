@@ -88,7 +88,7 @@ export const loginUserController = async (req, res) => {
     const existingUser = await userModelDB.findOne({ $or: [{ email }, { phone_number }] }).populate({
       path: "role_id",
       model: roleModelDB,
-    })
+    });
 
     // console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
@@ -141,7 +141,13 @@ export const loginUserController = async (req, res) => {
     // Generate token and set cookie
     const token = generateTokenAndSetCookie(res, existingUser._id);
 
-    res.status(200).json(successResponse("Login successful"));
+    res.status(200).json(successResponse("Login successful", {
+      user: {
+        id: existingUser._id,
+        username: existingUser.username,
+        email: existingUser.email,
+      },
+    }));
   } catch (error) {
     res.status(401).json(errorResponse(error.message, error));
   }

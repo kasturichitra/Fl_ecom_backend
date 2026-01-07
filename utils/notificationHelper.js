@@ -83,8 +83,6 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
     // Create records in database
     const saved = await notificationModelDB.insertMany(notificationRecords);
 
-    // console.log(saved, 'saved....?');
-
     // Broadcast real-time through Socket.IO to the "admins" room
     io.to("admins").emit("newAdminNotification", saved[0]);
 
