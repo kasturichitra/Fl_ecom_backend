@@ -9,6 +9,7 @@ import {
   updateUserService,
   deleteUserAddressService,
   deleteUserAccountService,
+  getAllRolesService,
 } from "./userService.js";
 
 export const getAllUsersController = async (req, res) => {
@@ -32,6 +33,16 @@ export const getUserByIdController = async (req, res) => {
 
     const user = await getUserByIdService(tenantId, id);
     res.status(200).json(successResponse("User fetched successfully", { data: user }));
+  } catch (error) {
+    res.status(400).json(errorResponse(error.message, error));
+  }
+};
+
+export const getAllRolesController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const roles = await getAllRolesService(tenantId);
+    res.status(200).json(successResponse("Roles fetched successfully", { data: roles }));
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));
   }
