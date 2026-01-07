@@ -325,7 +325,7 @@ export const resolveTicketService = async (tenantId, payload) => {
 
   const { ticketModelDB, userModelDB } = await getTenantModels(tenantId);
 
-  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id }).populate("resolved_by");
+  const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
   throwIfTrue(!existingTicket, "Ticket not found");
 
   const existingUser = await userModelDB.findOne({ _id: payload.resolved_by });
@@ -339,11 +339,15 @@ export const resolveTicketService = async (tenantId, payload) => {
 
   await existingTicket.save();
 
+  await existingTicket.populate("assigned_to raised_by resolved_by");
+
   notifyUsersInBackground({
     tenantId,
     ticketData: existingTicket,
     user_id: existingTicket.raised_by,
     templateFunction: generateTicketResolvedForUserEmail,
+    subject: "Support ticket has been resolved",
+    message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been resolved`,
   }).catch((err) => {
     console.error("Background notification failed:", err);
   });
