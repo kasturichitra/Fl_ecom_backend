@@ -88,8 +88,13 @@ export const resolveTicketController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     const { id: ticket_id } = req.params;
 
+    const user_id = req.body.resolved_by || req.user._id.toString();
+
+    const { resolved_by, ...rest } = req.body;
+
     const payload = {
-      ...req.body,
+      ...rest,
+      resolved_by: user_id,
       ticket_id,
     };
 
