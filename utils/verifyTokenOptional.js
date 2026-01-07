@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import UserModel from "../Users/userModel.js";
 import RoleModel from "../Role/roleModel.js";
 import PermissionModel from "../Permission/permissionModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 dotenv.config();
 
@@ -34,15 +35,9 @@ const verifyTokenOptional = async (req, res, next) => {
     /* ---------------------------------- */
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    /* ---------------------------------- */
-    /* 4️⃣ Tenant-specific Models          */
-    /* ---------------------------------- */
-    await RoleModel(tenantId);
-    await PermissionModel(tenantId);
+    const { roleModelDB, permissionModelDB, userModelDB } = await getTenantModels(tenantId);
 
-    const UserModelDB = await UserModel(tenantId);
-
-    const user = await UserModelDB.findById(decoded.id)
+    const user = await userModelDB.findById(decoded.id)
       .populate({
         path: "role_id",
         populate: { path: "permissions", select: "key" },
@@ -67,6 +62,7 @@ const verifyTokenOptional = async (req, res, next) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      role: user.role_id?.name || "N/A",
       role_id: user.role_id?._id,
       permissions,
     };

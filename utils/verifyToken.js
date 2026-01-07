@@ -1,8 +1,6 @@
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import UserModel from "../Users/userModel.js";
-import RoleModel from "../Role/roleModel.js";
-import PermissionModel from "../Permission/permissionModel.js";
+import jwt from "jsonwebtoken";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 dotenv.config();
 
@@ -37,16 +35,10 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    /* ---------------------------------- */
-    /* 4️⃣ Tenant-specific User Model      */
-    /* ---------------------------------- */
-    // Ensure Role and Permission models are registered on this connection
-    await RoleModel(tenantId);
-    await PermissionModel(tenantId);
+    const { userModelDB, roleModelDB, permissionModelDB } = getTenantModels(tenantId);
 
-    const UserModelDB = await UserModel(tenantId);
-
-    const user = await UserModelDB.findById(decoded.id)
+    const user = await userModelDB
+      .findById(decoded.id)
       .populate({
         path: "role_id",
         populate: { path: "permissions", select: "key" },
@@ -74,6 +66,7 @@ const verifyToken = async (req, res, next) => {
       email: user.email,
       // role: user.role,
       role_id: user.role_id?._id,
+      role: user.role_id?.name || "N/A",
       permissions, // Permission keys array for fast authorization
     };
     req.tenantId = tenantId;

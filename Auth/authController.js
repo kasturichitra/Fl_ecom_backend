@@ -1,16 +1,13 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
+import jwt from "jsonwebtoken";
 
-import UserModel from "../Users/userModel.js";
+import { DEVICE_SESSION_EXPIRY_TIME } from "../lib/constants.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 import generateTokenAndSetCookie from "../utils/generateTokenAndSetCookie.js";
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { generateAndSendOtp } from "../utils/sendOTP.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
-import deviceSessionModel from "./deviceSessionModel.js";
-import otpModel from "./otpModel.js";
-import { DEVICE_SESSION_EXPIRY_TIME } from "../lib/constants.js";
-import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 export const registerUserController = async (req, res) => {
   try {
@@ -445,6 +442,7 @@ export const getMeController = async (req, res) => {
         id: req.user._id,
         username: req.user.username,
         email: req.user.email,
+        role: req.user.role,
         role_id: req.user.role_id,
         permissions: req.user.permissions,
       },
