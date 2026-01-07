@@ -100,6 +100,11 @@ export const getUserByIdService = async (tenantId, id) => {
   return user;
 };
 
+export const getAllRolesService = async (tenantId) => {
+  const { roleModelDB } = await getTenantModels(tenantId);
+  return await roleModelDB.find({}, "name _id");
+};
+
 export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
   // const usersDB = await UserModel(tenantId);
@@ -129,7 +134,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch {}
+    } catch { }
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -240,8 +245,8 @@ export const employeCreateService = async (tenantId, userData) => {
   throwIfTrue(!validation.isValid, validation.message);
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  return await usersDB.create(userData);
+  const { userModelDB } = await getTenantModels(tenantId);
+  return await userModelDB.create(userData);
 };
 
 export const storeFcmTokenService = async (tenantId, user_id, token) => {

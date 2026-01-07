@@ -4,6 +4,7 @@ import {
   deleteUserAccountController,
   deleteUserAddressController,
   employeCreateController,
+  getAllRolesController,
   getAllUsersController,
   getUserByIdController,
   storeFcmTokenController,
@@ -27,6 +28,16 @@ route.get(
 );
 
 route.get(
+  "/user/roles",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-user-roles",
+  }),
+  getAllRolesController
+);
+
+route.get(
   "/user/:id",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -35,6 +46,8 @@ route.get(
   }),
   getUserByIdController
 );
+
+
 
 // User Update
 route.put(

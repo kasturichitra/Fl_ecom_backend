@@ -57,6 +57,11 @@ const createUserSchema = Joi.object({
     .messages({
       "any.only": "Invalid role selected",
     }),
+  role_id: Joi.string()
+    .allow("", null)
+    .messages({
+      "string.pattern.base": "Invalid Role ID format",
+    }),
 
   is_active: Joi.boolean(),
 
