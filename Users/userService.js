@@ -15,6 +15,7 @@ export const getAllUsersService = async (tenantId, filters) => {
     role,
     is_active,
     searchTerm,
+    exceptRole, // Role of the user to be excluded
     page = 1,
     limit = 10,
     sort = "createdAt:desc",
@@ -33,6 +34,8 @@ export const getAllUsersService = async (tenantId, filters) => {
   if (branch_name) query.branch_name = branch_name;
   if (role) query.role = role;
   if (is_active !== undefined) query.is_active = is_active === "true";
+
+  if (exceptRole) query.role = { $ne: exceptRole };
 
   if (searchTerm) {
     query.$or = [
