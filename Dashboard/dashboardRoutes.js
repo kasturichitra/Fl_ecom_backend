@@ -7,6 +7,7 @@ import {
   getOrdersTrendController,
   getTopBrandsByCategory,
   getTopProductsByCategory,
+  getTotalCountsController,
   getUsersTrendController,
 } from "./dashboardController.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
@@ -81,6 +82,16 @@ router.get(
     keyPrefix: "get-users-trend",
   }),
   getUsersTrendController
+);
+
+router.get(
+  "/counts",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-total-counts",
+  }),
+  getTotalCountsController
 );
 
 export default router;
