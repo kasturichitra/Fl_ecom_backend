@@ -1,6 +1,5 @@
-import { NotificationModel } from "../Notification/notificationModel.js";
-import { io, connectedUsers } from "../server.js";
-import UserModel from "../Users/userModel.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { connectedUsers, io } from "../server.js";
 import { fcm } from "./firebase-admin.js";
 
 /**
@@ -8,8 +7,9 @@ import { fcm } from "./firebase-admin.js";
  */
 export const sendUserNotification = async (tenantID, userId, data) => {
   try {
-    const Notification = await NotificationModel(tenantID);
-    const saved = await Notification.create({
+    // const Notification = await NotificationModel(tenantID);
+    const { notificationModelDB } = await getTenantModels(tenantID);
+    const saved = await notificationModelDB.create({
       sender: data.sender || "System",
       senderModel: data.senderModel || "admin",
       receiver: userId,
@@ -21,6 +21,8 @@ export const sendUserNotification = async (tenantID, userId, data) => {
       relatedModel: data.relatedModel || null,
       link: data.link || null,
     });
+
+    console.log(saved, 'use notification saved....?');
 
     // 🔹 Send through Socket.IO if user is online
     const socketId = connectedUsers.get(userId);
@@ -40,32 +42,73 @@ export const sendUserNotification = async (tenantID, userId, data) => {
  */
 export const sendAdminNotification = async (tenantID, adminId, data) => {
   try {
-    const Notification = await NotificationModel(tenantID);
-    const saved = await Notification.create({
-      sender: data.sender || "System",
-      senderModel: data.senderModel || "user",
-      receiver: adminId,
+    // Handle both (tenantID, data) and (tenantID, adminId, data)
+    let finalData = data;
+    if (!data && typeof adminId === "object") {
+      finalData = adminId;
+    }
+
+    if (!finalData) {
+      console.error("sendAdminNotification: No data provided");
+      return null;
+    }
+
+    const { notificationModelDB, userModelDB } = await getTenantModels(tenantID);
+
+    // Fetch all active admins
+    const admins = await userModelDB.find({ role: "admin", is_active: true }, "_id fcm_token");
+
+    if (admins.length === 0) {
+      console.log("No active admin users found to notify");
+      return null;
+    }
+
+    const adminIds = admins.map((a) => a._id);
+
+    // Prepare notifications for all admins
+    const notificationRecords = adminIds.map((id) => ({
+      sender: finalData.sender || "System",
+      senderModel: finalData.senderModel || "user",
+      receiver: id,
       receiverModel: "admin",
-      title: data.title,
-      message: data.message,
-      link: data.link || null,
-      type: data.type || "system",
+      title: finalData.title,
+      message: finalData.message,
+      link: finalData.link || null,
+      type: finalData.type || "system",
+      relatedId: finalData.relatedId || null,
+      relatedModel: finalData.relatedModel || null,
       is_broadcast: true,
-    });
+    }));
 
-    io.to("admins").emit("newAdminNotification", saved);
+    // Create records in database
+    const saved = await notificationModelDB.insertMany(notificationRecords);
 
-    // const usersDB = await UserModel(tenantID);
-    // const users = await usersDB.find({ role: "admin" });
-    // const token = users.map((user) => user.fcm_token);
+    // console.log(saved, 'saved....?');
 
-    // fcm.send({
-    //   token,
-    //   notification: {
-    //     title: data.title,
-    //     body: data.message,       
-    //   }
-    // })
+    // Broadcast real-time through Socket.IO to the "admins" room
+    io.to("admins").emit("newAdminNotification", saved[0]);
+
+    // Send FCM notifications individually to each admin
+    for (const admin of admins) {
+      if (admin.fcm_token) {
+        try {
+          await fcm.send({
+            token: admin.fcm_token,
+            notification: {
+              title: finalData.title,
+              body: finalData.message,
+            },
+            data: {
+              link: finalData.link || "",
+              type: finalData.type || "system",
+              relatedId: finalData.relatedId || "",
+            },
+          });
+        } catch (fcmErr) {
+          console.error(`FCM error for admin ${admin._id}:`, fcmErr.message);
+        }
+      }
+    }
 
     return saved;
   } catch (err) {

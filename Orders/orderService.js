@@ -314,7 +314,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   // Notify user
   if (order.user_id) {
-    await sendUserNotification(tenantId, order.user_id, {
+    sendUserNotification(tenantId, order.user_id, {
       title: "Order Placed Successfully",
       message: `Your order ${order.order_id} has been placed successfully!`,
       type: "order",
@@ -325,12 +325,12 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
         orderId: order.order_id,
         total: order.total_amount,
       },
-    });
+    }).catch((err) => console.error("Background User Notification error:", err.message));
   }
 
   // Notify admin
   if (order.order_type === "Online") {
-    await sendAdminNotification(tenantId, adminId, {
+    sendAdminNotification(tenantId, adminId, {
       title: "New Order Received",
       message: `New order from user ${username}. Total: ₹${order.total_amount}`,
       type: "order",
@@ -344,7 +344,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
         userId: order.user_id,
         amount: order.total_amount,
       },
-    });
+    }).catch((err) => console.error("Background Admin Notification error:", err.message));
   }
 
   return order;
@@ -497,14 +497,14 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
         // Optional: Notify on status change
         if (["Shipped", "Delivered", "Returned", "Cancelled"].includes(updateProd.status)) {
-          await sendUserNotification(tenantId, order.user_id, {
+          sendUserNotification(tenantId, order.user_id, {
             title: `Item ${updateProd.status}`,
             message: `${item.product_name} is now ${updateProd.status}`,
             type: "order_update",
             relatedId: order._id,
             link: `/orders/${order._id}`,
             data: { productName: item.product_name, newStatus: updateProd.status },
-          });
+          }).catch((err) => console.error("Background Status Update Notification error:", err.message));
         }
       }
     }
@@ -547,7 +547,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
   // 1. Full Order Cancelled
   if (wasJustCancelled) {
-    await sendUserNotification(tenantId, updatedOrder.user_id, {
+    sendUserNotification(tenantId, updatedOrder.user_id, {
       title: "Order Cancelled",
       message: `Your order has been cancelled. Refund will be processed within 5-7 days.`,
       type: "order_cancelled",
@@ -559,15 +559,15 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
         total: updatedOrder.total_amount,
         reason: updateData.cancellation_reason || "Requested by user",
       },
-    });
+    }).catch((err) => console.error("Background Cancel User Notification error:", err.message));
 
-    await sendAdminNotification(tenantId, {
+    sendAdminNotification(tenantId, {
       title: "Order Cancelled",
       message: `Order cancelled by user/admin. Amount: ₹${updatedOrder.total_amount}`,
       type: "order_cancelled",
       relatedId: updatedOrder._id,
       link: `/admin/orders/${updatedOrder._id}`,
-    });
+    }).catch((err) => console.error("Background Cancel Admin Notification error:", err.message));
   }
 
   // 2. Any Item Marked as Returned
@@ -575,21 +575,21 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   if (returnedItems.length > 0) {
     const itemsList = returnedItems.map((i) => `${i.product_name} (x${i.quantity})`).join(", ");
 
-    await sendUserNotification(tenantId, updatedOrder.user_id, {
+    sendUserNotification(tenantId, updatedOrder.user_id, {
       title: "Item(s) Returned",
       message: `Returned items: ${itemsList}. Refund will be initiated soon.`,
       type: "order_returned",
       relatedId: updatedOrder._id,
       link: `/orders/${updatedOrder._id}`,
       data: { returnedItems: itemsList },
-    });
+    }).catch((err) => console.error("Background Return User Notification error:", err.message));
 
-    await sendAdminNotification(tenantId, {
+    sendAdminNotification(tenantId, {
       title: "Items Returned",
       message: `User returned items in order #${updatedOrder._id}: ${itemsList}`,
       type: "order_returned",
       relatedId: updatedOrder._id,
-    });
+    }).catch((err) => console.error("Background Return Admin Notification error:", err.message));
   }
 
   return updatedOrder;
