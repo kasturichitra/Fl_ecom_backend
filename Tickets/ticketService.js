@@ -139,8 +139,9 @@ export const getAllTicketsService = async (tenantId, filters) => {
   };
 };
 
-export const getTicketByIdService = async (tenantId, ticketId) => {
+export const getTicketWithDetails = async (tenantId, matchQuery) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!matchQuery || Object.keys(matchQuery).length === 0, "Match query is required");
 
   const { ticketModelDB } = await getTenantModels(tenantId);
 
@@ -149,7 +150,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     /* 1️⃣ Match Ticket                    */
     /* ---------------------------------- */
     {
-      $match: { ticket_id: ticketId },
+      $match: matchQuery,
     },
 
     /* ---------------------------------- */
@@ -171,7 +172,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
-    /* Assigned To User                  */
+    /* 3️⃣ Assigned To User                */
     /* ---------------------------------- */
     {
       $lookup: {
@@ -189,7 +190,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
-    /* Resolved By User                  */
+    /* 4️⃣ Resolved By User                */
     /* ---------------------------------- */
     {
       $lookup: {
@@ -207,7 +208,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
-    /* 3️⃣ FAQ Question                    */
+    /* 5️⃣ FAQ Question                    */
     /* ---------------------------------- */
     {
       $lookup: {
@@ -225,7 +226,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
-    /* 4️⃣ FAQ Path (SORTED by createdAt)  */
+    /* 6️⃣ FAQ Path (Sorted)               */
     /* ---------------------------------- */
     {
       $lookup: {
@@ -238,7 +239,7 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
             },
           },
           {
-            $sort: { createdAt: 1 }, // ✅ Earliest first
+            $sort: { createdAt: 1 },
           },
         ],
         as: "faq_path",
@@ -246,17 +247,29 @@ export const getTicketByIdService = async (tenantId, ticketId) => {
     },
 
     /* ---------------------------------- */
-    /* 5️⃣ Projection (Security)           */
+    /* 7️⃣ Projection (Security)           */
     /* ---------------------------------- */
     {
       $project: {
         "raised_by.password": 0,
         "raised_by.__v": 0,
+        "assigned_to.password": 0,
+        "assigned_to.__v": 0,
+        "resolved_by.password": 0,
+        "resolved_by.__v": 0,
       },
     },
   ]);
 
   return ticket[0] || null;
+};
+
+export const getTicketByIdService = async (tenantId, ticketId) => {
+  return await getTicketWithDetails(tenantId, { ticket_id: ticketId });
+};
+
+export const getUserTicketForOrderService = async (tenantId, order_id) => {
+  return await getTicketWithDetails(tenantId, { order_id });
 };
 
 /*

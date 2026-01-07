@@ -4,6 +4,7 @@ import {
   createTicketService,
   getAllTicketsService,
   getTicketByIdService,
+  getUserTicketForOrderService,
   resolveTicketService,
 } from "./ticketService.js";
 
@@ -47,6 +48,19 @@ export const getAllTicketsController = async (req, res) => {
     const response = await getAllTicketsService(tenantId, filters);
 
     res.status(200).json(successResponse("Tickets fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getUserTicketForOrderController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: order_id } = req.params;
+
+    const response = await getUserTicketForOrderService(tenantId, order_id);
+
+    res.status(200).json(successResponse("User Ticket for order fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
