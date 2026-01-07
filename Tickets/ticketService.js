@@ -379,7 +379,7 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
       type: "ticket",
       relatedId: ticketData.ticket_id,
       relatedModel: "Ticket",
-      link: `/admin/tickets/${ticketData.ticket_id}`,
+      link: `/tickets/${ticketData.ticket_id}`,
     }).catch((err) => console.error("Failed to send admin in-app notification:", err.message));
 
     // 2️⃣ Send individual emails to each admin user
@@ -432,7 +432,7 @@ const notifyUsersInBackground = async ({
       type: "ticket",
       relatedId: ticketData.ticket_id,
       relatedModel: "Ticket",
-      link: `/user/tickets/${ticketData.ticket_id}`,
+      link: `/tickets/${ticketData.ticket_id}`,
     }).catch((err) => console.error("Failed to send user in-app notification:", err.message));
 
     const emailHtml = templateFunction(ticketData);
