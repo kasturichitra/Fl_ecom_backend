@@ -22,13 +22,31 @@ export const sendUserNotification = async (tenantID, userId, data) => {
       link: data.link || null,
     });
 
-    console.log(saved, 'use notification saved....?');
+    // console.log(saved, "use notification saved....?");
 
     // 🔹 Send through Socket.IO if user is online
     const socketId = connectedUsers.get(userId);
     if (socketId) {
       io.to(socketId).emit("newNotification", saved);
     }
+
+    const { userModelDB } = await getTenantModels(tenantID);
+
+    const user = userModelDB.findOne({
+      _id: userId,
+    });
+    await fcm.send({
+      notification: {
+        title: data.title,
+        body: data.message,
+      },
+      data: {
+        link: data.link || "",
+        type: data.type || "system",
+        relatedId: data.relatedId || "",
+      },
+      token: user.fcm_token,
+    });
 
     return saved;
   } catch (err) {
