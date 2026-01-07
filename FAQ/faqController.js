@@ -4,8 +4,9 @@ import { getAdminFaqTreeService, createFaqService, updateFaqService, toggleFaqSt
 export const getAdminFaqTreeController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
+    const filters = req.query;
 
-    const response = await getAdminFaqTreeService(tenantId);
+    const response = await getAdminFaqTreeService(tenantId, filters);
     res.status(200).json(successResponse("Faq tree fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));

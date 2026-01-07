@@ -3,12 +3,23 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateFaqCreate } from "./validations/validateFaqCreate.js";
 import { validateFaqUpdate } from "./validations/validateFaqUpdate.js";
 
-export const getAdminFaqTreeService = async (tenantId) => {
+export const getAdminFaqTreeService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { is_active } = filters;
+
+  let query = {};
+
+  if (is_active) query.is_active = is_active === "true";
 
   const { faqModelDB } = await getTenantModels(tenantId);
 
-  const faqs = await faqModelDB.find({}).sort({ priority: 1 }).lean();
+  const faqs = await faqModelDB
+    .find({
+      ...query,
+    })
+    .sort({ priority: 1 })
+    .lean();
 
   const map = {};
   faqs.forEach(
