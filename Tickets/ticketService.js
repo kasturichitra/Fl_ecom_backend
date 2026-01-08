@@ -159,6 +159,12 @@ export const getTicketWithDetails = async (tenantId, matchQuery) => {
       $match: matchQuery,
     },
 
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+
     /* ---------------------------------- */
     /* 2️⃣ Raised By User                  */
     /* ---------------------------------- */
@@ -267,7 +273,7 @@ export const getTicketWithDetails = async (tenantId, matchQuery) => {
     },
   ]);
 
-  return ticket || null;
+  return ticket[0] || null;
 };
 
 export const getTicketByIdService = async (tenantId, ticketId) => {
