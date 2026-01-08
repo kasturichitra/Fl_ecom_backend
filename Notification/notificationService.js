@@ -47,8 +47,9 @@ export const getAllNotificationService = async (
   if (role === "user") {
     filter = {
       receiverModel: "user",
-      read: false,
-      $or: [{ receiver: userId }, { is_broadcast: true }],
+      // read: false,
+      // $or: [{ receiver: userId }, { is_broadcast: true }],
+      receiver: userId,
     };
   } else if (role === "admin") {
     filter = {
