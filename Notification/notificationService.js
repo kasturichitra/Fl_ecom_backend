@@ -81,8 +81,6 @@ export const getAllNotificationService = async (
     },
   ];
 
-  console.log("Filter: ", filter);
-
   const result = await NotificationModelDB.aggregate(pipeline);
   const notifications = result[0].data;
   const totalCount = result[0].totalCount[0]?.count || 0;

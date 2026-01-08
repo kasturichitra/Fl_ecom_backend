@@ -267,7 +267,7 @@ export const getTicketWithDetails = async (tenantId, matchQuery) => {
     },
   ]);
 
-  return ticket[0] || null;
+  return ticket || null;
 };
 
 export const getTicketByIdService = async (tenantId, ticketId) => {
