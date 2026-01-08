@@ -92,10 +92,18 @@ export const getUserByIdService = async (tenantId, id) => {
   throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(id);
 
-  user.password = undefined;
+  if (user) {
+    user.password = undefined;
+    if (user.business_detailes && Array.isArray(user.business_detailes)) {
+      const activeBusiness = user.business_detailes.find((b) => b.is_active);
+      const userObj = user.toObject();
+      userObj.business_detailes = activeBusiness || null;
+      return userObj;
+    }
+  }
 
   return user;
 };
@@ -108,8 +116,8 @@ export const getAllRolesService = async (tenantId) => {
 export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
   /* =========================
      PASSWORD UPDATE LOGIC
@@ -154,8 +162,8 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
   }
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   // If new address is default: true → make all existing addresses default:false
@@ -179,8 +187,8 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -210,8 +218,8 @@ export const deleteUserAddressService = async (tenantId, user_id, address_id) =>
   throwIfTrue(!tenantId || !user_id || !address_id, "Required fields missing");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -270,8 +278,8 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const result = await usersDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
+  const { userModelDB } = await getTenantModels(tenantId);
+  const result = await userModelDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
 
   // const updatedUser = await usersDB.findOne({ _id: user_id });
 
@@ -306,27 +314,41 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
 };
 
 export const addBusinessDetailsService = async (tenantId, user_id, businessData) => {
-  throwIfTrue(!tenantId || !user_id || !businessData, "Required fields missing");
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!user_id, "User ID is Required");
   throwIfTrue(!businessData.business_name, "Business Name is required");
+  throwIfTrue(!businessData.gstinNumber, "GST Number is required");
 
   const { userModelDB } = await getTenantModels(tenantId);
   const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
-  // Ensure business_detailes is an array and mark previous as inactive
+  // Ensure business_detailes is an array
   if (!user.business_detailes) {
     user.business_detailes = [];
-  } else {
-    user.business_detailes.forEach((detail) => {
-      detail.is_active = false;
-    });
   }
 
-  // Add new business detail and ensure it's active
-  user.business_detailes.push({
-    ...businessData,
-    is_active: true
+  // Find if a business with the same GSTIN already exists
+  const existingBusiness = user.business_detailes.find(
+    (detail) => detail.gstinNumber === businessData.gstinNumber
+  );
+
+  // Mark all existing business details as inactive
+  user.business_detailes.forEach((detail) => {
+    detail.is_active = false;
   });
+
+  if (existingBusiness) {
+    // Update existing business details and set to active
+    Object.assign(existingBusiness, businessData);
+    existingBusiness.is_active = true;
+  } else {
+    // Add new business detail and ensure it's active
+    user.business_detailes.push({
+      ...businessData,
+      is_active: true
+    });
+  }
 
   // Automatically update account_type to Business
   user.account_type = "Business";
@@ -337,3 +359,36 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData)
 
   return res;
 };
+
+
+export const deactivateBusinessService = async (tenantId, user_id, getinumber) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!user_id, "User ID is Required");
+  throwIfTrue(!getinumber, "GSTIN Number is Required");
+
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
+  throwIfTrue(!user, "User not found");
+
+  // Mark the specific business detail as inactive
+  if (user.business_detailes) {
+    user.business_detailes.forEach((detail) => {
+      if (detail.gstinNumber === getinumber) {
+        detail.is_active = false;
+      }
+    });
+  }
+
+  // Reset account_type to Personal only if no business details are active anymore
+  const hasActiveBusiness = user.business_detailes.some((detail) => detail.is_active);
+  if (!hasActiveBusiness) {
+    user.account_type = "Personal";
+  }
+
+  const updatedUser = await user.save();
+  const res = updatedUser.toObject();
+  delete res.password;
+
+  return res;
+};
+
