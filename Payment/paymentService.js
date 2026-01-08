@@ -1,4 +1,5 @@
 import axios from "axios";
+import throwIfTrue from "../utils/throwIfTrue.js";
 
 function extractPGGateways(response) {
   if (!response?.data || !Array.isArray(response.data)) return [];
@@ -20,4 +21,29 @@ export const getAllPaymentGatewaysService = async () => {
   const result = extractPGGateways(response?.data);
 
   return result;
+};
+
+export const registerPaymentDocumentsService = async (tenantId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { gateway, gatewayCode, gatewayKey, gatewaySecret } = payload;
+
+  const defaultPayload = {
+    projectId: "ecommerce_app",
+    tenantId,
+  };
+
+  const sendablePayload = {
+    ...defaultPayload,
+    gateway,
+    gatewayCode,
+    gatewayKey,
+    gatewaySecret,
+  };
+
+  const endpoint = `api/payIn/keys`;
+
+  const response = await axios.post(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`, sendablePayload);
+
+  return response?.data;
 };
