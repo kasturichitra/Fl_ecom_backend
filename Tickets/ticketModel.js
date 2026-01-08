@@ -71,6 +71,11 @@ const ticketSchema = new mongoose.Schema(
 
     relevant_images: [imageSchema],
 
+    // Is prohibited is an admin controlled action to prevent users from creating any similar tickets
+    is_prohibited: {
+      type: Boolean,
+    },
+
     resolved_at: Date,
   },
   { timestamps: true }

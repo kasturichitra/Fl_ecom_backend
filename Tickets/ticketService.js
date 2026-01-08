@@ -12,6 +12,7 @@ import {
   generateTicketAssignedToUserEmail,
 } from "./utils/sendEmail.js";
 import mongoose from "mongoose";
+import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
 
 /*
     Example JSON 
@@ -39,10 +40,27 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
 
   payload = { ...payload, ticket_id };
 
+  let existingTicket = null;
+
   // Block tickets from being duplicated
   if (payload.order_id) {
-    const existingTicket = await ticketModelDB.findOne({ order_id: payload.order_id, status: "pending" });
-    throwIfTrue(existingTicket, `Ticket already exists for this order`);
+    existingTicket = await ticketModelDB.findOne({ order_id: payload.order_id, status: "pending" });
+    throwIfTrue(
+      existingTicket && existingTicket.faq_question_id === payload.faq_question_id,
+      `A Pending ticket already exists for this order for the concern ${payload.faq_question_id}`
+    );
+    throwIfTrue(existingTicket.is_prohibited, `Raising a ticket for this concern is prohibited`);
+  } else {
+    existingTicket = await ticketModelDB.findOne({
+      raised_by: user_id,
+      faq_question_id: payload.faq_question_id,
+      status: "pending",
+    });
+    throwIfTrue(
+      existingTicket,
+      `A Pending ticket already exists for this user for the concern ${payload.faq_question_id}`
+    );
+    throwIfTrue(existingTicket.is_prohibited, `Raising a ticket for this concern is prohibited`);
   }
 
   // -------------------------------
@@ -382,6 +400,25 @@ export const resolveTicketService = async (tenantId, payload) => {
   });
 
   return existingTicket;
+};
+
+export const updateTicketService = async (tenantId, ticketId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!ticketId, "Ticket ID is required");
+
+  const { ticketModelDB } = await getTenantModels(tenantId);
+
+  const existingTicket = await ticketModelDB.findOne({ ticket_id: ticketId });
+  throwIfTrue(!existingTicket, "Ticket not found");
+
+  const { isValid, message } = validateTicketUpdate(payload);
+  throwIfTrue(!isValid, message);
+
+  const updatedTicket = await ticketModelDB.findOneAndUpdate({ ticket_id: ticketId }, payload, {
+    new: true,
+  });
+
+  return updatedTicket;
 };
 
 /**
