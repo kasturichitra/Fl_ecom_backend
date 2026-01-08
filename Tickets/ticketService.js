@@ -39,6 +39,12 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
 
   payload = { ...payload, ticket_id };
 
+  // Block tickets from being duplicated
+  if (payload.order_id) {
+    const existingTicket = await ticketModelDB.findOne({ order_id: payload.order_id, status: "pending" });
+    throwIfTrue(existingTicket, `Ticket already exists for this order`);
+  }
+
   // -------------------------------
   // S3 Image Upload
   // -------------------------------

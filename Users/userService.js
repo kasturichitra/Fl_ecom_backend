@@ -5,6 +5,7 @@ import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateUserCreate } from "./validationUser.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 
 export const getAllUsersService = async (tenantId, filters) => {
   let {
@@ -134,7 +135,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch { }
+    } catch {}
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -238,10 +239,32 @@ export const deleteUserAddressService = async (tenantId, user_id, address_id) =>
 //   return await user.save();
 // };
 
-export const employeCreateService = async (tenantId, userData) => {
+export const employeCreateService = async (tenantId, userData, fileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
-  const validation = validateUserCreate(userData);
+  const { userModelDB, roleModelDB } = await getTenantModels(tenantId);
+
+  const role_id = userData.role_id;
+  const role = await roleModelDB.findById(role_id);
+  throwIfTrue(!role, "Role not found");
+
+  let image = null;
+
+  if (fileBuffer) {
+    image = await uploadImageVariants({
+      fileBuffer,
+      basePath: `${tenantId}/users/employee/${userData.email}`,
+    });
+  }
+
+  const userDoc = {
+    ...userData,
+    role_id,
+    role: role.name,
+    image,
+  };
+
+  const validation = validateUserCreate(userDoc);
   throwIfTrue(!validation.isValid, validation.message);
 
   // Hash password
@@ -249,8 +272,6 @@ export const employeCreateService = async (tenantId, userData) => {
     userData.password = await bcrypt.hash(userData.password, 10);
   }
 
-  // const usersDB = await UserModel(tenantId);
-  const { userModelDB } = await getTenantModels(tenantId);
   return await userModelDB.create(userData);
 };
 
@@ -288,7 +309,7 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   const updatedUser = await user.save();
 
   return {
-    message: `User account ${updatedUser.is_active ? 'activated' : 'deactivated'} successfully`,
-    is_active: updatedUser.is_active
+    message: `User account ${updatedUser.is_active ? "activated" : "deactivated"} successfully`,
+    is_active: updatedUser.is_active,
   };
 };

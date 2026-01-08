@@ -71,8 +71,7 @@ export const addAddressController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     const { user_id } = req.params;
 
-    if (!tenantId || !user_id)
-      return res.status(400).json(errorResponse("Tenant ID & User ID required"));
+    if (!tenantId || !user_id) return res.status(400).json(errorResponse("Tenant ID & User ID required"));
 
     const updatedUser = await addAddressService(tenantId, user_id, req.body);
     res.status(200).json(successResponse("Address added successfully", { data: updatedUser }));
@@ -107,11 +106,20 @@ export const deleteUserAddressController = async (req, res) => {
   }
 };
 
-
 export const employeCreateController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const response = await employeCreateService(tenantId, req.body);
+    const { image_base64, ...rest } = req.body;
+
+    let fileBuffer = null;
+
+    if (image_base64) {
+      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+
+      fileBuffer = Buffer.from(base64Data, "base64");
+    }
+
+    const response = await employeCreateService(tenantId, rest, fileBuffer);
     res.status(201).json(successResponse("Employee created successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -129,9 +137,6 @@ export const storeFcmTokenController = async (req, res) => {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
-
-
-
 
 export const deleteUserAccountController = async (req, res) => {
   try {
