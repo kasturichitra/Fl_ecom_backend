@@ -244,6 +244,11 @@ export const employeCreateService = async (tenantId, userData) => {
   const validation = validateUserCreate(userData);
   throwIfTrue(!validation.isValid, validation.message);
 
+  // Hash password
+  if (userData.password) {
+    userData.password = await bcrypt.hash(userData.password, 10);
+  }
+
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
   return await userModelDB.create(userData);
