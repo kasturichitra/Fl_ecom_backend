@@ -11,6 +11,7 @@ import {
   updateUserAddressController,
   updateUserController,
   addBusinessDetailsController,
+  deactivateBusinessController,
 } from "./userController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
@@ -133,5 +134,14 @@ route.post(
   }),
   addBusinessDetailsController
 );
+route.put(
+  "/user/deactivate/:id/:getinumber",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "deactivate-business",
+  }),
+  deactivateBusinessController
+);
 
-export default route;
+export default route; 
