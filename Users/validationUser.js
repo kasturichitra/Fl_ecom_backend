@@ -68,6 +68,12 @@ const createUserSchema = Joi.object({
   image: Joi.string().allow("", null),
 
   address: Joi.array().items(userAddressSchema),
+  business_detailes: Joi.array().items(Joi.object({
+    business_name: Joi.string().allow("", null),
+    gstinNumber: Joi.string().allow("", null),
+    business_address: Joi.string().allow("", null),
+    is_active: Joi.boolean(),
+  })),
 });
 
 export function validateUserCreate(data) {
