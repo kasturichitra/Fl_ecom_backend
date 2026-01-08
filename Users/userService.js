@@ -304,3 +304,36 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
     is_active: updatedUser.is_active
   };
 };
+
+export const addBusinessDetailsService = async (tenantId, user_id, businessData) => {
+  throwIfTrue(!tenantId || !user_id || !businessData, "Required fields missing");
+  throwIfTrue(!businessData.business_name, "Business Name is required");
+
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
+  throwIfTrue(!user, "User not found");
+
+  // Ensure business_detailes is an array and mark previous as inactive
+  if (!user.business_detailes) {
+    user.business_detailes = [];
+  } else {
+    user.business_detailes.forEach((detail) => {
+      detail.is_active = false;
+    });
+  }
+
+  // Add new business detail and ensure it's active
+  user.business_detailes.push({
+    ...businessData,
+    is_active: true
+  });
+
+  // Automatically update account_type to Business
+  user.account_type = "Business";
+
+  const updatedUser = await user.save();
+  const res = updatedUser.toObject();
+  delete res.password;
+
+  return res;
+};
