@@ -5,7 +5,12 @@ function extractPGGateways(response) {
 
   return response.data
     .filter((item) => item.type === "PG" && item.label === "PG")
-    .flatMap((item) => item.gateways.map((g) => g.gateway));
+    .flatMap((item) =>
+      item.gateways.map((g) => ({
+        gateway: g.gateway,
+        gatewayCode: g.gatewayCode,
+      }))
+    );
 }
 
 export const getAllPaymentGatewaysService = async () => {
