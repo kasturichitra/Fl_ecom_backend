@@ -10,6 +10,8 @@ import {
   storeFcmTokenController,
   updateUserAddressController,
   updateUserController,
+  addBusinessDetailsController,
+  deactivateBusinessController,
 } from "./userController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
@@ -113,7 +115,6 @@ route.post(
   upload.single("image"),
   employeCreateController
 );
-
 route.delete(
   "/user/:id",
   rateLimiter({
@@ -124,4 +125,23 @@ route.delete(
   deleteUserAccountController
 );
 
-export default route;
+route.post(
+  "/user/business-details/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "add-business-details",
+  }),
+  addBusinessDetailsController
+);
+route.put(
+  "/user/deactivate/:id/:getinumber",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "deactivate-business",
+  }),
+  deactivateBusinessController
+);
+
+export default route; 

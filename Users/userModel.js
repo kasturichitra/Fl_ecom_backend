@@ -75,7 +75,24 @@ const userSchema = new mongoose.Schema(
     address: [addressSchema],
     useage_coupon: {
       type: [couponSchema]
-    }
+    },
+    business_detailes: [
+      {
+        business_name: {
+          type: String,
+        },
+        gstinNumber: {
+          type: String,
+        },
+        business_address: {
+          type: String,
+        },
+        is_active: {
+          type: Boolean,
+          default: true,
+        },
+      }
+    ]
   },
   { timestamps: true }
 );

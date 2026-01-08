@@ -6,7 +6,6 @@ import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateUserCreate } from "./validationUser.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
-
 export const getAllUsersService = async (tenantId, filters) => {
   let {
     username,
@@ -93,10 +92,18 @@ export const getUserByIdService = async (tenantId, id) => {
   throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(id);
 
-  user.password = undefined;
+  if (user) {
+    user.password = undefined;
+    if (user.business_detailes && Array.isArray(user.business_detailes)) {
+      const activeBusiness = user.business_detailes.find((b) => b.is_active);
+      const userObj = user.toObject();
+      userObj.business_detailes = activeBusiness || null;
+      return userObj;
+    }
+  }
 
   return user;
 };
@@ -109,8 +116,8 @@ export const getAllRolesService = async (tenantId) => {
 export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
   /* =========================
      PASSWORD UPDATE LOGIC
@@ -135,7 +142,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch {}
+    } catch { }
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -155,8 +162,8 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
   }
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   // If new address is default: true → make all existing addresses default:false
@@ -180,8 +187,8 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
   throwIfTrue(!tenantId || !user_id || !address_id || !addressData, "Required fields missing");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -211,8 +218,8 @@ export const deleteUserAddressService = async (tenantId, user_id, address_id) =>
   throwIfTrue(!tenantId || !user_id || !address_id, "Required fields missing");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const user = await usersDB.findById(user_id);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -241,37 +248,29 @@ export const deleteUserAddressService = async (tenantId, user_id, address_id) =>
 
 export const employeCreateService = async (tenantId, userData, fileBuffer) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
-
   const { userModelDB, roleModelDB } = await getTenantModels(tenantId);
-
   const role_id = userData.role_id;
   const role = await roleModelDB.findById(role_id);
   throwIfTrue(!role, "Role not found");
-
   let image = null;
-
   if (fileBuffer) {
     image = await uploadImageVariants({
       fileBuffer,
       basePath: `${tenantId}/users/employee/${userData.email}`,
     });
   }
-
   const userDoc = {
     ...userData,
     role_id,
     role: role.name,
     image,
   };
-
   const validation = validateUserCreate(userDoc);
   throwIfTrue(!validation.isValid, validation.message);
-
   // Hash password
   if (userData.password) {
     userData.password = await bcrypt.hash(userData.password, 10);
   }
-
   return await userModelDB.create(userData);
 };
 
@@ -279,8 +278,8 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
   // const usersDB = await UserModel(tenantId);
-  const { userModelDB: usersDB } = await getTenantModels(tenantId);
-  const result = await usersDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
+  const { userModelDB } = await getTenantModels(tenantId);
+  const result = await userModelDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
 
   // const updatedUser = await usersDB.findOne({ _id: user_id });
 
@@ -309,7 +308,87 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   const updatedUser = await user.save();
 
   return {
-    message: `User account ${updatedUser.is_active ? "activated" : "deactivated"} successfully`,
-    is_active: updatedUser.is_active,
+    message: `User account ${updatedUser.is_active ? 'activated' : 'deactivated'} successfully`,
+    is_active: updatedUser.is_active
   };
 };
+
+export const addBusinessDetailsService = async (tenantId, user_id, businessData) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!user_id, "User ID is Required");
+  throwIfTrue(!businessData.business_name, "Business Name is required");
+  throwIfTrue(!businessData.gstinNumber, "GST Number is required");
+
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
+  throwIfTrue(!user, "User not found");
+
+  // Ensure business_detailes is an array
+  if (!user.business_detailes) {
+    user.business_detailes = [];
+  }
+
+  // Find if a business with the same GSTIN already exists
+  const existingBusiness = user.business_detailes.find(
+    (detail) => detail.gstinNumber === businessData.gstinNumber
+  );
+
+  // Mark all existing business details as inactive
+  user.business_detailes.forEach((detail) => {
+    detail.is_active = false;
+  });
+
+  if (existingBusiness) {
+    // Update existing business details and set to active
+    Object.assign(existingBusiness, businessData);
+    existingBusiness.is_active = true;
+  } else {
+    // Add new business detail and ensure it's active
+    user.business_detailes.push({
+      ...businessData,
+      is_active: true
+    });
+  }
+
+  // Automatically update account_type to Business
+  user.account_type = "Business";
+
+  const updatedUser = await user.save();
+  const res = updatedUser.toObject();
+  delete res.password;
+
+  return res;
+};
+
+
+export const deactivateBusinessService = async (tenantId, user_id, getinumber) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!user_id, "User ID is Required");
+  throwIfTrue(!getinumber, "GSTIN Number is Required");
+
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findById(user_id);
+  throwIfTrue(!user, "User not found");
+
+  // Mark the specific business detail as inactive
+  if (user.business_detailes) {
+    user.business_detailes.forEach((detail) => {
+      if (detail.gstinNumber === getinumber) {
+        detail.is_active = false;
+      }
+    });
+  }
+
+  // Reset account_type to Personal only if no business details are active anymore
+  const hasActiveBusiness = user.business_detailes.some((detail) => detail.is_active);
+  if (!hasActiveBusiness) {
+    user.account_type = "Personal";
+  }
+
+  const updatedUser = await user.save();
+  const res = updatedUser.toObject();
+  delete res.password;
+
+  return res;
+};
+
