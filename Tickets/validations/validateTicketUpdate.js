@@ -45,6 +45,8 @@ const updateTicketSchema = Joi.object({
   faq_question_id: Joi.string().trim().optional(),
   faq_path: Joi.array().items(Joi.string().trim()).optional(),
 
+  is_prohibited: Joi.boolean().optional(),
+
   relevant_images: Joi.array().items(Joi.any()).optional(),
 });
 

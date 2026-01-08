@@ -6,6 +6,7 @@ import {
   getTicketByIdService,
   getUserTicketForOrderService,
   resolveTicketService,
+  updateTicketService,
 } from "./ticketService.js";
 
 export const createTicketController = async (req, res) => {
@@ -115,6 +116,20 @@ export const resolveTicketController = async (req, res) => {
     const response = await resolveTicketService(tenantId, payload);
 
     res.status(200).json(successResponse("Ticket resolved successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const updateTicketController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: ticket_id } = req.params;
+    const payload = req.body;
+
+    const response = await updateTicketService(tenantId, ticket_id, payload);
+
+    res.status(200).json(successResponse("Ticket updated successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
