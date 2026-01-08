@@ -46,12 +46,12 @@ export const getAllNotificationService = async (
 
   // Role-based filter
   if (role === "user") {
-    receiverId = new mongoose.Types.ObjectId(userId);
+    let receiver = new mongoose.Types.ObjectId(userId);
     filter = {
       receiverModel: "user",
       // read: false,
       // $or: [{ receiver: userId }, { is_broadcast: true }],
-      receiver: receiverId,
+      receiver,
     };
   } else if (role === "admin") {
     filter = {
