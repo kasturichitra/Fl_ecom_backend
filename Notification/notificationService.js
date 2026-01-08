@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
@@ -45,11 +46,12 @@ export const getAllNotificationService = async (
 
   // Role-based filter
   if (role === "user") {
+    receiverId = new mongoose.Types.ObjectId(userId);
     filter = {
       receiverModel: "user",
       // read: false,
       // $or: [{ receiver: userId }, { is_broadcast: true }],
-      receiver: userId,
+      receiver: receiverId,
     };
   } else if (role === "admin") {
     filter = {
@@ -78,6 +80,8 @@ export const getAllNotificationService = async (
       },
     },
   ];
+
+  console.log("Filter: ", filter);
 
   const result = await NotificationModelDB.aggregate(pipeline);
   const notifications = result[0].data;
