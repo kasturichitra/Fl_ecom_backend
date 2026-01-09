@@ -4,7 +4,7 @@ const generateBusinessId = async (BusinessDb) => {
         .select("business_unique_id");
 
     if (!latestBusiness || !latestBusiness.business_unique_id) {
-        return "BUS-0001";
+        return "BUS-000001";
     }
 
     const parts = latestBusiness.business_unique_id.split("-");
