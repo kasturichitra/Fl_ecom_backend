@@ -108,3 +108,28 @@ export const sendBusinessApprovalEmailToAdmin = async (adminEmail, businessData)
     console.error("Error sending admin business approval email:", error);
   }
 };
+
+export const sendBusinessVerificationSuccessEmail = async (userEmail, businessName) => {
+  try {
+    const mailOptions = {
+      from: `"Business Verification" <${smtpUser}>`,
+      to: userEmail,
+      subject: `Business Verification Successful! ✅ - ${businessName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4CAF50;">Verification Successful!</h2>
+          <p>Congratulations! Your business <b>${businessName}</b> has been successfully verified.</p>
+          <p>You now have full access to business features on our platform.</p>
+          <hr/>
+          <p style="font-size: 12px; color: #888;">Thank you for partnering with us.</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Verification success email sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`Error sending verification success email to ${userEmail}:`, error);
+  }
+};
+

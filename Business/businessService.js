@@ -1,11 +1,12 @@
 import { gstinVerifyUrl } from "../env.js";
 import axios from "axios";
+import mongoose from "mongoose";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
 import generateBusinessId from "./utils/generateBusinessId.js";
-import { sendBusinessApprovalEmailToAdmin } from "../utils/sendEmail.js";
+import { sendBusinessApprovalEmailToAdmin, sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 import fs from "fs";
 
 
@@ -116,16 +117,92 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
 };
 
 
-export const getBusinessDetailsService = async (tenantId, business_unique_id) => {
+export const getAllBusinessDetailsService = async (tenantId) => {
     throwIfTrue(!tenantId, "Tenant ID is Required");
-    throwIfTrue(!business_unique_id, "Business Unique ID is Required");
-    const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
-    const business = await businessModelDB.findOne({ business_unique_id });
-    const user = await userModelDB.findOne({ _id: business.user_id });
-    throwIfTrue(!user, "User not found");
-    throwIfTrue(!business, "Business not found");
-    return business;
+    const { businessModelDB } = await getTenantModels(tenantId);
+    return await businessModelDB.find({});
 }
+
+export const getAssignedBusinessDetailsService = async (tenantId, user_id) => {
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+    throwIfTrue(!user_id, "User ID is Required");
+    const { businessModelDB } = await getTenantModels(tenantId);
+
+    console.log(`[DEBUG] Querying business for user_id: ${user_id} in tenant: ${tenantId}`);
+
+    const businesses = await businessModelDB.find({ user_id });
+
+    console.log(`[DEBUG] Found ${businesses} businesses`);
+    return businesses;
+}
+
+export const getBusinessDetailsService = async (tenantId, business_id) => {
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+    throwIfTrue(!business_id, "Business ID is Required");
+
+    const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
+
+    const query = {
+        $or: [
+            { business_unique_id: business_id },
+            { user_id: business_id }
+        ]
+    };
+
+    if (mongoose.Types.ObjectId.isValid(business_id)) {
+        query.$or.push({ _id: business_id });
+    }
+
+    const business = await businessModelDB.findOne(query);
+    throwIfTrue(!business, "Business not found");
+
+    const user = await userModelDB.findOne({ _id: business.user_id });
+    throwIfTrue(!user, "User not found for this business");
+
+    return business;
+};
+
+
+
+export const updateBusinessDetailsService = async (
+    tenantId,
+    business_unique_id,
+    updateData
+) => {
+    // 🔒 Basic validations
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+    throwIfTrue(!business_unique_id, "Business ID is Required");
+
+    const { businessModelDB } = await getTenantModels(tenantId);
+
+    const business = await businessModelDB.findOne({ business_unique_id });
+
+    throwIfTrue(!business, "Business not found");
+
+    // ✅ Update verification date safely
+    if ("is_verified" in updateData) {
+        business.verification_date = updateData.is_verified
+            ? new Date()
+            : null;
+    }
+
+    // ✅ Update remaining fields
+    Object.assign(business, updateData);
+
+    await business.save();
+
+    // 📧 Send Verification Success Email
+    if (updateData.is_verified === true) {
+        const { userModelDB } = await getTenantModels(tenantId);
+        const user = await userModelDB.findById(business.user_id);
+        if (user && user.email) {
+            await sendBusinessVerificationSuccessEmail(user.email, business.business_name);
+        }
+    }
+
+    return business;
+};
+
 
 export const deactivateBusinessService = async (tenantId, user_id, gstinNumber) => {
     throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -178,3 +255,5 @@ const backgroundEmailProcess = async (tenantId, businessData) => {
         console.error("Error in backgroundEmailProcess:", error.message);
     }
 };
+
+

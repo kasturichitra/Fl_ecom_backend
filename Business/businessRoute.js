@@ -1,5 +1,5 @@
 import express from "express";
-import { addBusinessDetailsController, deactivateBusinessController, getBusinessDetailsController, gstinVerifyController } from "./businessController.js";
+import { addBusinessDetailsController, deactivateBusinessController, getAllBusinessDetailsController, getAssignedBusinessDetailsController, getBusinessDetailsController, gstinVerifyController, updateBusinessDetailsController } from "./businessController.js";
 import getUploadMiddleware from "../utils/multerConfig.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
 
@@ -33,7 +33,13 @@ router.put(
 );
 
 
-
+router.get("/allBusinessDetails",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "get-all-business-details",
+  }),
+  getAllBusinessDetailsController);
 
 router.get("/details/:id",
   rateLimiter({
@@ -42,5 +48,19 @@ router.get("/details/:id",
     keyPrefix: "get-business-details",
   }),
   getBusinessDetailsController);
+
+router.get("/assignedBusinessDetails/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "get-assigned-business-details",
+  }),
+  getAssignedBusinessDetailsController);
+
+router.put("/update/:id", rateLimiter({
+  windowSizeInSeconds: 60,
+  maxRequests: 15,
+  keyPrefix: "update-business-details",
+}), updateBusinessDetailsController);
 
 export default router;
