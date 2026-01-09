@@ -24,7 +24,7 @@ export const gstinVerifyService = async (payload) => {
 
 
 export const addBusinessDetailsService = async (tenantId, user_id, businessData, files) => {
-   
+
     throwIfTrue(!tenantId, "Tenant ID is Required");
     throwIfTrue(!user_id, "User ID is Required");
     throwIfTrue(!businessData.business_name, "Business Name is required");
@@ -113,6 +113,47 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     delete res.password;
 
     return { message: "Business registration submitted for approval", user: res };
+};
+
+
+export const getBusinessDetailsService = async (tenantId, business_unique_id) => {
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+    throwIfTrue(!business_unique_id, "Business Unique ID is Required");
+    const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
+    const business = await businessModelDB.findOne({ business_unique_id });
+    const user = await userModelDB.findOne({ _id: business.user_id });
+    throwIfTrue(!user, "User not found");
+    throwIfTrue(!business, "Business not found");
+    return business;
+}
+
+export const deactivateBusinessService = async (tenantId, user_id, gstinNumber) => {
+    throwIfTrue(!tenantId, "Tenant ID is Required");
+    throwIfTrue(!user_id, "User ID is Required");
+    throwIfTrue(!gstinNumber, "GSTIN Number is Required");
+
+    const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
+
+    // Find the business and deactivate it
+    const business = await businessModelDB.findOneAndUpdate(
+        { user_id, gstinNumber },
+        { is_active: false },
+        { new: true }
+    );
+    throwIfTrue(!business, "Business not found for this user and GSTIN");
+
+    // Update user account type to Personal
+    const user = await userModelDB.findByIdAndUpdate(
+        user_id,
+        { account_type: "Personal" },
+        { new: true }
+    );
+    throwIfTrue(!user, "User not found");
+
+    const res = user.toObject();
+    delete res.password;
+
+    return { message: "Business deactivated and account type changed to Personal", user: res };
 };
 
 
