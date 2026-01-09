@@ -10,3 +10,4 @@ export const smtpUser=process.env.SMTP_USER
 export const smtpPass=process.env.SMTP_PASS
 
 export const couponAlphabet=process.env.COUPON_ALPHABET
+export const gstinVerifyUrl=process.env.GSTIN_VERIFY_URL
