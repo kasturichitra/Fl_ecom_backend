@@ -152,13 +152,4 @@ export const deleteUserAccountController = async (req, res) => {
 
 
 
-// export const deactivateBusinessController = async (req, res) => {
-//   try {
-//     const tenantId = req.headers["x-tenant-id"];
-//     const { id: user_id, getinumber } = req.params;
-//     const response = await deactivateBusinessService(tenantId, user_id, getinumber);
-//     res.status(200).json(successResponse("Business deactivated successfully", { data: response }));
-//   } catch (error) {
-//     res.status(500).json(errorResponse(error.message, error));
-//   }
-// };
+

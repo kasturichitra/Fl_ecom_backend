@@ -124,14 +124,6 @@ route.delete(
 );
 
 
-// route.put(
-//   "/user/deactivate/:id/:getinumber",
-//   rateLimiter({
-//     windowSizeInSeconds: 60,
-//     maxRequests: 15,
-//     keyPrefix: "deactivate-business",
-//   }),
-//   deactivateBusinessController
-// );
+
 
 export default route; 

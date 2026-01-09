@@ -314,34 +314,5 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
 };
 
 
-// export const deactivateBusinessService = async (tenantId, user_id, getinumber) => {
-//   throwIfTrue(!tenantId, "Tenant ID is Required");
-//   throwIfTrue(!user_id, "User ID is Required");
-//   throwIfTrue(!getinumber, "GSTIN Number is Required");
 
-//   const { userModelDB } = await getTenantModels(tenantId);
-//   const user = await userModelDB.findById(user_id);
-//   throwIfTrue(!user, "User not found");
-
-//   // Mark the specific business detail as inactive
-//   if (user.business_detailes) {
-//     user.business_detailes.forEach((detail) => {
-//       if (detail.gstinNumber === getinumber) {
-//         detail.is_active = false;
-//       }
-//     });
-//   }
-
-//   // Reset account_type to Personal only if no business details are active anymore
-//   const hasActiveBusiness = user.business_detailes.some((detail) => detail.is_active);
-//   if (!hasActiveBusiness) {
-//     user.account_type = "Personal";
-//   }
-
-//   const updatedUser = await user.save();
-//   const res = updatedUser.toObject();
-//   delete res.password;
-
-//   return res;
-// };
 
