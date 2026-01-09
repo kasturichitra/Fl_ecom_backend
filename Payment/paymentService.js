@@ -16,11 +16,16 @@ function extractPGGateways(response) {
 
 export const getAllPaymentGatewaysService = async () => {
   const endpoint = `api/v1/maintainance/get-allgateways`;
-  const response = await axios.get(`${process.env.SUPER_ADMIN_URL}/${endpoint}`);
 
-  const result = extractPGGateways(response?.data);
+  try {
+    const response = await axios.get(`${process.env.SUPER_ADMIN_URL}/${endpoint}`);
 
-  return result;
+    const result = extractPGGateways(response?.data);
+
+    return result;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error.message}`);
+  }
 };
 
 export const registerPaymentDocumentsService = async (tenantId, payload) => {
@@ -43,7 +48,26 @@ export const registerPaymentDocumentsService = async (tenantId, payload) => {
 
   const endpoint = `api/payIn/keys`;
 
-  const response = await axios.post(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`, sendablePayload);
+  try {
+    const response = await axios.post(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`, sendablePayload);
 
-  return response?.data;
+    return response?.data;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error.message}`);
+  }
+};
+
+export const getPaymentDocumentsService = async (tenantId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const projectId = "ecommerce_app";
+  const endpoint = `api/payIn/keys/${projectId}/${tenantId}`;
+
+  try {
+    const response = await axios.get(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
+
+    return response?.data?.data;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error.message}`);
+  }
 };
