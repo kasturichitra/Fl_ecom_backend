@@ -90,6 +90,30 @@ const permissionsList = [
   { key: "coupon:read", description: "View coupon", category: "Coupons", is_system: true },
   { key: "coupon:update", description: "Update coupon", category: "Coupons", is_system: true },
   { key: "coupon:delete", description: "Delete coupon", category: "Coupons", is_system: true },
+
+  // Contact info 
+  { key: "contactinfo:create", description: "Create contact info", category: "Contact Info", is_system: true },
+  { key: "contactinfo:read", description: "View contact info", category: "Contact Info", is_system: true },
+  { key: "contactinfo:update", description: "Update contact info", category: "Contact Info", is_system: true },
+  { key: "contactinfo:delete", description: "Delete contact info", category: "Contact Info", is_system: true },
+
+  // FAQ
+  { key: "faq:create", description: "Create faq", category: "FAQ", is_system: true },
+  { key: "faq:read", description: "View faq", category: "FAQ", is_system: true },
+  { key: "faq:update", description: "Update faq", category: "FAQ", is_system: true },
+  { key: "faq:delete", description: "Delete faq", category: "FAQ", is_system: true },
+
+  // Ticket
+  { key: "ticket:create", description: "Create ticket", category: "Ticket", is_system: true },
+  { key: "ticket:read", description: "View ticket", category: "Ticket", is_system: true },
+  { key: "ticket:update", description: "Update ticket", category: "Ticket", is_system: true },
+  { key: "ticket:delete", description: "Delete ticket", category: "Ticket", is_system: true },
+
+  // Payments 
+  { key: "payment:create", description: "Create payment", category: "Payments", is_system: true },
+  { key: "payment:read", description: "View payment", category: "Payments", is_system: true },
+  { key: "payment:update", description: "Update payment", category: "Payments", is_system: true },
+  { key: "payment:delete", description: "Delete payment", category: "Payments", is_system: true },
 ];
 
 const seedAccessControl = async (tenantId) => {
@@ -159,6 +183,11 @@ const seedAccessControl = async (tenantId) => {
           "notification:read",
           "saletrend:read",
           "coupon:read",
+          "contactinfo:read",
+          "faq:read",
+          "ticket:read",
+          "ticket:update",
+          "payment:read",
         ]),
         is_system_role: true,
       },
@@ -180,6 +209,11 @@ const seedAccessControl = async (tenantId) => {
           "notification:read",
           "saletrend:read",
           "coupon:read",
+          "contactinfo:read",
+          "faq:read",
+          "ticket:read", 
+          "ticket:create", 
+          "payment:read",
         ]),
         is_system_role: true,
       },

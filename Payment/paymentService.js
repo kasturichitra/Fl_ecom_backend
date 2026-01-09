@@ -76,6 +76,21 @@ export const getPaymentDocumentsService = async (tenantId) => {
   }
 };
 
+export const getPaymentDocumentByKeyIdService = async (tenantId, keyId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!keyId, "Key Id is required");
+
+  const endpoint = `${keyId}`;
+
+  try {
+    const response = await axios.get(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
+
+    return response?.data?.data;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error}`);
+  }
+}
+
 export const updatePaymentDocumentService = async (tenantId, keyId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 

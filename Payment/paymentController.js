@@ -2,6 +2,7 @@ import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   deletePaymentDocumentService,
   getAllPaymentGatewaysService,
+  getPaymentDocumentByKeyIdService,
   getPaymentDocumentsService,
   registerPaymentDocumentsService,
   updatePaymentDocumentService,
@@ -46,6 +47,23 @@ export const getPaymentDocumentsController = async (req, res) => {
 
     res.status(200).json(
       successResponse("Payment documents fetched successfully", {
+        data: response,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getPaymentDocumentByKeyIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: keyId } = req.params;
+
+    const response = await getPaymentDocumentByKeyIdService(tenantId, keyId);
+
+    res.status(200).json(
+      successResponse("Payment document fetched successfully", {
         data: response,
       })
     );
