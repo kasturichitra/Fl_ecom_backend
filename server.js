@@ -30,6 +30,7 @@ import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js";
 import faqRoutes from "./FAQ/faqRoutes.js";
 import ticketRoutes from "./Tickets/ticketRoutes.js";
 import paymentRoutes from "./Payment/paymentRoutes.js";
+import businessRoutes from "./Business/businessRoute.js";
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
@@ -157,6 +158,7 @@ app.use("/invoices", invoiceRoute);
 app.use("/faq", faqRoutes);
 app.use("/tickets", ticketRoutes);
 app.use("/payment", paymentRoutes);
+app.use("/business", businessRoutes);
 
 app.use("/", userRoutes);
 
