@@ -1,5 +1,6 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { gstinVerifyService } from "./businessService.js";
+import { addBusinessDetailsService, gstinVerifyService } from "./businessService.js";
+import { validateBusinessDetails } from "./businessValidation.js";
 
 
 
@@ -9,6 +10,26 @@ export const gstinVerifyController = async (req, res) => {
     try {
         const response = await gstinVerifyService(req.body);
         res.status(200).json(successResponse("Gstin Verify Success", response));
+    } catch (error) {
+        res.status(500).json(errorResponse(error.message, error));
+    }
+};
+
+
+
+export const addBusinessDetailsController = async (req, res) => {
+    try {
+        const tenantId = req.headers["x-tenant-id"];
+        const { id: user_id } = req.params;
+
+        const validation = validateBusinessDetails({ ...req.body, user_id });
+
+        if (!validation.isValid) {
+            return res.status(400).json(errorResponse(validation.message, validation.errors));
+        }
+
+        const response = await addBusinessDetailsService(tenantId, user_id, req.body, req.files);
+        res.status(200).json(successResponse(response.message, { data: response.user }));
     } catch (error) {
         res.status(500).json(errorResponse(error.message, error));
     }

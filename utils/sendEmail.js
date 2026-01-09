@@ -83,4 +83,28 @@ export const sendCouponEmail = async (userEmail, couponData) => {
   } catch (error) {
     console.error(`Error sending coupon email to ${userEmail}:`, error);
   }
-};  
+};
+
+export const sendBusinessApprovalEmailToAdmin = async (adminEmail, businessData) => {
+  try {
+    const mailOptions = {
+      from: `"Business Approval System" <${smtpUser}>`,
+      to: adminEmail,
+      subject: `New Business Approval Request - ${businessData.business_name}`,
+      html: `
+        <h3>New Business Registration Alert 🏢</h3>
+        <p><b>Business Name:</b> ${businessData.business_name}</p>
+        <p><b>GSTIN:</b> ${businessData.gstinNumber}</p>
+        <p><b>Address:</b> ${businessData.business_address}</p>
+        <p><b>Requested By User ID:</b> ${businessData.user_id}</p>
+        <hr/>
+        <p>Please login to the Admin Dashboard to review and approve this business.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("Admin business approval email sent successfully!");
+  } catch (error) {
+    console.error("Error sending admin business approval email:", error);
+  }
+};
