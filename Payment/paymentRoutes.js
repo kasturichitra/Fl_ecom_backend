@@ -1,4 +1,5 @@
 import {
+    deletePaymentDocumentController,
   getAllPaymentGatewaysController,
   getPaymentDocumentsController,
   registerPaymentDocumentsController,
@@ -13,5 +14,6 @@ router.get("/gateways", getAllPaymentGatewaysController);
 router.get("/documents", getPaymentDocumentsController);
 router.post("/documents", registerPaymentDocumentsController);
 router.put("/documents/:id", updatePaymentDocumentController);
+router.delete("/documents/:id", deletePaymentDocumentController);
 
 export default router;

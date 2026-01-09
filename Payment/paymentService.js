@@ -47,7 +47,7 @@ export const registerPaymentDocumentsService = async (tenantId, payload) => {
     gatewaySecret,
   };
 
-  const endpoint = `api/payIn/keys`;
+  const endpoint = ``;
 
   const { isValid, message } = validatePaymentDocuments(sendablePayload);
   throwIfTrue(!isValid, message);
@@ -65,7 +65,7 @@ export const getPaymentDocumentsService = async (tenantId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const projectId = "ecommerce_app";
-  const endpoint = `api/payIn/keys/${projectId}/${tenantId}`;
+  const endpoint = `${projectId}/${tenantId}`;
 
   try {
     const response = await axios.get(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
@@ -91,12 +91,12 @@ export const updatePaymentDocumentService = async (tenantId, keyId, payload) => 
   const { isValid, message } = validatePaymentDocuments(sendablePayload);
   throwIfTrue(!isValid, message);
 
-  const endpoint = `api/payin-keys/${keyId}`;
+  const endpoint = `${keyId}`;
 
   try {
     const response = await axios.put(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`, sendablePayload);
 
-    return response?.data;
+    return response?.data?.data;
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
@@ -106,12 +106,12 @@ export const deletePaymentDocumentService = async (tenantId, keyId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!keyId, "Key Id is required");
 
-  const endpoint = `api/payin-keys/${keyId}`;
+  const endpoint = `${keyId}`;
 
   try {
     const response = await axios.delete(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
 
-    return response?.data;
+    return response?.data?.message;
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
