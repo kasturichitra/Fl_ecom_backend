@@ -1,17 +1,15 @@
-import { successResponse, errorResponse } from "../utils/responseHandler.js";
+import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   addAddressService,
+  deleteUserAccountService,
+  deleteUserAddressService,
   employeCreateService,
+  getAllRolesService,
   getAllUsersService,
   getUserByIdService,
   storeFcmTokenService,
   updateUserAddressService,
-  updateUserService,
-  deleteUserAddressService,
-  deleteUserAccountService,
-  getAllRolesService,
-  addBusinessDetailsService,
-  deactivateBusinessService,
+  updateUserService
 } from "./userService.js";
 
 export const getAllUsersController = async (req, res) => {
@@ -150,28 +148,8 @@ export const deleteUserAccountController = async (req, res) => {
   }
 };
 
-export const addBusinessDetailsController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-    const { id: user_id } = req.params;
-
-    const updatedUser = await addBusinessDetailsService(tenantId, user_id, req.body);
-    res.status(200).json(successResponse("Business details added successfully", { data: updatedUser }));
-  } catch (error) {
-    res.status(500).json(errorResponse(error.message, error));
-  }
-};
 
 
 
 
-export const deactivateBusinessController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-    const { id: user_id, getinumber } = req.params;
-    const response = await deactivateBusinessService(tenantId, user_id, getinumber);
-    res.status(200).json(successResponse("Business deactivated successfully", { data: response }));
-  } catch (error) {
-    res.status(500).json(errorResponse(error.message, error));
-  }
-};
+

@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateUserCreate } from "./validationUser.js";
-import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 export const getAllUsersService = async (tenantId, filters) => {
   let {
     username,
@@ -313,82 +313,6 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   };
 };
 
-export const addBusinessDetailsService = async (tenantId, user_id, businessData) => {
-  throwIfTrue(!tenantId, "Tenant ID is Required");
-  throwIfTrue(!user_id, "User ID is Required");
-  throwIfTrue(!businessData.business_name, "Business Name is required");
-  throwIfTrue(!businessData.gstinNumber, "GST Number is required");
-
-  const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
-  throwIfTrue(!user, "User not found");
-
-  // Ensure business_detailes is an array
-  if (!user.business_detailes) {
-    user.business_detailes = [];
-  }
-
-  // Find if a business with the same GSTIN already exists
-  const existingBusiness = user.business_detailes.find(
-    (detail) => detail.gstinNumber === businessData.gstinNumber
-  );
-
-  // Mark all existing business details as inactive
-  user.business_detailes.forEach((detail) => {
-    detail.is_active = false;
-  });
-
-  if (existingBusiness) {
-    // Update existing business details and set to active
-    Object.assign(existingBusiness, businessData);
-    existingBusiness.is_active = true;
-  } else {
-    // Add new business detail and ensure it's active
-    user.business_detailes.push({
-      ...businessData,
-      is_active: true
-    });
-  }
-
-  // Automatically update account_type to Business
-  user.account_type = "Business";
-
-  const updatedUser = await user.save();
-  const res = updatedUser.toObject();
-  delete res.password;
-
-  return res;
-};
 
 
-export const deactivateBusinessService = async (tenantId, user_id, getinumber) => {
-  throwIfTrue(!tenantId, "Tenant ID is Required");
-  throwIfTrue(!user_id, "User ID is Required");
-  throwIfTrue(!getinumber, "GSTIN Number is Required");
-
-  const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
-  throwIfTrue(!user, "User not found");
-
-  // Mark the specific business detail as inactive
-  if (user.business_detailes) {
-    user.business_detailes.forEach((detail) => {
-      if (detail.gstinNumber === getinumber) {
-        detail.is_active = false;
-      }
-    });
-  }
-
-  // Reset account_type to Personal only if no business details are active anymore
-  const hasActiveBusiness = user.business_detailes.some((detail) => detail.is_active);
-  if (!hasActiveBusiness) {
-    user.account_type = "Personal";
-  }
-
-  const updatedUser = await user.save();
-  const res = updatedUser.toObject();
-  delete res.password;
-
-  return res;
-};
 

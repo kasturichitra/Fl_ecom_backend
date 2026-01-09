@@ -1,4 +1,6 @@
 import express from "express";
+import rateLimiter from "../lib/redis/rateLimiter.js";
+import getUploadMiddleware from "../utils/multerConfig.js";
 import {
   addAddressController,
   deleteUserAccountController,
@@ -9,12 +11,8 @@ import {
   getUserByIdController,
   storeFcmTokenController,
   updateUserAddressController,
-  updateUserController,
-  addBusinessDetailsController,
-  deactivateBusinessController,
+  updateUserController
 } from "./userController.js";
-import getUploadMiddleware from "../utils/multerConfig.js";
-import rateLimiter from "../lib/redis/rateLimiter.js";
 
 const route = express.Router();
 const upload = getUploadMiddleware("user");
@@ -125,23 +123,7 @@ route.delete(
   deleteUserAccountController
 );
 
-route.post(
-  "/user/business-details/:id",
-  rateLimiter({
-    windowSizeInSeconds: 60,
-    maxRequests: 15,
-    keyPrefix: "add-business-details",
-  }),
-  addBusinessDetailsController
-);
-route.put(
-  "/user/deactivate/:id/:getinumber",
-  rateLimiter({
-    windowSizeInSeconds: 60,
-    maxRequests: 15,
-    keyPrefix: "deactivate-business",
-  }),
-  deactivateBusinessController
-);
+
+
 
 export default route; 
