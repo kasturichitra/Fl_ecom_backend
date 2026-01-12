@@ -1,6 +1,5 @@
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import generateNextOrderId from "../utils/generateOrderId.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
@@ -47,6 +46,7 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   {
   "user_id": "67531b...", 
   "order_type": "Online", 
+  "order_id": "OD_1736666666666_...", 
   "payment_method": "UPI", 
   "payment_status": "Paid", 
   "transaction_id": "TXN123456789", 
@@ -115,16 +115,6 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   } else {
     username = payload.customer_name;
   }
-
-  // Order ID generation
-  const currentDate = new Date();
-
-  const lastOrderId = await OrderModelDB.findOne({
-    createdAt: {
-      $gte: new Date(currentDate.setHours(0, 0, 0, 0)),
-      $lt: new Date(currentDate.setHours(23, 59, 59, 999)),
-    },
-  }).sort({ createdAt: -1 });
 
   // Calculate Order Totals from Products
   const { order_products = [] } = payload;
@@ -258,8 +248,6 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   let order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
-  let order_id = generateNextOrderId(lastOrderId?.order_id);
-
   // Remove unwanted fields from payload
   const {
     is_from_cart,
@@ -287,7 +275,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     additional_discount_amount,
     additional_discount_percentage,
     additional_discount_type,
-    order_id,
+    order_id: payload?.order_id,
   };
 
   // Remove save_addres inside address BEFORE validation
