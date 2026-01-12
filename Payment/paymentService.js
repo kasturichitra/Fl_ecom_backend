@@ -2,6 +2,7 @@ import axios from "axios";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import validatePaymentDocuments from "./validations/validatePayment.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { v4 as uuidv4 } from "uuid";
 
 function extractPGGateways(response) {
   if (!response?.data || !Array.isArray(response.data)) return [];
@@ -136,13 +137,12 @@ export const deletePaymentDocumentService = async (tenantId, keyId) => {
 export const initiatePaymentOrderService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { orderModelDB, userModelDB } = await getTenantModels(tenantId);
+  const { userModelDB } = await getTenantModels(tenantId);
 
   let {
-    gateway,
-    gatewayCode,
-    keyId,
-    orderId,
+    gateway = "RAZORPAY",
+    gatewayCode = "RA101",
+    keyId = "a7fcf33eee6c",
     flow = "FIXED_AMOUNT",
     amount,
     paymentMethod,
@@ -152,10 +152,7 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
 
   amount = Number(amount);
 
-  const existingOrder = await orderModelDB.findOne({
-    order_id: orderId,
-  });
-  throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+  const orderId = `OD_${Date.now()}_${uuidv4()}`;
 
   const existingUser = await userModelDB.findOne({
     _id: userId,
@@ -182,7 +179,9 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   try {
     const response = await axios.post(`${process.env.PAYMENT_INITIATE_URL}`, sendablePayload);
 
-    return response?.data;
+    const data = response?.data?.data;
+
+    return data;
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
