@@ -6,6 +6,7 @@ import {
   getBusinessDetailsService,
   gstinVerifyService,
   assignBusinessDetailsService,
+  getByBusinessIdService,
 } from "./businessService.js";
 import { validateBusinessDetails } from "./businessValidation.js";
 
@@ -64,6 +65,21 @@ export const getAllBusinessDetailsController = async (req, res) => {
     res.status(200).json(successResponse("Business details fetched successfully", {
         data: response,
     }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getByBusinessIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: business_unique_id } = req.params;
+    const response = await getByBusinessIdService(tenantId, business_unique_id);
+    res.status(200).json(
+      successResponse("Business details fetched successfully", {
+        data: response,
+      })
+    );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

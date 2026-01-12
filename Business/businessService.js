@@ -7,6 +7,7 @@ import { gstinVerifyUrl } from "../env.js";
 import generateBusinessId from "./utils/generateBusinessId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
+import mongoose from "mongoose";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
@@ -80,16 +81,16 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     );
   }
 
-    // Create Business Document (Pending Approval)
+  // Create Business Document (Pending Approval)
   const newBusiness = new businessModelDB({
-      ...businessData,
-      user_id: user_id,
-      business_unique_id,
-      images: imageUrls,
-      documents: documentUrls,
-      is_verified: false,
-      is_active: true,
-    });
+    ...businessData,
+    user_id: user_id,
+    business_unique_id,
+    images: imageUrls,
+    documents: documentUrls,
+    is_verified: false,
+    is_active: true,
+  });
 
   await newBusiness.save();
 
@@ -97,12 +98,12 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   user.business_unique_id = business_unique_id;
   const updatedUser = await user.save();
 
-    // Notify All Admins in Background
-    backgroundEmailProcess(tenantId, {
-      ...businessData,
-      user_id,
-      business_unique_id,
-    });
+  // Notify All Admins in Background
+  backgroundEmailProcess(tenantId, {
+    ...businessData,
+    user_id,
+    business_unique_id,
+  });
 
   const res = updatedUser.toObject();
   delete res.password;
@@ -128,7 +129,7 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
   ]);
 
   return {
-    data:businesses,
+    data: businesses,
     pagination: {
       totalCount: total,
       page: Number(page),
@@ -136,6 +137,15 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+export const getByBusinessIdService = async (tenantId, business_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!business_unique_id, "Business ID is Required");
+  const { businessModelDB } = await getTenantModels(tenantId);
+  const business = await businessModelDB.findOne({ business_unique_id });
+  throwIfTrue(!business, "Business not found");
+  return business;
 };
 
 export const getAssignedBusinessDetailsService = async (tenantId, user_id) => {

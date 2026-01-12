@@ -8,6 +8,7 @@ import {
   getBusinessDetailsController,
   gstinVerifyController,
   assignBusinessDetailsController,
+  getByBusinessIdController,
 } from "./businessController.js";
 
 const router = express.Router();
@@ -57,6 +58,16 @@ router.get(
     keyPrefix: "get-business-details",
   }),
   getBusinessDetailsController
+);
+
+router.get(
+  "/getBusinessDetails/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60,
+    maxRequests: 15,
+    keyPrefix: "get-business-details",
+  }),
+  getByBusinessIdController
 );
 
 router.put(
