@@ -61,7 +61,9 @@ export const getAllBusinessDetailsController = async (req, res) => {
       limit,
       sort,
     });
-    res.status(200).json(successResponse("Business details fetched successfully", response));
+    res.status(200).json(successResponse("Business details fetched successfully", {
+        data: response,
+    }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }

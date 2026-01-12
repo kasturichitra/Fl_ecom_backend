@@ -2,6 +2,7 @@ import axios from "axios";
 import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
@@ -112,10 +113,32 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   return { message: "Business registration submitted for approval", user: res };
 };
 
-export const getAllBusinessDetailsService = async (tenantId) => {
+export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page = 1, limit = 10, sort }) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
   const { businessModelDB } = await getTenantModels(tenantId);
-  return await businessModelDB.find({});
+
+  const query = {};
+  if (assigned_to) {
+    query.assigned_to = assigned_to;
+  }
+
+  const sortOption = buildSortObject(sort);
+  const skip = (page - 1) * limit;
+
+  const [businesses, total] = await Promise.all([
+    businessModelDB.find(query).sort(sortOption).skip(skip).limit(Number(limit)),
+    businessModelDB.countDocuments(query),
+  ]);
+
+  return {
+    data: businesses,
+    pagination: {
+      totalCount: total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const getAssignedBusinessDetailsService = async (tenantId, user_id) => {
