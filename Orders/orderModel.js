@@ -176,24 +176,24 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
     // Move these OUT of the array
-    payment_status: {
-      type: String,
-      enum: ["Pending", "Paid", "Failed", "Refunded"],
-      default: "Pending",
-    },
-    payment_method: {
-      type: String,
-      enum: ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
-      required: true,
-    },
+    // payment_status: {
+    //   type: String,
+    //   enum: ["Pending", "Paid", "Failed", "Refunded"],
+    //   default: "Pending",
+    // },
+    // payment_method: {
+    //   type: String,
+    //   enum: ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
+    //   required: true,
+    // },
     cash_on_delivery: {
       type: Boolean,
       default: false,
     },
-    transaction_id: {
-      type: String,
-      trim: true,
-    },
+    // transaction_id: {
+    //   type: String,
+    //   trim: true,
+    // },
     order_create_date: {
       type: Date,
       required: true,
