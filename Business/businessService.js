@@ -131,7 +131,7 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
   ]);
 
   return {
-    data: businesses,
+    businesses,
     pagination: {
       totalCount: total,
       page: Number(page),
