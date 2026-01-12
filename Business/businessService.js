@@ -38,25 +38,18 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   throwIfTrue(!user, "User not found");
 
   // Check if business with same GSTIN already exists
-  const existingBusiness = await businessModelDB.findOne({ gst_in_number: businessData.gst_in_number });
+  let business = await businessModelDB.findOne({ gst_in_number: businessData.gst_in_number });
 
-  if (existingBusiness) {
-    // If it exists and is not verified, maybe they are resubmitting?
-    // Or if it's already verified, just return it or inform them.
-    if (existingBusiness.is_verified) {
-      // Update user with business_unique_id if not already set
-      if (!user.business_unique_id) {
-        user.business_unique_id = existingBusiness.business_unique_id;
-        await user.save();
-      }
-      const res = user.toObject();
-      delete res.password;
-      return { message: "Business already exists and is verified", user: res };
-    }
+  let business_unique_id;
+  let isUpdate = false;
+
+  if (business) {
+    business_unique_id = business.business_unique_id;
+    isUpdate = true;
+  } else {
+    // Generate Business ID
+    business_unique_id = await generateBusinessId(businessModelDB);
   }
-
-  // Generate Business ID
-  const business_unique_id = await generateBusinessId(businessModelDB);
 
   // Handle Images
   let imageUrls = [];
@@ -87,16 +80,16 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     );
   }
 
-  // Create Business Document (Pending Approval)
+    // Create Business Document (Pending Approval)
   const newBusiness = new businessModelDB({
-    ...businessData,
-    user_id: user_id,
-    business_unique_id,
-    images: imageUrls,
-    documents: documentUrls,
-    is_verified: false,
-    is_active: true,
-  });
+      ...businessData,
+      user_id: user_id,
+      business_unique_id,
+      images: imageUrls,
+      documents: documentUrls,
+      is_verified: false,
+      is_active: true,
+    });
 
   await newBusiness.save();
 
@@ -104,12 +97,12 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   user.business_unique_id = business_unique_id;
   const updatedUser = await user.save();
 
-  // Notify All Admins in Background
-  backgroundEmailProcess(tenantId, {
-    ...businessData,
-    user_id,
-    business_unique_id,
-  });
+    // Notify All Admins in Background
+    backgroundEmailProcess(tenantId, {
+      ...businessData,
+      user_id,
+      business_unique_id,
+    });
 
   const res = updatedUser.toObject();
   delete res.password;
