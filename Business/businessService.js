@@ -1,12 +1,4 @@
-import { gstinVerifyUrl } from "../env.js";
 import axios from "axios";
-import mongoose from "mongoose";
-import throwIfTrue from "../utils/throwIfTrue.js";
-import { getTenantModels } from "../lib/tenantModelsCache.js";
-import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
-import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
-import generateBusinessId from "./utils/generateBusinessId.js";
-import { sendBusinessApprovalEmailToAdmin, sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 import fs from "fs";
 
 export const gstinVerifyService = async (payload) => {
@@ -160,7 +152,7 @@ export const getBusinessDetailsService = async (tenantId, business_id) => {
   return business;
 };
 
-export const updateBusinessDetailsService = async (tenantId, business_unique_id, updateData) => {
+export const assignBusinessDetailsService = async (tenantId, business_unique_id, updateData) => {
   // 🔒 Basic validations
   throwIfTrue(!tenantId, "Tenant ID is Required");
   throwIfTrue(!business_unique_id, "Business ID is Required");
@@ -193,10 +185,10 @@ export const updateBusinessDetailsService = async (tenantId, business_unique_id,
   return business;
 };
 
-export const deactivateBusinessService = async (tenantId, user_id, gst_in_number) => {
+export const deactivateBusinessService = async (tenantId, user_id, gstinNumber) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
   throwIfTrue(!user_id, "User ID is Required");
-  throwIfTrue(!gst_in_number, "GSTIN Number is Required");
+  throwIfTrue(!gstinNumber, "GSTIN Number is Required");
 
   const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
 
@@ -215,7 +207,10 @@ export const deactivateBusinessService = async (tenantId, user_id, gst_in_number
   const res = user.toObject();
   delete res.password;
 
-  return { message: "Business deactivated and account type changed to Personal", user: res };
+  return {
+    message: "Business deactivated and account type changed to Personal",
+    user: res,
+  };
 };
 
 const backgroundEmailProcess = async (tenantId, businessData) => {

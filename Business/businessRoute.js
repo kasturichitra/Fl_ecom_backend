@@ -1,7 +1,14 @@
 import express from "express";
-import { addBusinessDetailsController, deactivateBusinessController, getAllBusinessDetailsController, getAssignedBusinessDetailsController, getBusinessDetailsController, gstinVerifyController, updateBusinessDetailsController } from "./businessController.js";
-import getUploadMiddleware from "../utils/multerConfig.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
+import getUploadMiddleware from "../utils/multerConfig.js";
+import {
+  addBusinessDetailsController,
+  deactivateBusinessController,
+  getAllBusinessDetailsController,
+  getBusinessDetailsController,
+  gstinVerifyController,
+  assignBusinessDetailsController,
+} from "./businessController.js";
 
 const router = express.Router();
 const upload = getUploadMiddleware("business");
@@ -17,7 +24,7 @@ router.post(
   }),
   upload.fields([
     { name: "images", maxCount: 5 },
-    { name: "documents", maxCount: 5 }
+    { name: "documents", maxCount: 5 },
   ]),
   addBusinessDetailsController
 );
@@ -32,35 +39,34 @@ router.put(
   deactivateBusinessController
 );
 
-
-router.get("/allBusinessDetails",
+router.get(
+  "/allBusinessDetails",
   rateLimiter({
     windowSizeInSeconds: 60,
     maxRequests: 15,
     keyPrefix: "get-all-business-details",
   }),
-  getAllBusinessDetailsController);
+  getAllBusinessDetailsController
+);
 
-router.get("/details/:id",
+router.get(
+  "/details/:id",
   rateLimiter({
     windowSizeInSeconds: 60,
     maxRequests: 15,
     keyPrefix: "get-business-details",
   }),
-  getBusinessDetailsController);
+  getBusinessDetailsController
+);
 
-router.get("/assignedBusinessDetails/:id",
+router.put(
+  "/assign/:id",
   rateLimiter({
     windowSizeInSeconds: 60,
     maxRequests: 15,
-    keyPrefix: "get-assigned-business-details",
+    keyPrefix: "assign-business-details",
   }),
-  getAssignedBusinessDetailsController);
-
-router.put("/update/:id", rateLimiter({
-  windowSizeInSeconds: 60,
-  maxRequests: 15,
-  keyPrefix: "update-business-details",
-}), updateBusinessDetailsController);
+  assignBusinessDetailsController
+);
 
 export default router;

@@ -3,10 +3,9 @@ import {
   addBusinessDetailsService,
   deactivateBusinessService,
   getAllBusinessDetailsService,
-  getAssignedBusinessDetailsService,
   getBusinessDetailsService,
   gstinVerifyService,
-  updateBusinessDetailsService,
+  assignBusinessDetailsService,
 } from "./businessService.js";
 import { validateBusinessDetails } from "./businessValidation.js";
 
@@ -42,7 +41,11 @@ export const getBusinessDetailsController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     const { id: business_unique_id } = req.params;
     const response = await getBusinessDetailsService(tenantId, business_unique_id);
-    res.status(200).json(successResponse("Business details fetched successfully", { data: response }));
+    res.status(200).json(
+      successResponse("Business details fetched successfully", {
+        data: response,
+      })
+    );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
@@ -51,30 +54,29 @@ export const getBusinessDetailsController = async (req, res) => {
 export const getAllBusinessDetailsController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const response = await getAllBusinessDetailsService(tenantId);
-    res.status(200).json(successResponse("Business details fetched successfully", { data: response }));
+    const { assigned_to, page, limit, sort } = req.query;
+    const response = await getAllBusinessDetailsService(tenantId, {
+      assigned_to,
+      page,
+      limit,
+      sort,
+    });
+    res.status(200).json(successResponse("Business details fetched successfully", response));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
 
-export const getAssignedBusinessDetailsController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-    const { id: user_id } = req.params;
-    const response = await getAssignedBusinessDetailsService(tenantId, user_id);
-    res.status(200).json(successResponse("Business details fetched successfully", { data: response }));
-  } catch (error) {
-    res.status(500).json(errorResponse(error.message, error));
-  }
-};
-
-export const updateBusinessDetailsController = async (req, res) => {
+export const assignBusinessDetailsController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const { id: business_unique_id } = req.params;
-    const response = await updateBusinessDetailsService(tenantId, business_unique_id, req.body);
-    res.status(200).json(successResponse("Business details updated successfully", { data: response }));
+    const response = await assignBusinessDetailsService(tenantId, business_unique_id, req.body);
+    res.status(200).json(
+      successResponse("Business details updated successfully", {
+        data: response,
+      })
+    );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
