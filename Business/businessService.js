@@ -3,6 +3,7 @@ import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");

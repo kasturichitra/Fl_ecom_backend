@@ -1,8 +1,9 @@
 import {
-    deletePaymentDocumentController,
+  deletePaymentDocumentController,
   getAllPaymentGatewaysController,
   getPaymentDocumentByKeyIdController,
   getPaymentDocumentsController,
+  initiatePaymentOrderController,
   registerPaymentDocumentsController,
   updatePaymentDocumentController,
 } from "./paymentController.js";
@@ -18,4 +19,5 @@ router.post("/documents", registerPaymentDocumentsController);
 router.put("/documents/:id", updatePaymentDocumentController);
 router.delete("/documents/:id", deletePaymentDocumentController);
 
+router.post("/initiate", initiatePaymentOrderController);
 export default router;

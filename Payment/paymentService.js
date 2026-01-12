@@ -1,6 +1,7 @@
 import axios from "axios";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import validatePaymentDocuments from "./validations/validatePayment.js";
+import { getTenantModels } from "../lib/tenantModelsCache.js";
 
 function extractPGGateways(response) {
   if (!response?.data || !Array.isArray(response.data)) return [];
@@ -35,7 +36,7 @@ export const registerPaymentDocumentsService = async (tenantId, payload) => {
   const { gateway, gatewayCode, gatewayKey, gatewaySecret } = payload;
 
   const defaultPayload = {
-    projectId: "ecommerce_app",
+    projectId: process.env.PROJECT_ID || "ecommerce_app",
     tenantId,
   };
 
@@ -64,7 +65,7 @@ export const registerPaymentDocumentsService = async (tenantId, payload) => {
 export const getPaymentDocumentsService = async (tenantId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const projectId = "ecommerce_app";
+  const projectId = process.env.PROJECT_ID || "ecommerce_app";
   const endpoint = `${projectId}/${tenantId}`;
 
   try {
@@ -89,7 +90,7 @@ export const getPaymentDocumentByKeyIdService = async (tenantId, keyId) => {
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
-}
+};
 
 export const updatePaymentDocumentService = async (tenantId, keyId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -127,6 +128,61 @@ export const deletePaymentDocumentService = async (tenantId, keyId) => {
     const response = await axios.delete(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
 
     return response?.data?.message;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error}`);
+  }
+};
+
+export const initiatePaymentOrderService = async (tenantId, payload) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { orderModelDB, userModelDB } = await getTenantModels(tenantId);
+
+  let {
+    gateway,
+    gatewayCode,
+    keyId,
+    orderId,
+    flow = "FIXED_AMOUNT",
+    amount,
+    paymentMethod,
+    redirectUrl,
+    userId,
+  } = payload;
+
+  amount = Number(amount);
+
+  const existingOrder = await orderModelDB.findOne({
+    order_id: orderId,
+  });
+  throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+  const existingUser = await userModelDB.findOne({
+    _id: userId,
+    is_active: true,
+  });
+  throwIfTrue(!existingUser, "User doesn't exist with this id");
+
+  const sendablePayload = {
+    referenceId: orderId,
+    projectId: process.env.PROJECT_ID || "ecommerce_app",
+    tenantId,
+    flow,
+    amount,
+    gateway,
+    gatewayCode,
+    keyId,
+    paymentMethod,
+    redirectURL: redirectUrl,
+    metadata: {
+      userId,
+    },
+  };
+
+  try {
+    const response = await axios.post(`${process.env.PAYMENT_INITIATE_URL}`, sendablePayload);
+
+    return response?.data;
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }

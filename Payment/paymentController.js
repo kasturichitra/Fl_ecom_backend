@@ -4,6 +4,7 @@ import {
   getAllPaymentGatewaysService,
   getPaymentDocumentByKeyIdService,
   getPaymentDocumentsService,
+  initiatePaymentOrderService,
   registerPaymentDocumentsService,
   updatePaymentDocumentService,
 } from "./paymentService.js";
@@ -99,6 +100,23 @@ export const deletePaymentDocumentController = async (req, res) => {
 
     res.status(200).json(
       successResponse("Payment document deleted successfully", {
+        data: response,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const initiatePaymentOrderController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const payload = req.body;
+
+    const response = await initiatePaymentOrderService(tenantId, payload);
+
+    res.status(200).json(
+      successResponse("Payment order initiated successfully", {
         data: response,
       })
     );
