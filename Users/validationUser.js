@@ -52,28 +52,26 @@ const createUserSchema = Joi.object({
 
   branch_name: Joi.string().allow("", null),
 
-  role: Joi.string()
-    .valid("admin", "employee", "user")
-    .messages({
-      "any.only": "Invalid role selected",
-    }),
-  role_id: Joi.string()
-    .allow("", null)
-    .messages({
-      "string.pattern.base": "Invalid Role ID format",
-    }),
+  role: Joi.string().valid("admin", "employee", "user").messages({
+    "any.only": "Invalid role selected",
+  }),
+  role_id: Joi.string().allow("", null).messages({
+    "string.pattern.base": "Invalid Role ID format",
+  }),
 
   is_active: Joi.boolean(),
 
   image: Joi.string().allow("", null),
 
   address: Joi.array().items(userAddressSchema),
-  business_detailes: Joi.array().items(Joi.object({
-    business_name: Joi.string().allow("", null),
-    gstinNumber: Joi.string().allow("", null),
-    business_address: Joi.string().allow("", null),
-    is_active: Joi.boolean(),
-  })),
+  business_detailes: Joi.array().items(
+    Joi.object({
+      business_name: Joi.string().allow("", null),
+      gst_in_number: Joi.string().allow("", null),
+      business_address: Joi.string().allow("", null),
+      is_active: Joi.boolean(),
+    })
+  ),
 });
 
 export function validateUserCreate(data) {

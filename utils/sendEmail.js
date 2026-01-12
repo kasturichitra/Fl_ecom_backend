@@ -1,4 +1,3 @@
-
 import { transporter } from "../Config/email.config.js";
 import { smtpUser } from "../env.js";
 
@@ -38,37 +37,53 @@ export const sendCouponEmail = async (userEmail, couponData) => {
           <p>You have received a new exclusive coupon.</p>
           
           <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="font-size: 18px; margin-bottom: 10px;"><strong>Coupon Code:</strong> <span style="background-color: #e8f5e9; padding: 5px 10px; border-radius: 4px; color: #2e7d32;">${couponData.coupon_code}</span></p>
-            <p><strong>Discount:</strong> ${couponData.discount_percentage ? couponData.discount_percentage + '%' : '₹' + couponData.discount_amount}</p>
+            <p style="font-size: 18px; margin-bottom: 10px;"><strong>Coupon Code:</strong> <span style="background-color: #e8f5e9; padding: 5px 10px; border-radius: 4px; color: #2e7d32;">${
+              couponData.coupon_code
+            }</span></p>
+            <p><strong>Discount:</strong> ${
+              couponData.discount_percentage ? couponData.discount_percentage + "%" : "₹" + couponData.discount_amount
+            }</p>
             <p><strong>Valid Until:</strong> ${new Date(couponData.coupon_end_date).toLocaleDateString()}</p>
             
             ${(function () {
-          let applicableItems = [];
-          let title = "";
+              let applicableItems = [];
+              let title = "";
 
-          if (couponData.apply_on === "Product" && couponData.selected_products && couponData.selected_products.length > 0) {
-            title = "Applicable Products:";
-            applicableItems = couponData.selected_products.map(item => item.label);
-          } else if (couponData.apply_on === "Category" && couponData.selected_categories && couponData.selected_categories.length > 0) {
-            title = "Applicable Categories:";
-            applicableItems = couponData.selected_categories.map(item => item.label);
-          } else if (couponData.apply_on === "Brand" && couponData.selected_brands && couponData.selected_brands.length > 0) {
-            title = "Applicable Brands:";
-            applicableItems = couponData.selected_brands.map(item => item.label);
-          }
+              if (
+                couponData.apply_on === "Product" &&
+                couponData.selected_products &&
+                couponData.selected_products.length > 0
+              ) {
+                title = "Applicable Products:";
+                applicableItems = couponData.selected_products.map((item) => item.label);
+              } else if (
+                couponData.apply_on === "Category" &&
+                couponData.selected_categories &&
+                couponData.selected_categories.length > 0
+              ) {
+                title = "Applicable Categories:";
+                applicableItems = couponData.selected_categories.map((item) => item.label);
+              } else if (
+                couponData.apply_on === "Brand" &&
+                couponData.selected_brands &&
+                couponData.selected_brands.length > 0
+              ) {
+                title = "Applicable Brands:";
+                applicableItems = couponData.selected_brands.map((item) => item.label);
+              }
 
-          if (applicableItems.length > 0) {
-            return `
+              if (applicableItems.length > 0) {
+                return `
                   <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                     <p><strong>${title}</strong></p>
                     <ul style="padding-left: 20px; color: #555;">
-                      ${applicableItems.map(item => `<li>${item}</li>`).join('')}
+                      ${applicableItems.map((item) => `<li>${item}</li>`).join("")}
                     </ul>
                   </div>
                 `;
-          }
-          return "";
-        })()}
+              }
+              return "";
+            })()}
           </div>
 
           <p>Use this code at checkout to avail your discount.</p>
@@ -94,7 +109,7 @@ export const sendBusinessApprovalEmailToAdmin = async (adminEmail, businessData)
       html: `
         <h3>New Business Registration Alert 🏢</h3>
         <p><b>Business Name:</b> ${businessData.business_name}</p>
-        <p><b>GSTIN:</b> ${businessData.gstinNumber}</p>
+        <p><b>GSTIN:</b> ${businessData.gst_in_number}</p>
         <p><b>Address:</b> ${businessData.business_address}</p>
         <p><b>Requested By User ID:</b> ${businessData.user_id}</p>
         <hr/>
@@ -132,4 +147,3 @@ export const sendBusinessVerificationSuccessEmail = async (userEmail, businessNa
     console.error(`Error sending verification success email to ${userEmail}:`, error);
   }
 };
-
