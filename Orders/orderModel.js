@@ -175,25 +175,13 @@ const orderSchema = new mongoose.Schema(
       enum: ["Online", "Offline"],
       required: true,
     },
-    // Move these OUT of the array
-    // payment_status: {
-    //   type: String,
-    //   enum: ["Pending", "Paid", "Failed", "Refunded"],
-    //   default: "Pending",
-    // },
-    // payment_method: {
-    //   type: String,
-    //   enum: ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
-    //   required: true,
-    // },
-    cash_on_delivery: {
-      type: Boolean,
-      default: false,
-    },
-    // transaction_id: {
-    //   type: String,
-    //   trim: true,
-    // },
+    // Relationship with PaymentTransactions
+    payment_transactions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PaymentTransactions",
+      },
+    ],
     order_create_date: {
       type: Date,
       required: true,
@@ -208,7 +196,7 @@ const orderSchema = new mongoose.Schema(
     order_delivery_date: {
       type: Date,
     },
-    
+
     order_refund_date: {
       type: Date,
     },
@@ -268,9 +256,9 @@ orderProductSchema.index({ product_unique_id: 1 });
 orderProductSchema.index({ quantity: 1 });
 orderSchema.index({ order_id: 1 });
 orderSchema.index({ order_status: 1 });
-orderSchema.index({ payment_status: 1 });
+// orderSchema.index({ payment_status: 1 });
 orderSchema.index({ order_create_date: 1 });
-orderSchema.index({ transaction_id: 1 });
+// orderSchema.index({ transaction_id: 1 });
 orderSchema.index({ order_type: 1 });
 
 const OrdersModel = async (tenantID) => {

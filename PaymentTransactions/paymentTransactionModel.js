@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { getTenanteDB } from "../Config/tenantDB";
+import { getTenanteDB } from "../Config/tenantDB.js";
 
 const paymentTransactionSchema = new mongoose.Schema(
   {
@@ -33,6 +33,18 @@ const paymentTransactionSchema = new mongoose.Schema(
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    gateway: {
+      type: String,
+      required: true,
+    },
+    gateway_code: {
+      type: String,
+      required: true,
+    },
+    is_verified: {
+      type: Boolean,
+      default: false,
     },
   },
   {

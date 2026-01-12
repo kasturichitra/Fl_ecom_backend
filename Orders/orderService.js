@@ -102,6 +102,7 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     orderModelDB: OrderModelDB,
     userModelDB: UserModelDB,
     productModelDB: ProductModelDB,
+    paymentTransactionsModelDB: PaymentTransactionsDB,
   } = await getTenantModels(tenantId);
   // User validation
   let userDoc = null;
@@ -260,7 +261,16 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   let order_id = generateNextOrderId(lastOrderId?.order_id);
 
   // Remove unwanted fields from payload
-  const { is_from_cart, order_products: _removed, ...rest } = payload;
+  const {
+    is_from_cart,
+    order_products: _removed,
+    payment_status,
+    payment_method,
+    transaction_id,
+    gateway,
+    gateway_code,
+    ...rest
+  } = payload;
 
   // Construct final orderDoc
   const orderDoc = {
@@ -303,6 +313,25 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   console.log("✅✅ order Doc is ", orderDoc);
   // Create order
   const order = await OrderModelDB.create(orderDoc);
+
+  // Create Payment Transaction
+  const paymentDoc = {
+    order_id: order.order_id,
+    user_id: order.user_id,
+    payment_status: payment_status || "Pending",
+    payment_method: payment_method || "Cash", // Default or required?
+    transaction_id: transaction_id,
+    amount: total_amount,
+    currency: order.currency,
+    gateway: gateway,
+    gateway_code: gateway_code,
+  };
+
+  const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
+
+  // Link payment transaction to order
+  order.payment_transactions.push(paymentTrans._id);
+  await order.save();
 
   // Update stock
   await updateStockOnOrder(tenantId, order.order_products);
@@ -413,8 +442,25 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   /* -------------------------------------------------------------
      🔥 OPTIMIZED QUERY with $facet (Single DB Call)
   -------------------------------------------------------------- */
+
+  // Separate payment-related filters
+  const paymentQuery = {};
+  if (payment_status) paymentQuery["payment_details.payment_status"] = payment_status;
+  if (payment_method) paymentQuery["payment_details.payment_method"] = payment_method;
+  // if (transaction_id) paymentQuery["payment_details.transaction_id"] = transaction_id;
+
   const pipeline = [
     { $match: query },
+    {
+      $lookup: {
+        from: "paymenttransactions",
+        localField: "payment_transactions",
+        foreignField: "_id",
+        as: "payment_details",
+      },
+    },
+    // Filter by payment details if provided
+    ...(Object.keys(paymentQuery).length > 0 ? [{ $match: paymentQuery }] : []),
     { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
     {
       $facet: {
@@ -510,10 +556,31 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     }
   }
 
+  // Handle Payment Status Updates via PaymentTransactions
+  if (updateData.payment_status) {
+    const { paymentTransactionsModelDB: PaymentTransactionsDB } = await getTenantModels(tenantId);
+
+    // Find the latest transaction or create new?
+    // Simplified: Find the last linked transaction
+    let lastTransId = order.payment_transactions[order.payment_transactions.length - 1];
+
+    if (lastTransId) {
+      await PaymentTransactionsDB.findByIdAndUpdate(lastTransId, {
+        payment_status: updateData.payment_status,
+      });
+    }
+    // If we need to clone the logic for "Refunded" -> "Cancelled"
+    if (updateData.payment_status === "Refunded") {
+      // We don't set order.payment_status as it is gone.
+      // We depend on the transaction.
+      // However, we still need to trigger the cancellation logic
+    }
+  }
+
   // Handle Full Order Cancellation
   if (updateData.payment_status === "Refunded" || updateData.isCancelled === true) {
     wasJustCancelled = true;
-    order.payment_status = "Refunded";
+    // order.payment_status = "Refunded"; // REMOVED
     order.order_cancel_date = new Date();
 
     order.order_Products.forEach((p) => {
