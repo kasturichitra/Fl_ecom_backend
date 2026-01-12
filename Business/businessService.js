@@ -3,6 +3,11 @@ import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { gstinVerifyUrl } from "../env.js";
+import generateBusinessId from "./utils/generateBusinessId.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
+import mongoose from "mongoose";
 import { sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 
 export const gstinVerifyService = async (payload) => {
@@ -35,25 +40,18 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   throwIfTrue(!user, "User not found");
 
   // Check if business with same GSTIN already exists
-  const existingBusiness = await businessModelDB.findOne({ gst_in_number: businessData.gst_in_number });
+  let business = await businessModelDB.findOne({ gst_in_number: businessData.gst_in_number });
 
-  if (existingBusiness) {
-    // If it exists and is not verified, maybe they are resubmitting?
-    // Or if it's already verified, just return it or inform them.
-    if (existingBusiness.is_verified) {
-      // Update user with business_unique_id if not already set
-      if (!user.business_unique_id) {
-        user.business_unique_id = existingBusiness.business_unique_id;
-        await user.save();
-      }
-      const res = user.toObject();
-      delete res.password;
-      return { message: "Business already exists and is verified", user: res };
-    }
+  let business_unique_id;
+  let isUpdate = false;
+
+  if (business) {
+    business_unique_id = business.business_unique_id;
+    isUpdate = true;
+  } else {
+    // Generate Business ID
+    business_unique_id = await generateBusinessId(businessModelDB);
   }
-
-  // Generate Business ID
-  const business_unique_id = await generateBusinessId(businessModelDB);
 
   // Handle Images
   let imageUrls = [];
@@ -132,7 +130,7 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
   ]);
 
   return {
-    businesses,
+    data: businesses,
     pagination: {
       totalCount: total,
       page: Number(page),
@@ -140,6 +138,15 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+export const getByBusinessIdService = async (tenantId, business_unique_id) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  throwIfTrue(!business_unique_id, "Business ID is Required");
+  const { businessModelDB } = await getTenantModels(tenantId);
+  const business = await businessModelDB.findOne({ business_unique_id });
+  throwIfTrue(!business, "Business not found");
+  return business;
 };
 
 export const getAssignedBusinessDetailsService = async (tenantId, user_id) => {
