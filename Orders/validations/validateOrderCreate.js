@@ -151,21 +151,12 @@ export const orderValidationSchema = Joi.object({
   order_id: Joi.string().trim().allow(null, "").messages({
     "string.base": "Order ID must be a string.",
   }),
-  payment_status: Joi.string().valid("Pending", "Paid", "Failed", "Refunded").default("Pending").messages({
-    "any.only": "Payment status is invalid.",
+  order_id: Joi.string().trim().allow(null, "").messages({
+    "string.base": "Order ID must be a string.",
   }),
 
-  payment_method: Joi.string()
-    .valid("Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet")
-    .required()
-    .messages({
-      "any.required": "Payment method is required.",
-      "any.only": "Invalid payment method.",
-    }),
-
-  transaction_id: Joi.string().trim().allow(null, "").messages({
-    "string.base": "Transaction ID must be a string.",
-  }),
+  // REMOVED Payment fields from here as they are now in PaymentTransaction model
+  // payment_status, payment_method, transaction_id are handled separately or by Payment validations
 
   order_create_date: Joi.date().required().messages({
     "date.base": "Order create date must be a valid date.",
@@ -179,7 +170,7 @@ export const orderValidationSchema = Joi.object({
   order_delivery_date: Joi.date().allow(null).messages({
     "date.base": "Order cancel date must be a valid date.",
   }),
-  
+
   order_refund_date: Joi.date().allow(null).messages({
     "date.base": "Order cancel date must be a valid date.",
   }),

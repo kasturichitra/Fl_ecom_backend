@@ -8,6 +8,7 @@ import generateBusinessId from "./utils/generateBusinessId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
 import mongoose from "mongoose";
+import { sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
