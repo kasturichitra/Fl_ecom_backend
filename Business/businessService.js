@@ -3,6 +3,10 @@ import fs from "fs";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { gstinVerifyUrl } from "../env.js";
+import generateBusinessId from "./utils/generateBusinessId.js";
+import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
@@ -131,7 +135,7 @@ export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page
   ]);
 
   return {
-    businesses,
+    data:businesses,
     pagination: {
       totalCount: total,
       page: Number(page),
