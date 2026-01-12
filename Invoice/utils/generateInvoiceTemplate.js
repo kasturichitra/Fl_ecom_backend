@@ -37,36 +37,76 @@ const baseStyles = `
 `;
 
 // Product table generator - FIXED to not repeat headers
-const generateProductTable = (order, theme) => `
+const generateProductTable = (order, theme) => {
+  const isBusiness = !!order.business_details;
+  return `
   <table>
     <thead>
       <tr>
         <th>Description</th>
         <th class="text-right">Qty</th>
+        ${
+          isBusiness
+            ? `
+        <th class="text-right">Unit Gross</th>
+        <th class="text-right">Unit Tax</th>
+        <th class="text-right">Unit Final</th>
+        `
+            : `
         <th class="text-right">Rate</th>
+        `
+        }
         <th class="text-right">Amount</th>
       </tr>
     </thead>
     <tbody>
-      ${order.order_products.map(p => `
+      ${order.order_products
+        .map(
+          (p) => `
       <tr>
         <td>${p.product_name}</td>
         <td class="text-right">${p.quantity}</td>
+        ${
+          isBusiness
+            ? `
+        <td class="text-right">${order.currency} ${p.unit_gross_price.toFixed(2)}</td>
+        <td class="text-right">${order.currency} ${p.unit_tax_value.toFixed(2)}</td>
         <td class="text-right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
+        `
+            : `
+        <td class="text-right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
+        `
+        }
         <td class="text-right">${order.currency} ${p.total_final_price.toFixed(2)}</td>
-      </tr>`).join('')}
+      </tr>`
+        )
+        .join("")}
     </tbody>
   </table>
 `;
+};
 
 // Totals table generator
-const generateTotals = (order) => `
+const generateTotals = (order) => {
+  const isBusiness = !!order.business_details;
+  return `
   <div class="totals">
     <table class="totals-table">
+      ${
+        isBusiness
+          ? `
+      <tr>
+        <td>Gross Price:</td>
+        <td class="text-right">${order.currency} ${order.gross_price.toFixed(2)}</td>
+      </tr>
+      `
+          : `
       <tr>
         <td>Subtotal:</td>
         <td class="text-right">${order.currency} ${order.base_price.toFixed(2)}</td>
       </tr>
+      `
+      }
       <tr>
         <td>Tax:</td>
         <td class="text-right">${order.currency} ${order.tax_value.toFixed(2)}</td>
@@ -78,10 +118,11 @@ const generateTotals = (order) => `
     </table>
   </div>
 `;
+};
 
 // Template configurations
 const templates = {
-  'Invoice1': {
+  Invoice1: {
     styles: `
       ${baseStyles}
       body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; }
@@ -125,17 +166,25 @@ const templates = {
           <h3>Bill To</h3>
           <p><strong>${order.address.first_name} ${order.address.last_name}</strong><br>
           ${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.postal_code}<br>
-          Phone: ${order.address.mobile_number}</p>
+          Phone: ${order.address.mobile_number}
+          ${
+            order.business_details
+              ? `<br><br><strong>Business Details:</strong><br>
+          Name: ${order.business_details.business_name}<br>
+          Address: ${order.business_details.business_address}<br>
+          GSTIN: ${order.business_details.gst_in_number}`
+              : ""
+          }</p>
         </div>
       </div>
       <div class="info-grid">
         <div class="info-box"><h3>Date</h3><p>${new Date(order.order_create_date).toDateString()}</p></div>
         <div class="info-box"><h3>Order ID</h3><p>${order.order_id}</p></div>
       </div>
-    `
+    `,
   },
 
-  'Invoice2': {
+  Invoice2: {
     styles: `
       ${baseStyles}
       body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
@@ -185,17 +234,25 @@ const templates = {
             <h3>Bill To</h3>
             <p><strong>${order.address.first_name} ${order.address.last_name}</strong><br>
             ${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.postal_code}<br>
-            Phone: ${order.address.mobile_number}</p>
+            Phone: ${order.address.mobile_number}
+            ${
+              order.business_details
+                ? `<br><br><strong>Business Details:</strong><br>
+            Name: ${order.business_details.business_name}<br>
+            Address: ${order.business_details.business_address}<br>
+            GSTIN: ${order.business_details.gst_in_number}`
+                : ""
+            }</p>
           </div>
         </div>
         <div class="info-box" style="margin-bottom: 30px; text-align: center;">
           <p><strong>Date:</strong> ${new Date(order.order_create_date).toDateString()}</p>
         </div>
       </div>
-    `
+    `,
   },
 
-  'Invoice3': {
+  Invoice3: {
     styles: `
       ${baseStyles}
       body { font-family: Georgia, serif; background: #e8eef3; }
@@ -248,13 +305,21 @@ const templates = {
           <h3>Invoiced To</h3>
           <p><strong>${order.address.first_name} ${order.address.last_name}</strong><br>
           ${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.postal_code}<br>
-          Phone: ${order.address.mobile_number}</p>
+          Phone: ${order.address.mobile_number}
+          ${
+            order.business_details
+              ? `<br><br><strong>Business Details:</strong><br>
+          Name: ${order.business_details.business_name}<br>
+          Address: ${order.business_details.business_address}<br>
+          GSTIN: ${order.business_details.gst_in_number}`
+              : ""
+          }</p>
         </div>
       </div>
-    `
+    `,
   },
 
-  'Invoice4': {
+  Invoice4: {
     styles: `
       ${baseStyles}
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; }
@@ -304,16 +369,26 @@ const templates = {
           <h3>Bill To</h3>
           <p><strong>${order.address.first_name} ${order.address.last_name}</strong><br>
           ${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.postal_code}<br>
-          Phone: ${order.address.mobile_number}</p>
+          Phone: ${order.address.mobile_number}
+          ${
+            order.business_details
+              ? `<br><br><strong>Business Details:</strong><br>
+          Name: ${order.business_details.business_name}<br>
+          Address: ${order.business_details.business_address}<br>
+          GSTIN: ${order.business_details.gst_in_number}`
+              : ""
+          }</p>
         </div>
         <div class="info-box" style="text-align: center; border-left: none; border-top: 3px solid #3b82f6;">
-          <p>Invoice Date: <strong style="color: #f1f5f9;">${new Date(order.order_create_date).toDateString()}</strong></p>
+          <p>Invoice Date: <strong style="color: #f1f5f9;">${new Date(
+            order.order_create_date
+          ).toDateString()}</strong></p>
         </div>
       </div>
-    `
+    `,
   },
 
-  'Invoice5': {
+  Invoice5: {
     styles: `
       ${baseStyles}
       body { font-family: Garamond, Georgia, serif; background: #f4f1ea; }
@@ -365,19 +440,29 @@ const templates = {
       <div class="content">
         <div style="text-align: center; background: #fafaf8; padding: 20px; border-radius: 8px; border: 1px solid #e8e3d6; margin-bottom: 30px;">
           <p style="color: #4a7c2c; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; font-weight: 600; font-family: Arial, sans-serif;">Invoice Date</p>
-          <p style="color: #2d5016; font-size: 17px; font-weight: 600;">${new Date(order.order_create_date).toDateString()}</p>
+          <p style="color: #2d5016; font-size: 17px; font-weight: 600;">${new Date(
+            order.order_create_date
+          ).toDateString()}</p>
         </div>
         <div class="info-box">
           <h3>Invoiced To</h3>
           <p><strong>${order.address.first_name} ${order.address.last_name}</strong><br>
           ${order.address.street}<br>${order.address.city}, ${order.address.state} ${order.address.postal_code}<br>
-          Telephone: ${order.address.mobile_number}</p>
+          Telephone: ${order.address.mobile_number}
+          ${
+            order.business_details
+              ? `<br><br><strong>Business Details:</strong><br>
+          Name: ${order.business_details.business_name}<br>
+          Address: ${order.business_details.business_address}<br>
+          GSTIN: ${order.business_details.gst_in_number}`
+              : ""
+          }</p>
         </div>
       </div>
-    `
+    `,
   },
 
-  'default': {
+  default: {
     styles: `
       body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
       .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
@@ -390,7 +475,7 @@ const templates = {
       .right { text-align: right; }
       .total { font-size: 18px; font-weight: bold; color: #6c63ff; }
     `,
-    header: (order) => '',
+    header: (order) => "",
     body: (order) => `
       <div class="header">
         <div class="company">
@@ -409,38 +494,87 @@ const templates = {
       <p>${order.address.first_name} ${order.address.last_name}<br/>
       ${order.address.street}, ${order.address.city}<br/>
       ${order.address.state} - ${order.address.postal_code}<br/>
-      Phone: ${order.address.mobile_number}</p>
+      Phone: ${order.address.mobile_number}
+      ${
+        order.business_details
+          ? `<br/><br/><strong>Business Details:</strong><br/>
+      Name: ${order.business_details.business_name}<br/>
+      Address: ${order.business_details.business_address}<br/>
+      GSTIN: ${order.business_details.gst_in_number}`
+          : ""
+      }</p>
       <table>
         <thead>
-          <tr><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr>
+          <tr>
+            <th>Description</th>
+            <th class="right">Qty</th>
+            ${
+              order.business_details
+                ? `
+            <th class="right">Unit Gross</th>
+            <th class="right">Unit Tax</th>
+            <th class="right">Unit Final</th>
+            `
+                : `
+            <th class="right">Rate</th>
+            `
+            }
+            <th class="right">Amount</th>
+          </tr>
         </thead>
         <tbody>
-          ${order.order_products.map(p => `
+          ${order.order_products
+            .map(
+              (p) => `
           <tr>
             <td>${p.product_name}</td>
             <td class="right">${p.quantity}</td>
+            ${
+              order.business_details
+                ? `
+            <td class="right">${order.currency} ${p.unit_gross_price.toFixed(2)}</td>
+            <td class="right">${order.currency} ${p.unit_tax_value.toFixed(2)}</td>
             <td class="right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
+            `
+                : `
+            <td class="right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
+            `
+            }
             <td class="right">${order.currency} ${p.total_final_price.toFixed(2)}</td>
-          </tr>`).join('')}
+          </tr>`
+            )
+            .join("")}
         </tbody>
       </table>
       <table style="margin-top: 30px; width: 400px; margin-left: auto;">
+        ${
+          order.business_details
+            ? `
+        <tr><td class="right">Gross Price:</td><td class="right">${order.currency} ${order.gross_price.toFixed(
+                2
+              )}</td></tr>
+        `
+            : `
         <tr><td class="right">Subtotal:</td><td class="right">${order.currency} ${order.base_price.toFixed(2)}</td></tr>
+        `
+        }
         <tr><td class="right">Tax:</td><td class="right">${order.currency} ${order.tax_value.toFixed(2)}</td></tr>
-        <tr><td class="right total">Total:</td><td class="right total">${order.currency} ${order.total_amount.toFixed(2)}</td></tr>
+        <tr><td class="right total">Total:</td><td class="right total">${order.currency} ${order.total_amount.toFixed(
+      2
+    )}</td></tr>
       </table>
       <p style="margin-top: 40px; text-align: center; color: #666;">Thank you for your business!</p>
-    `
-  }
+    `,
+  },
 };
 
 // Main export function - FINAL FIX
-export const invoiceTemplate = (order, templateType = 'default') => {
-  const finalType = templateType || 'default';
-  const template = templates[finalType] || templates['default'];
+export const generateInvoiceTemplate = (order, templateType = "default") => {
+  const finalType = templateType || "default";
+  const template = templates[finalType] || templates["default"];
 
   const content =
-    finalType === 'default'
+    finalType === "default"
       ? template.body(order)
       : `
         <div class="container">
@@ -449,18 +583,17 @@ export const invoiceTemplate = (order, templateType = 'default') => {
           ${generateProductTable(order)}
           ${generateTotals(order)}
           <div class="footer"><p>Thank you for your business!</p></div>
-          ${finalType === 'classic-elegance' ? '<div class="bottom-bar"></div>' : ''}
+          ${finalType === "classic-elegance" ? '<div class="bottom-bar"></div>' : ""}
         </div>
       `;
 
   return generateInvoice(order, template.styles, content);
 };
 
-
 // Usage:
-// invoiceTemplate(orderData, 'modern-minimalist')
-// invoiceTemplate(orderData, 'colorful-gradient')
-// invoiceTemplate(orderData, 'professional-corporate')
-// invoiceTemplate(orderData, 'modern-tech')
-// invoiceTemplate(orderData, 'classic-elegance')
-// invoiceTemplate(orderData, 'default') or invoiceTemplate(orderData)
+// generateInvoiceTemplate(orderData, 'modern-minimalist')
+// generateInvoiceTemplate(orderData, 'colorful-gradient')
+// generateInvoiceTemplate(orderData, 'professional-corporate')
+// generateInvoiceTemplate(orderData, 'modern-tech')
+// generateInvoiceTemplate(orderData, 'classic-elegance')
+// generateInvoiceTemplate(orderData, 'default') or generateInvoiceTemplate(orderData)

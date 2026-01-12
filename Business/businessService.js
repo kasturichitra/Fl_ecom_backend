@@ -13,11 +13,17 @@ export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
   throwIfTrue(!payload.business_name, "Business Name Required");
 
-  const { data } = await axios.post(`${gstinVerifyUrl}/business/Gstinverify`, { gst_in_number: payload.gst_in_number });
-  if (data.data.companyName.toLowerCase().trim() === payload.business_name.toLowerCase().trim()) {
+  try {
+    const { data } = await axios.post(`${gstinVerifyUrl}/business/Gstinverify`, {
+      gstinNumber: payload.gst_in_number,
+    });
+    const isNameMatching = data.data.companyName.toLowerCase().trim() === payload.business_name.toLowerCase().trim();
+
+    throwIfTrue(!isNameMatching, "Business name does not match GSTIN name");
+
     return data;
-  } else {
-    throwIfTrue(true, "Business Name Not Matched");
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error}`);
   }
 };
 
