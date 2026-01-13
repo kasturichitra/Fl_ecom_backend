@@ -140,9 +140,9 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   const { userModelDB } = await getTenantModels(tenantId);
 
   let {
-    gateway = "RAZORPAY",
-    gatewayCode = "RA101",
-    keyId = "a7fcf33eee6c",
+    gateway = "CASHFREE",
+    gatewayCode = "CA103",
+    keyId = "8a8fc592f455",
     flow = "FIXED_AMOUNT",
     amount,
     paymentMethod,
@@ -152,7 +152,7 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
 
   amount = Number(amount);
 
-  const orderId = `OD_${Date.now()}_${uuidv4()}`;
+  const orderId = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
 
   const existingUser = await userModelDB.findOne({
     _id: userId,
@@ -175,6 +175,8 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
       userId,
     },
   };
+
+  console.log("sendablePayload ===>>", sendablePayload);
 
   try {
     const response = await axios.post(`${process.env.PAYMENT_INITIATE_URL}`, sendablePayload);
