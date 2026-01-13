@@ -188,3 +188,18 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
     throwIfTrue(true, `External API error: ${error}`);
   }
 };
+
+export const getPaymentStatusService = async (tenantId, orderId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!orderId, "Order ID is required");
+
+  const endpoint = `?referenceId=${orderId}`;
+
+  try {
+    const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
+
+    return response?.data;
+  } catch (error) {
+    throwIfTrue(true, `External API error: ${error}`);
+  }
+};

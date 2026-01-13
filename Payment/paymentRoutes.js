@@ -3,6 +3,7 @@ import {
   getAllPaymentGatewaysController,
   getPaymentDocumentByKeyIdController,
   getPaymentDocumentsController,
+  getPaymentStatusController,
   initiatePaymentOrderController,
   registerPaymentDocumentsController,
   updatePaymentDocumentController,
@@ -20,4 +21,5 @@ router.put("/documents/:id", updatePaymentDocumentController);
 router.delete("/documents/:id", deletePaymentDocumentController);
 
 router.post("/initiate", initiatePaymentOrderController);
+router.get("/status/:id", getPaymentStatusController);
 export default router;
