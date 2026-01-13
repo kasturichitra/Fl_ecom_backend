@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
-export const createRoleService = async (tenantId, payload) => {
+export const createRoleService = async (tenantId, payload = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { roleModelDB, permissionModelDB } = await getTenantModels(tenantId);
@@ -28,4 +29,44 @@ export const createRoleService = async (tenantId, payload) => {
 
   const role = await roleModelDB.create(payload);
   return role;
+};
+
+export const getAllRolesService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { is_system_role, page = 1, limit = 10, sort = "createdAt:desc" } = filters;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+  const skip = (page - 1) * limit;
+
+  let query = {};
+
+  if (is_system_role === "true") query.is_system_role = true;
+  if (is_system_role === "false") query.is_system_role = false;
+
+  const { roleModelDB } = await getTenantModels(tenantId);
+
+  const sortObj = buildSortObject(sort);
+
+  const [result] = await roleModelDB.aggregate([
+    { $match: query },
+
+    {
+      $facet: {
+        data: [{ $sort: sortObj }, { $skip: skip }, { $limit: Number(limit) }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ]);
+
+  const totalCount = result.totalCount[0]?.count || 0;
+
+  return {
+    totalCount,
+    page,
+    limit,
+    totalPages: Math.ceil(totalCount / limit),
+    data: result.data,
+  };
 };
