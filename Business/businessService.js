@@ -218,10 +218,10 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
   return business;
 };
 
-export const deactivateBusinessService = async (tenantId, user_id, gstinNumber) => {
+export const deactivateBusinessService = async (tenantId, user_id, gst_in_number) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
   throwIfTrue(!user_id, "User ID is Required");
-  throwIfTrue(!gstinNumber, "GSTIN Number is Required");
+  throwIfTrue(!gst_in_number, "GSTIN Number is Required");
 
   const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
 
