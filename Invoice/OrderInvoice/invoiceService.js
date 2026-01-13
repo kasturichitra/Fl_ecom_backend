@@ -23,7 +23,7 @@ export const generateInvoiceService = async (tenantId, orderId, user_id) => {
 
   // Fetch the admin selected invoice template from db if not found then use default invoice template
   const selectedgenerateInvoiceTemplate = await contactInfoModelDB.findOne().lean();
-  const invoiceTemplate = selectedgenerateInvoiceTemplate.invoice_template || "Invoice1";
+  const invoiceTemplate = selectedgenerateInvoiceTemplate.invoice_template;
 
   const html = generateInvoiceTemplate(order, invoiceTemplate);
 
