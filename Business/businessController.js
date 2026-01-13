@@ -55,16 +55,21 @@ export const getBusinessDetailsController = async (req, res) => {
 export const getAllBusinessDetailsController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { assigned_to, page, limit, sort } = req.query;
+    const { assigned_to, page, limit, sort, search, is_active, is_verified } = req.query;
     const response = await getAllBusinessDetailsService(tenantId, {
       assigned_to,
       page,
       limit,
       sort,
+      search,
+      is_active,
+      is_verified,
     });
-    res.status(200).json(successResponse("Business details fetched successfully", {
+    res.status(200).json(
+      successResponse("Business details fetched successfully", {
         data: response,
-    }));
+      })
+    );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
