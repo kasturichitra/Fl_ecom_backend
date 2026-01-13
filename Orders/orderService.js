@@ -278,6 +278,12 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     order_id: payload?.order_id,
   };
 
+  const existingOrderWithTransaction = await PaymentTransactionsDB.findOne({
+    order_id: payload?.order_id,
+    transaction_id: payload?.transaction_id,
+  });
+  throwIfTrue(existingOrderWithTransaction, "Order already exists with this transaction id");
+
   // Remove save_addres inside address BEFORE validation
   if (orderDoc?.address?.save_addres) {
     const { save_addres, ...cleanAddress } = orderDoc.address;
