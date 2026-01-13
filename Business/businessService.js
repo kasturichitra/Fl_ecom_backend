@@ -256,12 +256,19 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
 
   await business.save();
 
-  // 📧 Send Verification Success Email
+  // 📧 Send Verification Success Email & Update User Account Type
   if (updateData.is_verified === true) {
     const { userModelDB } = await getTenantModels(tenantId);
     const user = await userModelDB.findById(business.user_id);
-    if (user && user.email) {
-      await sendBusinessVerificationSuccessEmail(user.email, business.business_name);
+    if (user) {
+      user.account_type = "Business";
+      // As per request to "add that is is verify is true"
+      user.is_verified = true;
+      await user.save();
+
+      if (user.email) {
+        await sendBusinessVerificationSuccessEmail(user.email, business.business_name);
+      }
     }
   }
 

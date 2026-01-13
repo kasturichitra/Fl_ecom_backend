@@ -761,7 +761,7 @@ export const getTotalCountsService = async (tenantId) => {
           active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
           inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
           verified: { $sum: { $cond: [{ $eq: ["$is_verified", true] }, 1, 0] } },
-          unverified: { $sum: { $cond: [{ $ne: ["$is_verified", true] }, 1, 0] } },
+          not_verified: { $sum: { $cond: [{ $ne: ["$is_verified", false] }, 1, 0] } },
         },
       },
       { $project: { _id: 0 } },
@@ -770,7 +770,7 @@ export const getTotalCountsService = async (tenantId) => {
 
   // Helper patterns for defaults
   const activeInactiveDefault = { total: 0, active: 0, inactive: 0 };
-  const businessDefault = { total: 0, active: 0, inactive: 0, verified: 0, unverified: 0 };
+  const businessDefault = { total: 0, active: 0, inactive: 0, verified: 0, not_verified: 0 };
 
   const userStatsResult = userStats[0] || {
     userTotal: 0,
