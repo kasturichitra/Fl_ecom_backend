@@ -31,6 +31,7 @@ import faqRoutes from "./FAQ/faqRoutes.js";
 import ticketRoutes from "./Tickets/ticketRoutes.js";
 import paymentRoutes from "./Payment/paymentRoutes.js";
 import businessRoutes from "./Business/businessRoute.js";
+import permissionRoutes from "./Permission/permissionRoute.js";
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
@@ -165,6 +166,7 @@ app.use("/faq", faqRoutes);
 app.use("/tickets", ticketRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/business", businessRoutes);
+app.use("/permissions", permissionRoutes);
 
 app.use("/", userRoutes);
 
