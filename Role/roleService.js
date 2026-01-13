@@ -91,3 +91,18 @@ export const updateRoleService = async (tenantId, id, payload = {}) => {
   const updatedRole = await roleModelDB.findByIdAndUpdate(id, payload, { new: true });
   return updatedRole;
 };
+
+export const deleteRoleService = async (tenantId, roleId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!roleId, "Role ID is required");
+
+  const { roleModelDB } = await getTenantModels(tenantId);
+
+  const existingRole = await roleModelDB.findById(roleId);
+  throwIfTrue(!existingRole, "A role with this id does not exist");
+
+  throwIfTrue(existingRole.is_system_role, "System role can't be deleted");
+
+  const deletedRole = await roleModelDB.findByIdAndDelete(roleId);
+  return deletedRole;
+};

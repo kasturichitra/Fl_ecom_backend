@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { createRoleService, getAllRolesService, updateRoleService } from "./roleService.js";
+import { createRoleService, deleteRoleService, getAllRolesService, updateRoleService } from "./roleService.js";
 
 export const createRoleController = async (req, res) => {
   try {
@@ -37,6 +37,18 @@ export const updateRoleController = async (req, res) => {
 
     const response = await updateRoleService(tenantId, id, payload);
     res.status(200).json(successResponse("Role updated successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const deleteRoleController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const id = req.params.id;
+
+    const response = await deleteRoleService(tenantId, id);
+    res.status(200).json(successResponse("Role deleted successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
