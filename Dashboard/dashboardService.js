@@ -15,9 +15,10 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   if (order_type) baseQuery.order_type = order_type;
   if (payment_method) baseQuery.payment_method = payment_method;
 
-  if (cash_on_delivery !== undefined) {
-    baseQuery.cash_on_delivery =
-      cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  if (cash_on_delivery === "true") {
+    baseQuery.cash_on_delivery = true;
+  } else if (cash_on_delivery === "false") {
+    baseQuery.cash_on_delivery = false;
   }
 
   if (from) {
@@ -85,9 +86,10 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   if (order_status) baseQuery.order_status = order_status;
   if (order_type) baseQuery.order_type = order_type;
 
-  if (cash_on_delivery !== undefined) {
-    baseQuery.cash_on_delivery =
-      cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  if (cash_on_delivery === "true") {
+    baseQuery.cash_on_delivery = true;
+  } else if (cash_on_delivery === "false") {
+    baseQuery.cash_on_delivery = false;
   }
 
   if (from) {
@@ -159,9 +161,10 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   if (payment_method) baseQuery.payment_method = payment_method;
   if (order_status) baseQuery.order_status = order_status;
 
-  if (cash_on_delivery !== undefined) {
-    baseQuery.cash_on_delivery =
-      cash_on_delivery === "true" ? true : cash_on_delivery === "false" ? false : cash_on_delivery;
+  if (cash_on_delivery === "true") {
+    baseQuery.cash_on_delivery = true;
+  } else if (cash_on_delivery === "false") {
+    baseQuery.cash_on_delivery = false;
   }
 
   if (from) {

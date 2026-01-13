@@ -226,7 +226,9 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (product_size) query.product_size = product_size;
   if (barcode) query.barcode = barcode;
   if (stock_availability) query.stock_availability = stock_availability;
-  if (cash_on_delivery !== undefined) query.cash_on_delivery = cash_on_delivery;
+  // if (cash_on_delivery !== undefined) query.cash_on_delivery = cash_on_delivery;
+  if (cash_on_delivery === "true") query.cash_on_delivery = true;
+  if (cash_on_delivery === "false") query.cash_on_delivery = false;
 
   if (category_name) query.category_name = category_name;
   if (brand_name) query.brand_name = brand_name;
