@@ -435,13 +435,13 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [
-                          { $toString: "$category_unique_id" }, // convert DB value → string
-                          "$$selectedCategory", // already string
-                        ],
-                      },
-                    ]
+                        {
+                          $eq: [
+                            { $toString: "$category_unique_id" }, // convert DB value → string
+                            "$$selectedCategory", // already string
+                          ],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -538,10 +538,10 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
-                      },
-                    ]
+                        {
+                          $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -591,8 +591,6 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
   return { products };
 };
 
-
-
 export const getTotalCountsService = async (tenantId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -606,6 +604,7 @@ export const getTotalCountsService = async (tenantId) => {
     couponModelDB,
     notificationModelDB,
     saleTrendModelDB,
+    businessModelDB,
   } = await getTenantModels(tenantId);
 
   // Fetch all statistics concurrently for maximum performance
@@ -619,6 +618,7 @@ export const getTotalCountsService = async (tenantId) => {
     couponStats,
     notificationStats,
     saleTrendStats,
+    businessStats,
   ] = await Promise.all([
     // 1. Order Collection Stats
     orderModelDB.aggregate([
@@ -687,17 +687,29 @@ export const getTotalCountsService = async (tenantId) => {
       },
       { $project: { _id: 0 } },
     ]),
-    // 6. User Collection Stats
+    // 6. User Collection Stats (Refactored to split Users and Employees)
     userModelDB.aggregate([
       {
         $group: {
           _id: null,
-          total: { $sum: 1 },
-          users: { $sum: { $cond: [{ $eq: ["$role", "user"] }, 1, 0] } },
-          employees: { $sum: { $cond: [{ $eq: ["$role", "employee"] }, 1, 0] } },
-          admins: { $sum: { $cond: [{ $eq: ["$role", "admin"] }, 1, 0] } },
-          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
-          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+          // Users
+          userTotal: { $sum: { $cond: [{ $eq: ["$role", "user"] }, 1, 0] } },
+          userActive: {
+            $sum: { $cond: [{ $and: [{ $eq: ["$role", "user"] }, { $eq: ["$is_active", true] }] }, 1, 0] },
+          },
+          userInactive: {
+            $sum: { $cond: [{ $and: [{ $eq: ["$role", "user"] }, { $eq: ["$is_active", false] }] }, 1, 0] },
+          },
+          // Employees
+          employeeTotal: { $sum: { $cond: [{ $eq: ["$role", "employee"] }, 1, 0] } },
+          employeeActive: {
+            $sum: { $cond: [{ $and: [{ $eq: ["$role", "employee"] }, { $eq: ["$is_active", true] }] }, 1, 0] },
+          },
+          employeeInactive: {
+            $sum: { $cond: [{ $and: [{ $eq: ["$role", "employee"] }, { $eq: ["$is_active", false] }] }, 1, 0] },
+          },
+          // Admins (Optional, keeping for completeness if needed later or just ignore)
+          // adminTotal: { $sum: { $cond: [{ $eq: ["$role", "admin"] }, 1, 0] } },
         },
       },
       { $project: { _id: 0 } },
@@ -737,10 +749,34 @@ export const getTotalCountsService = async (tenantId) => {
       },
       { $project: { _id: 0 } },
     ]),
+    // 10. Business Collection Stats
+    businessModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$is_active", true] }, 1, 0] } },
+          inactive: { $sum: { $cond: [{ $eq: ["$is_active", false] }, 1, 0] } },
+          verified: { $sum: { $cond: [{ $eq: ["$is_verified", true] }, 1, 0] } },
+          unverified: { $sum: { $cond: [{ $ne: ["$is_verified", true] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
   ]);
 
   // Helper patterns for defaults
   const activeInactiveDefault = { total: 0, active: 0, inactive: 0 };
+  const businessDefault = { total: 0, active: 0, inactive: 0, verified: 0, unverified: 0 };
+
+  const userStatsResult = userStats[0] || {
+    userTotal: 0,
+    userActive: 0,
+    userInactive: 0,
+    employeeTotal: 0,
+    employeeActive: 0,
+    employeeInactive: 0,
+  };
 
   return {
     orderCounts: orderStats[0] || {
@@ -759,17 +795,19 @@ export const getTotalCountsService = async (tenantId) => {
     categoryCounts: categoryStats[0] || activeInactiveDefault,
     productCounts: productStats[0] || activeInactiveDefault,
     brandCounts: brandStats[0] || activeInactiveDefault,
-    userCounts: userStats[0] || {
-      total: 0,
-      users: 0,
-      employees: 0,
-      admins: 0,
-      active: 0,
-      inactive: 0,
+    userCounts: {
+      total: userStatsResult.userTotal,
+      active: userStatsResult.userActive,
+      inactive: userStatsResult.userInactive,
+    },
+    employeeCounts: {
+      total: userStatsResult.employeeTotal,
+      active: userStatsResult.employeeActive,
+      inactive: userStatsResult.employeeInactive,
     },
     couponCounts: couponStats[0] || activeInactiveDefault,
     notificationCounts: notificationStats[0] || { total: 0, unread: 0 },
     saleTrendCounts: saleTrendStats[0] || activeInactiveDefault,
+    businessCounts: businessStats[0] || businessDefault,
   };
 };
-
