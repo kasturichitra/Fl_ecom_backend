@@ -149,12 +149,16 @@ export const getAllBusinessDetailsService = async (
     query.assigned_to = assigned_to;
   }
 
-  if (is_active !== undefined) {
-    query.is_active = is_active === "true";
+  if (is_active === "true") {
+    query.is_active = true;
+  } else if (is_active === "false") {
+    query.is_active = false;
   }
 
-  if (is_verified !== undefined) {
-    query.is_verified = is_verified === "true";
+  if (is_verified === "true") {
+    query.is_verified = true;
+  } else if (is_verified === "false") {
+    query.is_verified = false;
   }
 
   if (search) {
