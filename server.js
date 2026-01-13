@@ -54,7 +54,14 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["http://10.1.1.15:5173", "http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+    origin: [
+      "http://10.1.1.15:5173",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://10.1.1.120:5173",
+      "http://10.1.1.120:5174",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-tenant-id"],
     credentials: true,
