@@ -82,22 +82,42 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     );
   }
 
-  // Create Business Document (Pending Approval)
-  const newBusiness = new businessModelDB({
-    ...businessData,
-    user_id: user_id,
-    business_unique_id,
-    images: imageUrls,
-    documents: documentUrls,
-    is_verified: false,
-    is_active: true,
-  });
+  let updatedBusiness;
 
-  await newBusiness.save();
+  if (isUpdate) {
+    // Update existing business
+    business.set({
+      // ...businessData,
+      user_id: user_id, // Ensure user_id is updated if needed (though usually same owner)
+      images: imageUrls.length > 0 ? imageUrls : business.images, // Keep old images if no new ones, or replace? User "update it". Usually replace or append. Code logic suggests replacing if files provided.
+      documents: documentUrls.length > 0 ? documentUrls : business.documents,
+      is_active: true, // Reactivate
+    });
+
+    // If files were provided, we used the new arrays. existing code replaced them in the new object creation.
+    // If files are NOT provided in update, we probably want to keep existing ones?
+    // The previous code for new creation would set empty array if no files.
+    // Here:
+    if (imageUrls.length > 0) business.images = imageUrls;
+    if (documentUrls.length > 0) business.documents = documentUrls;
+
+    updatedBusiness = await business.save();
+  } else {
+    // Create Business Document (Pending Approval)
+    updatedBusiness = new businessModelDB({
+      ...businessData,
+      user_id: user_id,
+      business_unique_id,
+      images: imageUrls,
+      documents: documentUrls,
+      is_active: true,
+    });
+    await updatedBusiness.save();
+  }
 
   // Update User Model
   user.business_unique_id = business_unique_id;
-  const updatedUser = await user.save();
+  await user.save();
 
   // Notify All Admins in Background
   backgroundEmailProcess(tenantId, {
@@ -106,10 +126,15 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     business_unique_id,
   });
 
-  const res = updatedUser.toObject();
+  const res = user.toObject();
   delete res.password;
 
-  return { message: "Business registration submitted for approval", user: res };
+  return {
+    message: isUpdate
+      ? "Business details updated and submitted for approval"
+      : "Business registration submitted for approval",
+    user: res,
+  };
 };
 
 export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page = 1, limit = 10, sort }) => {
