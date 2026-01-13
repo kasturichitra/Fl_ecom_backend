@@ -70,3 +70,24 @@ export const getAllRolesService = async (tenantId, filters = {}) => {
     data: result.data,
   };
 };
+
+export const updateRoleService = async (tenantId, id, payload = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!id, "Role ID is required");
+
+  const { roleModelDB, permissionModelDB } = await getTenantModels(tenantId);
+
+  const existingRole = await roleModelDB.findById(id);
+  throwIfTrue(!existingRole, "A role with this id does not exist");
+
+  for (let perm of payload?.permissions ?? []) {
+    throwIfTrue(!mongoose.Types.ObjectId.isValid(perm), "Permission id is not valid mongo id");
+    perm = new mongoose.Types.ObjectId(perm);
+
+    const existingPermission = await permissionModelDB.findById(perm);
+    throwIfTrue(!existingPermission, "A permission with this id does not exist");
+  }
+
+  const updatedRole = await roleModelDB.findByIdAndUpdate(id, payload, { new: true });
+  return updatedRole;
+};
