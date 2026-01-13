@@ -1,5 +1,11 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { createRoleService, deleteRoleService, getAllRolesService, updateRoleService } from "./roleService.js";
+import {
+  createRoleService,
+  deleteRoleService,
+  getAllRolesService,
+  getRoleByIdService,
+  updateRoleService,
+} from "./roleService.js";
 
 export const createRoleController = async (req, res) => {
   try {
@@ -22,8 +28,21 @@ export const getAllRolesController = async (req, res) => {
     const tenantId = req.headers["x-tenant-id"];
     const filters = req.query;
 
-    const response = await getAllRolesService(tenantId, filters);
-    res.status(200).json(successResponse("Roles fetched successfully", { data: response }));
+    const { totalCount, page, limit, totalPages, data } = await getAllRolesService(tenantId, filters);
+
+    res.status(200).json(successResponse("Roles fetched successfully", { data, totalCount, page, limit, totalPages }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getRoleByIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const id = req.params.id;
+
+    const response = await getRoleByIdService(tenantId, id);
+    res.status(200).json(successResponse("Role fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
