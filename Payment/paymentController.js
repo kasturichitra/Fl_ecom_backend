@@ -4,6 +4,7 @@ import {
   getAllPaymentGatewaysService,
   getPaymentDocumentByKeyIdService,
   getPaymentDocumentsService,
+  getPaymentStatusService,
   initiatePaymentOrderService,
   registerPaymentDocumentsService,
   updatePaymentDocumentService,
@@ -117,6 +118,23 @@ export const initiatePaymentOrderController = async (req, res) => {
 
     res.status(200).json(
       successResponse("Payment order initiated successfully", {
+        data: response,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getPaymentStatusController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: orderId } = req.params;
+
+    const response = await getPaymentStatusService(tenantId, orderId);
+
+    res.status(200).json(
+      successResponse("Payment status fetched successfully", {
         data: response,
       })
     );
