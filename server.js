@@ -26,7 +26,7 @@ import saleTrendRoutes from "./SaleTrend/saleTrendRoutes.js";
 import verifyToken from "./utils/verifyToken.js";
 import contactInfoRoute from "./ContactInfo/contactInfoRoute.js";
 import couponRoute from "./Coupons/couponRoute.js";
-import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js"; 
+import invoiceRoute from "./Invoice/OrderInvoice/invoiceRoute.js";
 import faqRoutes from "./FAQ/faqRoutes.js";
 import ticketRoutes from "./Tickets/ticketRoutes.js";
 import paymentRoutes from "./Payment/paymentRoutes.js";
@@ -36,7 +36,6 @@ import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
 import "./CronJobs/CouponsCron/couponsCronSchedule.js";
 import "./CronJobs/BusinessCron/businessTaxSchedule.js";
-
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
@@ -55,7 +54,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["http://10.1.1.15:5173", "http://localhost:3000", "http://localhost:5173"],
+    origin: ["http://10.1.1.15:5173", "http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-tenant-id"],
     credentials: true,
