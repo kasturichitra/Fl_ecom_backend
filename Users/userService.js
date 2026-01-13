@@ -33,7 +33,11 @@ export const getAllUsersService = async (tenantId, filters) => {
   if (phone_number) query.phone_number = phone_number;
   if (branch_name) query.branch_name = branch_name;
   if (role) query.role = role;
-  if (is_active !== undefined) query.is_active = is_active === "true";
+  if (is_active === "true") {
+    query.is_active = true;
+  } else if (is_active === "false") {
+    query.is_active = false;
+  }
 
   if (exceptRole) query.role = { $ne: exceptRole };
 
@@ -142,7 +146,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
     try {
       const oldPath = path.join(process.cwd(), user.image);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    } catch { }
+    } catch {}
   }
   /* =========================
      UPDATE OTHER FIELDS
@@ -308,11 +312,7 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   const updatedUser = await user.save();
 
   return {
-    message: `User account ${updatedUser.is_active ? 'activated' : 'deactivated'} successfully`,
-    is_active: updatedUser.is_active
+    message: `User account ${updatedUser.is_active ? "activated" : "deactivated"} successfully`,
+    is_active: updatedUser.is_active,
   };
 };
-
-
-
-
