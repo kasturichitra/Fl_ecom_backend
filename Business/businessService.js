@@ -137,13 +137,34 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
   };
 };
 
-export const getAllBusinessDetailsService = async (tenantId, { assigned_to, page = 1, limit = 10, sort }) => {
+export const getAllBusinessDetailsService = async (
+  tenantId,
+  { assigned_to, page = 1, limit = 10, sort, search, is_active, is_verified }
+) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
   const { businessModelDB } = await getTenantModels(tenantId);
 
   const query = {};
   if (assigned_to) {
     query.assigned_to = assigned_to;
+  }
+
+  if (is_active !== undefined) {
+    query.is_active = is_active === "true";
+  }
+
+  if (is_verified !== undefined) {
+    query.is_verified = is_verified === "true";
+  }
+
+  if (search) {
+    const searchRegex = { $regex: search.trim(), $options: "i" };
+    query.$or = [
+      { business_name: searchRegex },
+      { gst_in_number: searchRegex },
+      { "business_address.city": searchRegex },
+      { "business_address.state": searchRegex },
+    ];
   }
 
   const sortOption = buildSortObject(sort);
