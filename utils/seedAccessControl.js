@@ -84,14 +84,14 @@ const permissionsList = [
   { key: "saletrend:read", description: "View sale trends", category: "Sale Trends", is_system: true },
   { key: "saletrend:update", description: "Update sale trends", category: "Sale Trends", is_system: true },
   { key: "saletrend:delete", description: "Delete sale trends", category: "Sale Trends", is_system: true },
-  
+
   // coupons
   { key: "coupon:create", description: "Create coupon", category: "Coupons", is_system: true },
   { key: "coupon:read", description: "View coupon", category: "Coupons", is_system: true },
   { key: "coupon:update", description: "Update coupon", category: "Coupons", is_system: true },
   { key: "coupon:delete", description: "Delete coupon", category: "Coupons", is_system: true },
 
-  // Contact info 
+  // Contact info
   { key: "contactinfo:create", description: "Create contact info", category: "Contact Info", is_system: true },
   { key: "contactinfo:read", description: "View contact info", category: "Contact Info", is_system: true },
   { key: "contactinfo:update", description: "Update contact info", category: "Contact Info", is_system: true },
@@ -109,11 +109,17 @@ const permissionsList = [
   { key: "ticket:update", description: "Update ticket", category: "Ticket", is_system: true },
   { key: "ticket:delete", description: "Delete ticket", category: "Ticket", is_system: true },
 
-  // Payments 
+  // Payments
   { key: "payment:create", description: "Create payment", category: "Payments", is_system: true },
   { key: "payment:read", description: "View payment", category: "Payments", is_system: true },
   { key: "payment:update", description: "Update payment", category: "Payments", is_system: true },
   { key: "payment:delete", description: "Delete payment", category: "Payments", is_system: true },
+
+  // Business
+  { key: "business:create", description: "Create business", category: "Business", is_system: true },
+  { key: "business:read", description: "View business", category: "Business", is_system: true },
+  { key: "business:update", description: "Update business", category: "Business", is_system: true },
+  { key: "business:delete", description: "Delete business", category: "Business", is_system: true },
 ];
 
 const seedAccessControl = async (tenantId) => {
@@ -188,6 +194,8 @@ const seedAccessControl = async (tenantId) => {
           "ticket:read",
           "ticket:update",
           "payment:read",
+          "business:read",
+          "business:update",
         ]),
         is_system_role: true,
       },
@@ -211,9 +219,13 @@ const seedAccessControl = async (tenantId) => {
           "coupon:read",
           "contactinfo:read",
           "faq:read",
-          "ticket:read", 
-          "ticket:create", 
+          "ticket:read",
+          "ticket:create",
           "payment:read",
+          "business:create",
+          "business:read",
+          "business:update",
+          "business:delete",
         ]),
         is_system_role: true,
       },
