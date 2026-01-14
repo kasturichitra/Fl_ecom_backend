@@ -10,6 +10,10 @@ const roleSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
+    description: {
+      type: String,
+      trim: true,
+    },
     permissions: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -20,6 +24,10 @@ const roleSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       // System roles (admin, employee, user) cannot be deleted
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

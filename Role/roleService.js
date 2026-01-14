@@ -9,19 +9,23 @@ export const createRoleService = async (tenantId, payload = {}) => {
   const { roleModelDB, permissionModelDB } = await getTenantModels(tenantId);
 
   throwIfTrue(!payload?.name, "A Role Name is required");
+  throwIfTrue(
+    !Array.isArray(payload?.permissions) || !payload?.permissions?.length,
+    "At least one permission is required"
+  );
 
   const existingRole = await roleModelDB.findOne({
     name: payload?.name?.trim().toLowerCase(),
   });
   throwIfTrue(existingRole, "A role with similar name already exists");
 
-  // for (let perm of payload?.permissions ?? []) {
-  //   throwIfTrue(!mongoose.Types.ObjectId.isValid(perm), "Permission id is not valid mongo id");
-  //   perm = new mongoose.Types.ObjectId(perm);
+  for (let perm of payload?.permissions ?? []) {
+    throwIfTrue(!mongoose.Types.ObjectId.isValid(perm), "Permission id is not valid mongo id");
+    perm = new mongoose.Types.ObjectId(perm);
 
-  //   const existingPermission = await permissionModelDB.findById(perm);
-  //   throwIfTrue(!existingPermission, "A permission with this id does not exist");
-  // }
+    const existingPermission = await permissionModelDB.findById(perm);
+    throwIfTrue(!existingPermission, "A permission with this id does not exist");
+  }
 
   const role = await roleModelDB.create(payload);
   return role;

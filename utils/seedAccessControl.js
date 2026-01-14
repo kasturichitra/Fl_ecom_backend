@@ -120,6 +120,12 @@ const permissionsList = [
   { key: "business:read", description: "View business", category: "Business", is_system: true },
   { key: "business:update", description: "Update business", category: "Business", is_system: true },
   { key: "business:delete", description: "Delete business", category: "Business", is_system: true },
+
+  // Role
+  { key: "role:create", description: "Create role", category: "Role", is_system: true },
+  { key: "role:read", description: "View role", category: "Role", is_system: true },
+  { key: "role:update", description: "Update role", category: "Role", is_system: true },
+  { key: "role:delete", description: "Delete role", category: "Role", is_system: true },
 ];
 
 const seedAccessControl = async (tenantId) => {
