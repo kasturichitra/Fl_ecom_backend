@@ -207,13 +207,13 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     if (responseData?.paymentStatus.trim().toLowerCase() === "success") {
       const paymentDoc = {
         payment_status: "Paid",
-        payment_method: responseData?.data?.paymentMode,
-        transaction_id: responseData?.data?.transactionId,
-        amount: responseData?.data?.amount,
-        currency: responseData?.data?.currency || "INR",
-        gateway: responseData?.data?.gateway,
-        gateway_code: responseData?.data?.gatewayCode,
-        key_id: responseData?.data?.keyId,
+        payment_method: responseData?.paymentMode,
+        transaction_id: responseData?.transactionId,
+        amount: responseData?.amount,
+        currency: responseData?.currency || "INR",
+        gateway: responseData?.gateway,
+        gateway_code: responseData?.gatewayCode,
+        key_id: responseData?.keyId || "Key Id",
         is_verified: true,
       };
 
