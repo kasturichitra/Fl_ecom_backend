@@ -1,8 +1,11 @@
+import { v4 as uuidv4 } from "uuid";
+
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
+import { ADMIN_ID } from "../lib/constants.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantId, products) => {
@@ -92,24 +95,16 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   "additional_discount_type": "percentage"
 }
 */
-export const createOrderServices = async (tenantId, payload, adminId = "691ee270ca7678dfe3a884f7") => {
+export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  // const OrderModelDB = await OrdersModel(tenantId);
-  // const UserModelDB = await UserModel(tenantId);
-  // const ProductModelDB = await ProductModel(tenantId);
-  const {
-    orderModelDB: OrderModelDB,
-    userModelDB: UserModelDB,
-    productModelDB: ProductModelDB,
-    paymentTransactionsModelDB: PaymentTransactionsDB,
-  } = await getTenantModels(tenantId);
-  // User validation
+  const { orderModelDB: OrderModelDB, userModelDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
+
   let userDoc = null;
   let username = null;
 
   if (payload.user_id) {
-    userDoc = await UserModelDB.findById(payload.user_id);
+    userDoc = await userModelDB.findById(payload.user_id);
     throwIfTrue(!userDoc, `User not found with id: ${payload.user_id}`);
     username = userDoc.username;
   } else {
@@ -248,6 +243,8 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
 
   let order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
+  let order_id = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
+
   // Remove unwanted fields from payload
   const {
     is_from_cart,
@@ -275,14 +272,15 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     additional_discount_amount,
     additional_discount_percentage,
     additional_discount_type,
-    order_id: payload?.order_id,
+    order_id,
+    order_status: "Pending",
   };
 
-  const existingOrderWithTransaction = await PaymentTransactionsDB.findOne({
-    order_id: payload?.order_id,
-    transaction_id: payload?.transaction_id,
-  });
-  throwIfTrue(existingOrderWithTransaction, "Order already exists with this transaction id");
+  // const existingOrderWithTransaction = await PaymentTransactionsDB.findOne({
+  //   order_id,
+  //   transaction_id: payload?.transaction_id,
+  // });
+  // throwIfTrue(existingOrderWithTransaction, "Order already exists with this transaction id");
 
   // Remove save_addres inside address BEFORE validation
   if (orderDoc?.address?.save_addres) {
@@ -301,74 +299,12 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
   if (payload?.address?.save_addres && userDoc) {
     const { save_addres, ...addressToSave } = payload.address;
 
-    await UserModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
+    await userModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
   }
 
   // console.log("✅✅ order Doc is ", orderDoc);
   // Create order
   const order = await OrderModelDB.create(orderDoc);
-
-  // Create Payment Transaction
-  // const paymentDoc = {
-  //   order_id: order.order_id,
-  //   user_id: order.user_id,
-  //   payment_status: payment_status || "Pending",
-  //   payment_method: payment_method || "Cash", // Default or required?
-  //   transaction_id: transaction_id,
-  //   amount: total_amount,
-  //   currency: order.currency,
-  //   gateway: gateway,
-  //   gateway_code: gateway_code,
-  // };
-
-  // const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
-
-  // Link payment transaction to order
-  // order.payment_transactions.push(paymentTrans._id);
-  // await order.save();
-
-  // Update stock
-  await updateStockOnOrder(tenantId, order.order_products);
-
-  // Clear cart after order
-  if (is_from_cart && payload.user_id) {
-    await clearProductsFromCartAfterOrder(tenantId, payload.user_id, order_products);
-  }
-
-  // Notify user
-  if (order.user_id) {
-    sendUserNotification(tenantId, order.user_id, {
-      title: "Order Placed Successfully",
-      message: `Your order ${order.order_id} has been placed successfully!`,
-      type: "order",
-      relatedId: order.order_id,
-      relatedModel: "Order",
-      link: `/order-products-detailes/${order.order_id}`,
-      data: {
-        orderId: order.order_id,
-        total: order.total_amount,
-      },
-    }).catch((err) => console.error("Background User Notification error:", err.message));
-  }
-
-  // Notify admin
-  if (order.order_type === "Online") {
-    sendAdminNotification(tenantId, adminId, {
-      title: "New Order Received",
-      message: `New order from user ${username}. Total: ₹${order.total_amount}`,
-      type: "order",
-      relatedId: order.order_id,
-      relatedModel: "Order",
-      senderModel: "user",
-      sender: username,
-      link: `/order-products-detailes/${order.order_id}`,
-      data: {
-        orderId: order.order_id,
-        userId: order.user_id,
-        amount: order.total_amount,
-      },
-    }).catch((err) => console.error("Background Admin Notification error:", err.message));
-  }
 
   return order;
 };
@@ -484,14 +420,14 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
   // const Order = await OrdersModel(tenantId);
   // const Product = await ProductModel(tenantId);
-  const { orderModelDB: Order, productModelDB: Product } = await getTenantModels(tenantId);
+  const { orderModelDB: Order, productModelDB: Product, userModelDB } = await getTenantModels(tenantId);
   const order = await Order.findById(orderID);
   throwIfTrue(!order, "Order not found");
 
   // Prevent updates on fully Delivered, Cancelled, or Returned orders
-  const allDelivered = order.order_Products.every((p) => p.status === "Delivered");
-  const allCancelled = order.order_Products.every((p) => p.status === "Cancelled");
-  const allReturned = order.order_Products.every((p) => p.status === "Returned");
+  const allDelivered = order.order_Products?.every((p) => p.status === "Delivered");
+  const allCancelled = order.order_Products?.every((p) => p.status === "Cancelled");
+  const allReturned = order.order_Products?.every((p) => p.status === "Returned");
 
   throwIfTrue(
     allDelivered || allCancelled || allReturned,
@@ -502,23 +438,23 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   let wasJustCancelled = false;
 
   // Handle Address Update
-  if (updateData.address) {
-    const hasShipped = order.order_Products.some((p) => ["Shipped", "Delivered"].includes(p.status));
+  if (updateData?.address) {
+    const hasShipped = order.order_Products?.some((p) => ["Shipped", "Delivered"].includes(p.status));
     throwIfTrue(hasShipped, "Cannot change address after any item is shipped");
-    order.address = updateData.address;
+    order.address = updateData?.address;
   }
 
   // Handle Offline Address Update (for Offline orders)
   if (Object.prototype.hasOwnProperty.call(updateData, "offline_address")) {
-    const hasShipped = order.order_Products.some((p) => ["Shipped", "Delivered"].includes(p.status));
+    const hasShipped = order.order_Products?.some((p) => ["Shipped", "Delivered"].includes(p.status));
     throwIfTrue(hasShipped, "Cannot change offline address after any item is shipped");
-    order.offline_address = updateData.offline_address;
+    order.offline_address = updateData?.offline_address;
   }
 
   // Handle Individual Product Status Updates
-  if (updateData.order_Products && Array.isArray(updateData.order_Products)) {
-    for (const updateProd of updateData.order_Products) {
-      const item = order.order_Products.find((p) => p.product_unique_id === updateProd.product_unique_id);
+  if (updateData?.order_Products && Array.isArray(updateData?.order_Products)) {
+    for (const updateProd of updateData?.order_Products) {
+      const item = order.order_Products?.find((p) => p.product_unique_id === updateProd.product_unique_id);
       throwIfTrue(!item, `Product ${updateProd.product_unique_id} not found in order`);
 
       if (updateProd.status && updateProd.status !== item.status) {
@@ -551,20 +487,100 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   }
 
   // Handle Payment Status Updates via PaymentTransactions
-  if (updateData.payment_status) {
+  if (updateData?.payment_status) {
     const { paymentTransactionsModelDB: PaymentTransactionsDB } = await getTenantModels(tenantId);
 
-    // Find the latest transaction or create new?
-    // Simplified: Find the last linked transaction
-    let lastTransId = order.payment_transactions[order.payment_transactions.length - 1];
+    // If transaction_id is present, it means we are adding a NEW transaction (e.g. initial payment after order creation)
+    if (updateData?.transaction_id) {
+      const paymentDoc = {
+        order_id: order.order_id,
+        user_id: order.user_id,
+        payment_status: updateData?.payment_status || "Pending",
+        payment_method: updateData?.payment_method || "Cash",
+        transaction_id: updateData?.transaction_id,
+        amount: order.total_amount, // Use order total amount
+        currency: order.currency || "INR", // Default to INR if not in order
+        gateway: updateData?.gateway,
+        gateway_code: updateData?.gateway_code,
+      };
 
-    if (lastTransId) {
-      await PaymentTransactionsDB.findByIdAndUpdate(lastTransId, {
-        payment_status: updateData.payment_status,
-      });
+      const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
+
+      // Push to order's payment_transactions array
+      order.payment_transactions.push(paymentTrans._id);
+      order.order_status = "Successful";
+
+      // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
+      // order.payment_status = updateData?.payment_status;
+    } else {
+      // Existing logic: Find the latest transaction and update it
+      // Simplified: Find the last linked transaction
+      let lastTransId = order.payment_transactions[order.payment_transactions.length - 1];
+
+      if (lastTransId) {
+        await PaymentTransactionsDB.findByIdAndUpdate(lastTransId, {
+          payment_status: updateData?.payment_status,
+        });
+      }
     }
+
+    // Update stock
+    await updateStockOnOrder(tenantId, order.order_products);
+
+    // Clear cart after order
+    if (order.is_from_cart && order.user_id) {
+      await clearProductsFromCartAfterOrder(tenantId, order.user_id, order.order_products);
+    }
+
+    let userDoc = null;
+
+    let username = null;
+
+    if (order?.user_id) {
+      userDoc = await userModelDB.findById(order?.user_id);
+      throwIfTrue(!userDoc, `User not found with id: ${order?.user_id}`);
+      username = userDoc?.username;
+    } else {
+      username = order?.customer_name;
+    }
+
+    // Notify user
+    if (order.user_id) {
+      sendUserNotification(tenantId, order.user_id, {
+        title: "Order Placed Successfully",
+        message: `Your order ${order.order_id} has been placed successfully!`,
+        type: "order",
+        relatedId: order.order_id,
+        relatedModel: "Order",
+        link: `/order-products-detailes/${order.order_id}`,
+        data: {
+          orderId: order.order_id,
+          total: order.total_amount,
+        },
+      }).catch((err) => console.error("Background User Notification error:", err.message));
+    }
+
+    // Notify admin
+    if (order.order_type === "Online") {
+      sendAdminNotification(tenantId, ADMIN_ID, {
+        title: "New Order Received",
+        message: `New order from user ${username}. Total: ₹${order.total_amount}`,
+        type: "order",
+        relatedId: order.order_id,
+        relatedModel: "Order",
+        senderModel: "user",
+        sender: username,
+        link: `/order-products-detailes/${order.order_id}`,
+        data: {
+          orderId: order.order_id,
+          userId: order.user_id,
+          amount: order.total_amount,
+        },
+      }).catch((err) => console.error("Background Admin Notification error:", err.message));
+    }
+
     // If we need to clone the logic for "Refunded" -> "Cancelled"
-    if (updateData.payment_status === "Refunded") {
+    if (updateData?.payment_status === "Refunded") {
       // We don't set order.payment_status as it is gone.
       // We depend on the transaction.
       // However, we still need to trigger the cancellation logic
@@ -572,7 +588,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   }
 
   // Handle Full Order Cancellation
-  if (updateData.payment_status === "Refunded" || updateData.isCancelled === true) {
+  if (updateData?.payment_status === "Refunded" || updateData?.isCancelled === true) {
     wasJustCancelled = true;
     // order.payment_status = "Refunded"; // REMOVED
     order.order_cancel_date = new Date();
@@ -591,15 +607,15 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   // Restore Stock on Cancellation
   if (stockRestored) {
     const bulkOps = updatedOrder.order_Products
-      .filter((item) => item.status === "Cancelled")
-      .map((item) => ({
+      ?.filter((item) => item.status === "Cancelled")
+      ?.map((item) => ({
         updateOne: {
           filter: { product_unique_id: item.product_unique_id },
           update: { $inc: { stock_quantity: +item.quantity } },
         },
       }));
 
-    if (bulkOps.length > 0) {
+    if (bulkOps?.length > 0) {
       await Product.bulkWrite(bulkOps);
     }
   }
@@ -618,7 +634,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       data: {
         orderId: updatedOrder._id,
         total: updatedOrder.total_amount,
-        reason: updateData.cancellation_reason || "Requested by user",
+        reason: updateData?.cancellation_reason || "Requested by user",
       },
     }).catch((err) => console.error("Background Cancel User Notification error:", err.message));
 
@@ -632,8 +648,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   }
 
   // 2. Any Item Marked as Returned
-  const returnedItems = updatedOrder.order_Products.filter((p) => p.status === "Returned");
-  if (returnedItems.length > 0) {
+  const returnedItems = updatedOrder.order_Products?.filter((p) => p.status === "Returned");
+  if (returnedItems?.length > 0) {
     const itemsList = returnedItems.map((i) => `${i.product_name} (x${i.quantity})`).join(", ");
 
     sendUserNotification(tenantId, updatedOrder.user_id, {

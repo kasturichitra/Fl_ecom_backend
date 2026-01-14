@@ -189,7 +189,7 @@ const orderSchema = new mongoose.Schema(
     order_cancel_date: { type: Date },
     order_status: {
       type: String,
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
+      enum: ["Pending", "Successful", "Failed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
       default: "Pending",
     },
 
@@ -209,6 +209,11 @@ const orderSchema = new mongoose.Schema(
     mobile_number: {
       type: String,
       trim: true,
+    },
+
+    is_from_cart: {
+      type: Boolean,
+      default: false,
     },
 
     order_products: [

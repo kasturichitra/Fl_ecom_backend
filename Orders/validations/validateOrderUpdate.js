@@ -121,6 +121,10 @@ const orderUpdateSchema = Joi.object({
 
   order_products: Joi.array().items(orderProductSchemaUpdate),
 
+  is_from_cart: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Is from cart must be a boolean.",
+  }),
+
   address: addressSchemaUpdate,
 
   base_price: Joi.number().min(0),

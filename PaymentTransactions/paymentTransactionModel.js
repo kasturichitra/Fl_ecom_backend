@@ -10,7 +10,6 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     payment_method: {
       type: String,
-      enum: ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"],
       required: true,
     },
     transaction_id: {
@@ -39,6 +38,10 @@ const paymentTransactionSchema = new mongoose.Schema(
       required: true,
     },
     gateway_code: {
+      type: String,
+      required: true,
+    },
+    key_id: {
       type: String,
       required: true,
     },

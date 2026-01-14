@@ -193,6 +193,10 @@ export const orderValidationSchema = Joi.object({
     "number.min": "Base price cannot be negative.",
   }),
 
+  is_from_cart: Joi.boolean().optional().default(false).messages({
+    "boolean.base": "Is from cart must be a boolean.",
+  }),
+
   tax_value: Joi.number().min(0).optional().messages({
     "number.base": "Tax value must be a number.",
     "number.min": "Tax value cannot be negative.",

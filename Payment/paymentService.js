@@ -3,6 +3,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import validatePaymentDocuments from "./validations/validatePayment.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { v4 as uuidv4 } from "uuid";
+import { updateOrderService } from "../Orders/orderService.js";
 
 function extractPGGateways(response) {
   if (!response?.data || !Array.isArray(response.data)) return [];
@@ -148,17 +149,18 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
     paymentMethod,
     redirectUrl,
     userId,
+    orderId,
   } = payload;
 
   amount = Number(amount);
-
-  const orderId = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
 
   const existingUser = await userModelDB.findOne({
     _id: userId,
     is_active: true,
   });
   throwIfTrue(!existingUser, "User doesn't exist with this id");
+
+  console.log("Order Id in initiate payument order service ======>", orderId);
 
   const sendablePayload = {
     referenceId: orderId,
@@ -198,7 +200,41 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   try {
     const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
 
-    return response?.data;
+    const responseData = response?.data;
+
+    console.log("Response Data is ===>>", responseData);
+
+    if (responseData?.paymentStatus.trim().toLowerCase() === "success") {
+      const paymentDoc = {
+        payment_status: "Paid",
+        payment_method: responseData?.data?.paymentMode,
+        transaction_id: responseData?.data?.transactionId,
+        amount: responseData?.data?.amount,
+        currency: responseData?.data?.currency || "INR",
+        gateway: responseData?.data?.gateway,
+        gateway_code: responseData?.data?.gatewayCode,
+        key_id: responseData?.data?.keyId,
+        is_verified: true,
+      };
+
+      const { orderModelDB } = await getTenantModels(tenantId);
+
+      const existingOrder = await orderModelDB.findOne({
+        order_id: orderId,
+      });
+      throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+      const response = await updateOrderService(tenantId, existingOrder?._id, paymentDoc);
+
+      return {
+        order_id: response?.order_id,
+        paymentStatus: responseData?.paymentStatus,
+      };
+    }
+
+    return {
+      paymentStatus: responseData?.paymentStatus,
+    };
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
