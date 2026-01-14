@@ -304,28 +304,28 @@ export const createOrderServices = async (tenantId, payload, adminId = "691ee270
     await UserModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
   }
 
-  console.log("✅✅ order Doc is ", orderDoc);
+  // console.log("✅✅ order Doc is ", orderDoc);
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 
   // Create Payment Transaction
-  const paymentDoc = {
-    order_id: order.order_id,
-    user_id: order.user_id,
-    payment_status: payment_status || "Pending",
-    payment_method: payment_method || "Cash", // Default or required?
-    transaction_id: transaction_id,
-    amount: total_amount,
-    currency: order.currency,
-    gateway: gateway,
-    gateway_code: gateway_code,
-  };
+  // const paymentDoc = {
+  //   order_id: order.order_id,
+  //   user_id: order.user_id,
+  //   payment_status: payment_status || "Pending",
+  //   payment_method: payment_method || "Cash", // Default or required?
+  //   transaction_id: transaction_id,
+  //   amount: total_amount,
+  //   currency: order.currency,
+  //   gateway: gateway,
+  //   gateway_code: gateway_code,
+  // };
 
-  const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
+  // const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
 
   // Link payment transaction to order
-  order.payment_transactions.push(paymentTrans._id);
-  await order.save();
+  // order.payment_transactions.push(paymentTrans._id);
+  // await order.save();
 
   // Update stock
   await updateStockOnOrder(tenantId, order.order_products);
