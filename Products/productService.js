@@ -459,14 +459,14 @@ export const updateProductService = async (
   // Handle multiple product_images (gallery images)
   if (productImagesBuffers && productImagesBuffers.length > 0) {
     // Delete existing gallery images from S3 (all variants)
-    if (existingProduct.product_images?.length > 0 && typeof existingProduct.product_images === "object") {
-      const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
-        Object.values(imageObj)
-          .filter((url) => typeof url === "string")
-          .map(autoDeleteFromS3),
-      );
-      await Promise.all(deletePromises);
-    }
+    // if (existingProduct.product_images?.length > 0 && typeof existingProduct.product_images === "object") {
+    //   const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
+    //     Object.values(imageObj)
+    //       .filter((url) => typeof url === "string")
+    //       .map(autoDeleteFromS3),
+    //   );
+    //   await Promise.all(deletePromises);
+    // }
 
     // Upload new gallery images
     const uploadPromises = productImagesBuffers.map((buffer, index) =>
@@ -475,7 +475,8 @@ export const updateProductService = async (
         basePath: `${tenantId}/Products/${product_unique_id}/gallery-${index}`,
       }),
     );
-    updateData.product_images = await Promise.all(uploadPromises);
+    const productImages = await Promise.all(uploadPromises);
+    updateData.product_images = [...existingProduct.product_images, ...productImages];
   }
 
   const response = await productModelDB.findOneAndUpdate({ product_unique_id }, updateData, {
@@ -521,7 +522,7 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
   // }
 
   // Finally, remove the product document
-  const response = await productModelDB.findOneAndUpdate({ product_unique_id }, {is_active: false}, { new: true });
+  const response = await productModelDB.findOneAndUpdate({ product_unique_id }, { is_active: false }, { new: true });
 
   return response;
 };
@@ -837,4 +838,36 @@ export const generateProductQrPdfService = async (tenantId, data) => {
     pdfBuffer,
     fileName: `qr-${existingProduct.product_name}-${quantity}.pdf`,
   };
+};
+
+/*
+  Body JSON
+  {
+    "product_unique_id": "string",
+    "image_url": "string
+  }
+*/
+export const deleteProductImageFromS3Service = async (tenantId, imageDetails) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  const { productModelDB } = await getTenantModels(tenantId);
+
+  const { product_unique_id, image_url } = imageDetails;
+
+  const existingProduct = await productModelDB.findOne({
+    product_unique_id,
+  });
+  throwIfTrue(!existingProduct, `Product doesn't exist with this id - ${product_unique_id}`);
+
+  const productImages = existingProduct.product_images || [];
+
+  const imageIndex = productImages.findIndex((image) => image.low === image_url || image.medium === image_url || image.original === image_url);
+  throwIfTrue(imageIndex === -1, `Image doesn't exist with this url - ${image_url}`);
+
+  const imageToDelete = productImages[imageIndex];
+  const imageUrls = Object.values(imageToDelete).filter((url) => typeof url === "string");
+  await Promise.all(imageUrls.map(autoDeleteFromS3));
+
+  productImages.splice(imageIndex, 1);
+  await productModelDB.findOneAndUpdate({ product_unique_id }, { product_images: productImages });
 };

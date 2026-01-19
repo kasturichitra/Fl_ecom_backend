@@ -3,6 +3,7 @@ import path from "path";
 import {
   createBulkProductsService,
   createProductService,
+  deleteProductImageFromS3Service,
   deleteProductService,
   downloadExcelTemplateService,
   generateProductQrPdfService,
@@ -238,3 +239,14 @@ export const generateProductQrPdfController = async (req, res) => {
 //     });
 //   }
 // };
+
+export const deleteProductImageFromS3Controller = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const imageDetails = req.body; // product_unique_id
+    const response = await deleteProductImageFromS3Service(tenantId, imageDetails);
+    res.status(200).json(successResponse("Product image deleted successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+}

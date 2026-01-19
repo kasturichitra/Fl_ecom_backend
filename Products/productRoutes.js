@@ -5,6 +5,7 @@ import {
   createBulkProductsController,
   createProductController,
   deleteProductController,
+  deleteProductImageFromS3Controller,
   downloadExcelTemplateController,
   generateProductQrPdfController,
   // getProductByIdController,
@@ -29,7 +30,7 @@ router.post(
     maxRequests: 20,
     keyPrefix: "create-product",
   }),
-  createProductController
+  createProductController,
 );
 
 router.post(
@@ -41,7 +42,7 @@ router.post(
     keyPrefix: "bulk-upload-product",
   }),
   upload.single("file"),
-  createBulkProductsController
+  createBulkProductsController,
 );
 
 router.get(
@@ -51,7 +52,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-product-by-id",
   }),
-  getProductByIdController
+  getProductByIdController,
 );
 
 router.get(
@@ -61,7 +62,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-all-products",
   }),
-  getAllProductsController
+  getAllProductsController,
 );
 
 router.put(
@@ -72,7 +73,7 @@ router.put(
     maxRequests: 15,
     keyPrefix: "update-product",
   }),
-  updateProductController
+  updateProductController,
 );
 
 router.delete(
@@ -83,7 +84,7 @@ router.delete(
     maxRequests: 15,
     keyPrefix: "delete-product",
   }),
-  deleteProductController
+  deleteProductController,
 );
 
 // Get excel template
@@ -95,7 +96,7 @@ router.get(
     keyPrefix: "download-product-excel-template",
   }),
   verifyToken,
-  downloadExcelTemplateController
+  downloadExcelTemplateController,
 );
 
 router.put(
@@ -106,7 +107,18 @@ router.put(
     keyPrefix: "generate-product-qr-pdf",
   }),
   verifyToken,
-  generateProductQrPdfController
+  generateProductQrPdfController,
+);
+
+router.post(
+  "/delete/image",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 20,
+    keyPrefix: "delete-product-image",
+  }),
+  verifyToken,
+  deleteProductImageFromS3Controller,
 );
 
 // router.get("/sub-category/:id", getProductsBysubUniqeIDController);
