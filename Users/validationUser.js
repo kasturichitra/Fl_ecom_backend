@@ -28,6 +28,9 @@ const userAddressSchema = Joi.object({
 });
 
 const createUserSchema = Joi.object({
+  user_id: Joi.string().required().messages({
+    "string.empty": "User ID is required",
+  }),
   username: Joi.string().trim().required().messages({
     "string.empty": "Username is required",
   }),
@@ -64,14 +67,15 @@ const createUserSchema = Joi.object({
   image: Joi.string().allow("", null),
 
   address: Joi.array().items(userAddressSchema),
-  business_detailes: Joi.array().items(
-    Joi.object({
-      business_name: Joi.string().allow("", null),
-      gst_in_number: Joi.string().allow("", null),
-      business_address: Joi.string().allow("", null),
-      is_active: Joi.boolean(),
-    })
-  ),
+  business_unique_id: Joi.string().allow("", null),
+  // business_detailes: Joi.array().items(
+  //   Joi.object({
+  //     business_name: Joi.string().allow("", null),
+  //     gst_in_number: Joi.string().allow("", null),
+  //     business_address: Joi.string().allow("", null),
+  //     is_active: Joi.boolean(),
+  //   })
+  // ),
 });
 
 export function validateUserCreate(data) {

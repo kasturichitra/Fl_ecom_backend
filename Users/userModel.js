@@ -15,6 +15,11 @@ const couponSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: String,
+      required: [true, "User ID is required"],
+      trim: true,
+    },
     username: {
       type: String,
       required: [true, "Username is required"],
@@ -28,7 +33,7 @@ const userSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"],
     },
     date_of_birth: {
-      type: Date,
+      type: String,
     },
     password: {
       type: String,
@@ -78,7 +83,7 @@ const userSchema = new mongoose.Schema(
     },
     business_unique_id: {
       type: String,
-      required: true,
+      required: false,
     }
   },
   { timestamps: true }
