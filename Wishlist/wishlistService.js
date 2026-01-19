@@ -26,7 +26,7 @@ export const createWishlistServices = async (tenantID, user_id, product_id) => {
   const wishlist = await wishlistModelDB.findOneAndUpdate(
     { user_id },
     { $addToSet: { products: product_id } }, // prevents duplicates automatically
-    { upsert: true, new: true } // create new if not exists
+    { upsert: true, new: true }, // create new if not exists
   );
 
   return wishlist;
@@ -45,11 +45,13 @@ export const getWishlistProductsServices = async (tenantID, user_id) => {
   if (!wishlist?.products?.length) return [];
 
   // Fast query by using only required fields
-  const products = await productModelDB.find({ product_unique_id: { $in: wishlist.products } }).lean();
+  const products = await productModelDB
+    .find({ product_unique_id: { $in: wishlist.products }, is_active: true })
+    .lean();
 
   return {
     data: products,
-    totalCount: wishlist.products.length,
+    totalCount: products.length,
   };
 };
 
@@ -81,7 +83,7 @@ export const removeWishlistServices = async (tenantID, user_id, product_id) => {
   const updated = await wishlistModelDB.findOneAndUpdate(
     { user_id },
     { $pull: { products: product_id } },
-    { new: true }
+    { new: true },
   );
 
   throwIfTrue(!updated, "Wishlist not found for this user");

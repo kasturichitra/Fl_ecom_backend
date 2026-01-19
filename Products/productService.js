@@ -143,7 +143,7 @@ export const createProductService = async (tenantId, productData, productImageBu
   productData.product_unique_id = await generateProductUniqueId(
     productModelDB,
     brandModelDB,
-    productData.brand_unique_id
+    productData.brand_unique_id,
   );
 
   // -------------------------------
@@ -163,7 +163,7 @@ export const createProductService = async (tenantId, productData, productImageBu
       uploadImageVariants({
         fileBuffer: buffer,
         basePath: `${tenantId}/Products/${productData.product_unique_id}/gallery-${index}`,
-      })
+      }),
     );
     productData.product_images = await Promise.all(uploadPromises);
   }
@@ -233,9 +233,8 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (category_name) query.category_name = category_name;
   if (brand_name) query.brand_name = brand_name;
 
-  if (is_active !== undefined) {
-    query.is_active = is_active === "true" || is_active === true;
-  }
+  if (is_active === "true") query.is_active = true;
+  if (is_active === "false") query.is_active = false;
 
   /* -------------------- MULTI SELECT -------------------- */
   const brandIds = toArray(brand_unique_id);
@@ -408,7 +407,7 @@ export const updateProductService = async (
   product_unique_id,
   updateData,
   productImageBuffer,
-  productImagesBuffers
+  productImagesBuffers,
 ) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -435,7 +434,7 @@ export const updateProductService = async (
       existingProduct.product_attributes || [],
       updateData.product_attributes,
       "attribute_code",
-      "value"
+      "value",
     );
   }
 
@@ -464,7 +463,7 @@ export const updateProductService = async (
       const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
         Object.values(imageObj)
           .filter((url) => typeof url === "string")
-          .map(autoDeleteFromS3)
+          .map(autoDeleteFromS3),
       );
       await Promise.all(deletePromises);
     }
@@ -474,7 +473,7 @@ export const updateProductService = async (
       uploadImageVariants({
         fileBuffer: buffer,
         basePath: `${tenantId}/Products/${product_unique_id}/gallery-${index}`,
-      })
+      }),
     );
     updateData.product_images = await Promise.all(uploadPromises);
   }
@@ -506,25 +505,23 @@ export const deleteProductService = async (tenantId, product_unique_id) => {
   // S3 Image Cleanup
   // -------------------------------
   // Delete single product_image (hero image) from S3 (all 3 variants)
-  if (existingProduct.product_image) {
-    const imageUrls = Object.values(existingProduct.product_image).filter((url) => typeof url === "string");
-    await Promise.all(imageUrls.map(autoDeleteFromS3));
-  }
+  // if (existingProduct.product_image) {
+  //   const imageUrls = Object.values(existingProduct.product_image).filter((url) => typeof url === "string");
+  //   await Promise.all(imageUrls.map(autoDeleteFromS3));
+  // }
 
-  // Delete multiple product_images (gallery images) from S3 (all 3 variants each)
-  if (existingProduct.product_images?.length > 0) {
-    const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
-      Object.values(imageObj)
-        .filter((url) => typeof url === "string")
-        .map(autoDeleteFromS3)
-    );
-    await Promise.all(deletePromises);
-  }
+  // // Delete multiple product_images (gallery images) from S3 (all 3 variants each)
+  // if (existingProduct.product_images?.length > 0) {
+  //   const deletePromises = existingProduct.product_images.flatMap((imageObj) =>
+  //     Object.values(imageObj)
+  //       .filter((url) => typeof url === "string")
+  //       .map(autoDeleteFromS3),
+  //   );
+  //   await Promise.all(deletePromises);
+  // }
 
   // Finally, remove the product document
-  const response = await productModelDB.findOneAndDelete({
-    product_unique_id,
-  });
+  const response = await productModelDB.findOneAndUpdate({ product_unique_id }, {is_active: false}, { new: true });
 
   return response;
 };
@@ -552,7 +549,7 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
   console.log("brandsForCategory", brandsForCategory);
 
   const brandExcelDropDownData = await brandsForCategory.map(
-    (brand) => `${brand.brand_name} (${brand.brand_unique_id})`
+    (brand) => `${brand.brand_name} (${brand.brand_unique_id})`,
   );
   console.log("brandExcelDropDownData", brandExcelDropDownData);
 

@@ -51,13 +51,17 @@ export const createSaleTrendService = async (tenantId, data) => {
 export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { page = 1, limit = 10, sort, searchTerm, products_limit = 10 } = filters;
+  let { page = 1, limit = 10, sort, searchTerm, products_limit = 10, is_active } = filters;
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
   products_limit = parseInt(products_limit) || 10;
   const skip = (page - 1) * limit;
 
   const query = {};
+
+  if (is_active === "true") query.is_active = true;
+  if (is_active === "false") query.is_active = false;
+  
   if (searchTerm) {
     query.trend_name = { $regex: searchTerm, $options: "i" };
   }
