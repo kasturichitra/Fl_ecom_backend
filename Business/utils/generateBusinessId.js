@@ -1,18 +1,8 @@
-const generateBusinessId = async (BusinessDb) => {
-    const latestBusiness = await BusinessDb.findOne()
-        .sort({ createdAt: -1 })
-        .select("business_unique_id");
+import { v4 as uuid } from "uuid";
 
-    if (!latestBusiness || !latestBusiness.business_unique_id) {
-        return "BUS-000001";
-    }
-
-    const parts = latestBusiness.business_unique_id.split("-");
-    const numericPart = parts[1];
-    const nextId = parseInt(numericPart, 10) + 1;
-    const paddedId = String(nextId).padStart(6, "0");
-
-    return `BUS-${paddedId}`;
+const generateBusinessId = () => {
+  const uniqueId = `BUS_${Date.now()}_${uuid().slice(-4)}`;
+  return uniqueId;
 };
 
 export default generateBusinessId;
