@@ -608,6 +608,7 @@ export const getTotalCountsService = async (tenantId) => {
     notificationModelDB,
     saleTrendModelDB,
     businessModelDB,
+    ticketModelDB,
   } = await getTenantModels(tenantId);
 
   // Fetch all statistics concurrently for maximum performance
@@ -622,6 +623,7 @@ export const getTotalCountsService = async (tenantId) => {
     notificationStats,
     saleTrendStats,
     businessStats,
+    ticketStats,
   ] = await Promise.all([
     // 1. Order Collection Stats
     orderModelDB.aggregate([
@@ -766,11 +768,27 @@ export const getTotalCountsService = async (tenantId) => {
       },
       { $project: { _id: 0 } },
     ]),
+    // 11. Ticket Collection Stats
+    ticketModelDB.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
+          not_resolved: { $sum: { $cond: [{ $ne: ["$status", "resolved"] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
+          assigned: { $sum: { $cond: [{ $eq: ["$status", "assigned"] }, 1, 0] } },
+          in_progress: { $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] } },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]),
   ]);
 
   // Helper patterns for defaults
   const activeInactiveDefault = { total: 0, active: 0, inactive: 0 };
   const businessDefault = { total: 0, active: 0, inactive: 0, verified: 0, not_verified: 0 };
+  const ticketDefault = { total: 0, resolved: 0, not_resolved: 0, pending: 0, assigned: 0, in_progress: 0 };
 
   const userStatsResult = userStats[0] || {
     userTotal: 0,
@@ -798,6 +816,7 @@ export const getTotalCountsService = async (tenantId) => {
     categoryCounts: categoryStats[0] || activeInactiveDefault,
     productCounts: productStats[0] || activeInactiveDefault,
     brandCounts: brandStats[0] || activeInactiveDefault,
+    ticketCounts: ticketStats[0] || ticketDefault,
     userCounts: {
       total: userStatsResult.userTotal,
       active: userStatsResult.userActive,
