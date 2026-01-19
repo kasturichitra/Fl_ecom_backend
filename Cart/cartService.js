@@ -68,7 +68,7 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
   const productUniqueIds = cart.products.map((item) => item.product_unique_id);
 
   const products = await productModelDB.find(
-    { product_unique_id: { $in: productUniqueIds } },
+    { product_unique_id: { $in: productUniqueIds }, is_active: true },
     {
       product_name: 1,
       product_unique_id: 1,
@@ -81,17 +81,23 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
       max_order_limit: 1,
       product_image: 1,
       discount_percentage: 1,
-    }
+      is_active: 1,
+    },
   );
 
-  const enrichedProducts = cart.products.map((cartItem) => {
-    const productDetails = products.find((p) => p.product_unique_id === cartItem.product_unique_id);
-    return {
-      product_unique_id: cartItem.product_unique_id,
-      quantity: cartItem.quantity,
-      product_details: productDetails || null,
-    };
-  });
+  const enrichedProducts = cart.products
+    .filter((cartItem) =>
+      products.some((p) => p.product_unique_id === cartItem.product_unique_id && p.is_active === true),
+    )
+    .map((cartItem) => {
+      const productDetails = products.find((p) => p.product_unique_id === cartItem.product_unique_id);
+
+      return {
+        product_unique_id: cartItem.product_unique_id,
+        quantity: cartItem.quantity,
+        product_details: productDetails,
+      };
+    });
 
   return {
     data: {
@@ -140,7 +146,7 @@ export const updateCartQuantityService = async (tenantID, user_id, product_uniqu
   const max_order_limit = existingProduct.max_order_limit;
   throwIfTrue(
     max_order_limit && quantity > max_order_limit,
-    `Quantity can't exceed max order limit : ${max_order_limit}`
+    `Quantity can't exceed max order limit : ${max_order_limit}`,
   );
   throwIfTrue(existingProduct.stock_quantity < quantity, "Not enough stock available");
 

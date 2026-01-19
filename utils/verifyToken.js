@@ -35,6 +35,13 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    if (!decoded) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Invalid token",
+      });
+    }
+
     const { userModelDB, roleModelDB, permissionModelDB } = await getTenantModels(tenantId);
 
     const user = await userModelDB

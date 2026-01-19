@@ -233,9 +233,8 @@ export const getAllProductsService = async (tenantId, filters = {}) => {
   if (category_name) query.category_name = category_name;
   if (brand_name) query.brand_name = brand_name;
 
-  if (is_active !== undefined) {
-    query.is_active = is_active === "true" || is_active === true;
-  }
+  if (is_active === "true") query.is_active = true;
+  if (is_active === "false") query.is_active = false;
 
   /* -------------------- MULTI SELECT -------------------- */
   const brandIds = toArray(brand_unique_id);
