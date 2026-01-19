@@ -85,19 +85,15 @@ export const getCartByUserIdService = async (tenantID, user_id) => {
     },
   );
 
-  const enrichedProducts = cart.products
-    .filter((cartItem) =>
-      products.some((p) => p.product_unique_id === cartItem.product_unique_id && p.is_active === true),
-    )
-    .map((cartItem) => {
-      const productDetails = products.find((p) => p.product_unique_id === cartItem.product_unique_id);
+  const activeProductMap = new Map(products.filter((p) => p.is_active === true).map((p) => [p.product_unique_id, p]));
 
-      return {
-        product_unique_id: cartItem.product_unique_id,
-        quantity: cartItem.quantity,
-        product_details: productDetails,
-      };
-    });
+  const enrichedProducts = cart.products
+    .filter((item) => activeProductMap.has(item.product_unique_id))
+    .map((item) => ({
+      product_unique_id: item.product_unique_id,
+      quantity: item.quantity,
+      product_details: activeProductMap.get(item.product_unique_id),
+    }));
 
   return {
     data: {
