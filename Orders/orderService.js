@@ -389,6 +389,27 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
         as: "payment_details",
       },
     },
+    // Extract first payment transaction and merge fields to root
+    {
+      $addFields: {
+        payment_info_temp: { $arrayElemAt: ["$payment_details", 0] },
+      },
+    },
+    {
+      $addFields: {
+        payment_status: "$payment_info_temp.payment_status",
+        payment_method: "$payment_info_temp.payment_method",
+        transaction_id: "$payment_info_temp.transaction_id",
+        gateway: "$payment_info_temp.gateway",
+        gateway_code: "$payment_info_temp.gateway_code",
+        currency: "$payment_info_temp.currency",
+      },
+    },
+    {
+      $project: {
+        payment_info_temp: 0, // Remove temp field
+      },
+    },
     // Filter by payment details if provided
     ...(Object.keys(paymentQuery).length > 0 ? [{ $match: paymentQuery }] : []),
     { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
@@ -502,6 +523,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
         currency: order.currency || "INR", // Default to INR if not in order
         gateway: updateData?.gateway,
         gateway_code: updateData?.gateway_code,
+        key_id: updateData?.key_id,
       };
 
       const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
@@ -680,8 +702,10 @@ export const getOrderProductService = async (tenantId, orderId) => {
   // const Product = await ProductModel(tenantId);
   const { orderModelDB: Order, productModelDB: Product } = await getTenantModels(tenantId);
   //  Get order
-  const order = await Order.findOne({ order_id: orderId });
-  if (!order) throw new Error("Order not found");
+  const orderDoc = await Order.findOne({ order_id: orderId }).populate("payment_transactions");
+  if (!orderDoc) throw new Error("Order not found");
+
+  const order = orderDoc.toObject();
 
   //  Extract product_unique_ids from order
   const ids = order.order_products.map((p) => p.product_unique_id);
@@ -691,12 +715,17 @@ export const getOrderProductService = async (tenantId, orderId) => {
 
   // 4. Attach product object
   const mergedProducts = order.order_products.map((item) => ({
-    ...item.toObject(),
+    ...item,
     product_details: products.find((prod) => prod.product_unique_id === item.product_unique_id) || null,
   }));
 
+  // Flatten payment details from the first transaction
+  const paymentDetails = order.payment_transactions?.[0] || {};
+  const { _id, createdAt, updatedAt, ...paymentFields } = paymentDetails;
+
   return {
-    ...order.toObject(),
+    ...order,
+    ...paymentFields, // Merge payment fields to root
     order_products: mergedProducts,
   };
 };
