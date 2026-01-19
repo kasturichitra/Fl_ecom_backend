@@ -50,7 +50,7 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
     isUpdate = true;
   } else {
     // Generate Business ID
-    business_unique_id = await generateBusinessId(businessModelDB);
+    business_unique_id = generateBusinessId();
   }
 
   // Handle Images
