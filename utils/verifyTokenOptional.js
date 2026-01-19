@@ -42,7 +42,7 @@ const verifyTokenOptional = async (req, res, next) => {
         path: "role_id",
         populate: { path: "permissions", select: "key" },
       })
-      .select("_id username email role_id is_active");
+      .select("_id username email role_id is_active user_id");
 
     if (!user || !user.is_active) {
       req.user = null;
@@ -65,6 +65,7 @@ const verifyTokenOptional = async (req, res, next) => {
       role: user.role_id?.name || "N/A",
       role_id: user.role_id?._id,
       permissions,
+      user_id: user.user_id,
     };
 
     req.tenantId = tenantId;

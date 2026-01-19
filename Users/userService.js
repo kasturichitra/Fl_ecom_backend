@@ -6,6 +6,7 @@ import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateUserCreate } from "./validationUser.js";
+import { generateUserId } from "../Auth/authController.js";
 export const getAllUsersService = async (tenantId, filters) => {
   let {
     username,
@@ -92,12 +93,13 @@ export const getAllUsersService = async (tenantId, filters) => {
   };
 };
 
-export const getUserByIdService = async (tenantId, id) => {
-  throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
+export const getUserByIdService = async (tenantId, user_id) => {
+  throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(id);
+  const user = await userModelDB.findOne({ user_id });
+  console.log("get by id user", user);
 
   if (user) {
     user.password = undefined;
@@ -121,7 +123,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
   throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
   /* =========================
      PASSWORD UPDATE LOGIC
@@ -129,7 +131,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
   if (updateData.current_password || updateData.new_password) {
     throwIfTrue(
       !updateData.current_password || !updateData.new_password,
-      "Current password and new password are required"
+      "Current password and new password are required",
     );
     const isPasswordMatch = await bcrypt.compare(updateData.current_password, user.password);
     throwIfTrue(!isPasswordMatch, "Current password is incorrect");
@@ -167,7 +169,7 @@ export const addAddressService = async (tenantId, user_id, addressData) => {
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
 
   // If new address is default: true → make all existing addresses default:false
@@ -192,7 +194,7 @@ export const updateUserAddressService = async (tenantId, user_id, address_id, ad
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -223,7 +225,7 @@ export const deleteUserAddressService = async (tenantId, user_id, address_id) =>
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
 
   const address = user.address.id(address_id);
@@ -275,6 +277,7 @@ export const employeCreateService = async (tenantId, userData, fileBuffer) => {
   if (userData.password) {
     userData.password = await bcrypt.hash(userData.password, 10);
   }
+  userData.user_id = generateUserId();
   return await userModelDB.create(userData);
 };
 
@@ -283,7 +286,7 @@ export const storeFcmTokenService = async (tenantId, user_id, token) => {
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const result = await userModelDB.updateOne({ _id: user_id }, { $set: { fcm_token: token } });
+  const result = await userModelDB.updateOne({ user_id }, { $set: { fcm_token: token } });
 
   // const updatedUser = await usersDB.findOne({ _id: user_id });
 
@@ -303,7 +306,7 @@ export const deleteUserAccountService = async (tenantId, user_id) => {
   throwIfTrue(!user_id, "User ID is Required");
 
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
 
   // Toggle is_active status

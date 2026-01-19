@@ -9,7 +9,7 @@ import {
   getUserByIdService,
   storeFcmTokenService,
   updateUserAddressService,
-  updateUserService
+  updateUserService,
 } from "./userService.js";
 
 export const getAllUsersController = async (req, res) => {
@@ -29,9 +29,9 @@ export const getAllUsersController = async (req, res) => {
 export const getUserByIdController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
+    const { id: user_id } = req.params;
 
-    const user = await getUserByIdService(tenantId, id);
+    const user = await getUserByIdService(tenantId, user_id);
     res.status(200).json(successResponse("User fetched successfully", { data: user }));
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));
@@ -51,7 +51,7 @@ export const getAllRolesController = async (req, res) => {
 export const updateUserController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
+    const { id: user_id } = req.params;
     let updateData = { ...req.body };
     if (req.body.address) {
       updateData.address = JSON.parse(req.body.address);
@@ -59,7 +59,7 @@ export const updateUserController = async (req, res) => {
 
     if (req.file) updateData.image = req.file.path;
 
-    const updatedUser = await updateUserService(tenantId, id, updateData);
+    const updatedUser = await updateUserService(tenantId, user_id, updateData);
     res.status(200).json(successResponse("User updated successfully", { data: updatedUser }));
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));
@@ -83,9 +83,9 @@ export const addAddressController = async (req, res) => {
 export const updateUserAddressController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id, address_id } = req.params;
+    const { id: user_id, address_id } = req.params;
 
-    const updatedUser = await updateUserAddressService(tenantId, id, address_id, req.body);
+    const updatedUser = await updateUserAddressService(tenantId, user_id, address_id, req.body);
 
     res.status(200).json(successResponse("Address updated successfully", { data: updatedUser }));
   } catch (error) {
@@ -96,9 +96,9 @@ export const updateUserAddressController = async (req, res) => {
 export const deleteUserAddressController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id, address_id } = req.params;
+    const { id: user_id, address_id } = req.params;
 
-    const updatedUser = await deleteUserAddressService(tenantId, id, address_id);
+    const updatedUser = await deleteUserAddressService(tenantId, user_id, address_id);
 
     res.status(200).json(successResponse("Address deleted successfully", { data: updatedUser }));
   } catch (error) {
@@ -140,16 +140,10 @@ export const storeFcmTokenController = async (req, res) => {
 export const deleteUserAccountController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
-    const response = await deleteUserAccountService(tenantId, id);
+    const { id: user_id } = req.params;
+    const response = await deleteUserAccountService(tenantId, user_id);
     res.status(200).json(successResponse("User account deleted successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
-
-
-
-
-
-
