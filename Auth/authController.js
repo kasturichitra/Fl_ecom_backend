@@ -11,7 +11,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 
 export const generateUserId = (() => {
   let counter = 0;
-  
+
   return () => {
     const timestamp = Date.now();
     counter = (counter + 1) % 1000000;
@@ -41,7 +41,7 @@ export const registerUserController = async (req, res) => {
       });
     }
 
-    const { otpModelDB, userModelDB } = await getTenantModels(tenantId);
+    const { otpModelDB, userModelDB, roleModelDB } = await getTenantModels(tenantId);
 
     const existingUser = await userModelDB.findOne({
       $or: [{ email }, { phone_number }],
@@ -49,6 +49,7 @@ export const registerUserController = async (req, res) => {
     throwIfTrue(existingUser, `User with phone number ${phone_number} or email ${email} already exists`);
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const role = await roleModelDB.findOne({ name: "user" });
 
     const user = await userModelDB.create({
       username,
@@ -56,12 +57,13 @@ export const registerUserController = async (req, res) => {
       phone_number,
       password: hashedPassword,
       user_id: generateUserId(),
+      role_id: role._id,
       is_active: false,
     });
 
     const { otp_id } = await generateAndSendOtp(
       { user_id: user._id, device_id, purpose: "SIGN_UP", email, phone_number },
-      otpModelDB
+      otpModelDB,
     );
 
     res.status(201).json({
@@ -102,6 +104,8 @@ export const loginUserController = async (req, res) => {
       model: roleModelDB,
     });
 
+    console.log("Existing User Role", existingUser);
+
     // console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
 
@@ -109,7 +113,10 @@ export const loginUserController = async (req, res) => {
     throwIfTrue(!existingUser.is_active, "Your account has been deactivated. Please contact support for assistance.");
     console.log("Existing User Role", existingUser);
     if (is_admin) {
-      throwIfTrue(existingUser.role_id.name !== "admin" && existingUser.role_id.name !== "employee", "User is not allowed this penal");
+      throwIfTrue(
+        existingUser.role_id.name !== "admin" && existingUser.role_id.name !== "employee",
+        "User is not allowed this penal",
+      );
     }
 
     const isValidPassword = await bcrypt.compare(password, existingUser.password);
@@ -153,13 +160,15 @@ export const loginUserController = async (req, res) => {
     // Generate token and set cookie
     const token = generateTokenAndSetCookie(res, existingUser._id);
 
-    res.status(200).json(successResponse("Login successful", {
-      user: {
-        id: existingUser._id,
-        username: existingUser.username,
-        email: existingUser.email,
-      },
-    }));
+    res.status(200).json(
+      successResponse("Login successful", {
+        user: {
+          id: existingUser._id,
+          username: existingUser.username,
+          email: existingUser.email,
+        },
+      }),
+    );
   } catch (error) {
     res.status(401).json(errorResponse(error.message, error));
   }
@@ -219,7 +228,7 @@ export const resendOtpController = async (req, res) => {
         email: existingUser.email,
         phone_number: existingUser.phone_number,
       },
-      otpModelDB
+      otpModelDB,
     );
 
     res.status(200).json({
@@ -294,7 +303,7 @@ export const verifyOtpController = async (req, res) => {
   if (purpose === "DEVICE_SESSION_EXPIRED") {
     await deviceSessionModelDB.updateOne(
       { user_id, device_id },
-      { expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME) }
+      { expires_at: new Date(Date.now() + DEVICE_SESSION_EXPIRY_TIME) },
     );
 
     // Set Cookie upon successful new device registrations
@@ -341,7 +350,7 @@ export const forgotPasswordController = async (req, res) => {
       email: user.email,
       phone_number: user.phone_number,
     },
-    otpModelDB
+    otpModelDB,
   );
 
   res.json({ requireOtp: true, reason: "FORGOT_PASSWORD", otp_id });
@@ -382,7 +391,7 @@ export const verifyForgotOtpController = async (req, res) => {
         purpose: "RESET_PASSWORD",
       },
       process.env.JWT_SECRET,
-      { expiresIn: "10m" }
+      { expiresIn: "10m" },
     );
 
     res.cookie("reset_token", resetToken, {
@@ -444,6 +453,7 @@ export const resetPasswordController = async (req, res) => {
 
 export const getMeController = async (req, res) => {
   try {
+    console.log("User in getMeController ===>", req.user);
     // If auth middleware didn't attach user
     if (!req.user) {
       return res.status(200).json({
@@ -452,12 +462,14 @@ export const getMeController = async (req, res) => {
         user: null,
       });
     }
+    console.log("User is ===>", req.user);
 
     return res.status(200).json({
       status: "success",
       isAuthenticated: true,
       user: {
         id: req.user._id,
+        user_id: req.user.user_id,
         username: req.user.username,
         email: req.user.email,
         role: req.user.role,

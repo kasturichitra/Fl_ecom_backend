@@ -29,9 +29,9 @@ export const getAllUsersController = async (req, res) => {
 export const getUserByIdController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id } = req.params;
+    const { id:user_id } = req.params;
 
-    const user = await getUserByIdService(tenantId, id);
+    const user = await getUserByIdService(tenantId, user_id);
     res.status(200).json(successResponse("User fetched successfully", { data: user }));
   } catch (error) {
     res.status(400).json(errorResponse(error.message, error));

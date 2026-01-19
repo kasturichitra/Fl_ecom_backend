@@ -50,7 +50,7 @@ const verifyToken = async (req, res, next) => {
         path: "role_id",
         populate: { path: "permissions", select: "key" },
       })
-      .select("_id username email role_id is_active");
+      .select("_id username email role_id is_active user_id");
 
     if (!user || !user.is_active) {
       return res.status(401).json({
@@ -58,6 +58,8 @@ const verifyToken = async (req, res, next) => {
         message: "User not found or inactive",
       });
     }
+
+    console.log("get user_id from verifyToken", user.user_id);
 
     /* ---------------------------------- */
     /* 5️⃣ Extract permission keys         */
@@ -69,6 +71,7 @@ const verifyToken = async (req, res, next) => {
     /* ---------------------------------- */
     req.user = {
       _id: user._id,
+      user_id: user.user_id,
       username: user.username,
       email: user.email,
       // role: user.role,
@@ -77,7 +80,7 @@ const verifyToken = async (req, res, next) => {
       permissions, // Permission keys array for fast authorization
     };
     req.tenantId = tenantId;
-
+    console.log("User in verifyToken after attach ===>", req.user);
     next();
   } catch (error) {
     console.error("Auth error:", error);

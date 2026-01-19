@@ -92,12 +92,13 @@ export const getAllUsersService = async (tenantId, filters) => {
   };
 };
 
-export const getUserByIdService = async (tenantId, id) => {
-  throwIfTrue(!tenantId || !id, "Tenant ID & User ID Required");
+export const getUserByIdService = async (tenantId, user_id) => {
+  throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
 
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
-  const user = await userModelDB.findById(id);
+  const user = await userModelDB.findOne({ user_id });
+  console.log("get by id user", user);
 
   if (user) {
     user.password = undefined;
@@ -129,7 +130,7 @@ export const updateUserService = async (tenantId, user_id, updateData) => {
   if (updateData.current_password || updateData.new_password) {
     throwIfTrue(
       !updateData.current_password || !updateData.new_password,
-      "Current password and new password are required"
+      "Current password and new password are required",
     );
     const isPasswordMatch = await bcrypt.compare(updateData.current_password, user.password);
     throwIfTrue(!isPasswordMatch, "Current password is incorrect");
