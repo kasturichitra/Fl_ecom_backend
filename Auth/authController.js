@@ -9,6 +9,17 @@ import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import { generateAndSendOtp } from "../utils/sendOTP.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 
+export const generateUserId = (() => {
+  let counter = 0;
+  
+  return () => {
+    const timestamp = Date.now();
+    counter = (counter + 1) % 1000000;
+    const userId = `US_${timestamp}${counter}`;
+    return userId;
+  };
+})();
+
 export const registerUserController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
@@ -44,6 +55,7 @@ export const registerUserController = async (req, res) => {
       email,
       phone_number,
       password: hashedPassword,
+      user_id: generateUserId(),
       is_active: false,
     });
 
