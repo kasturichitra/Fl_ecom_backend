@@ -335,6 +335,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     page = 1,
     limit = 10,
     sort,
+    origin = "admin",
   } = filters;
 
   page = parseInt(page) || 1;
@@ -352,7 +353,6 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     };
   }
   if (user_id) query.user_id = user_id;
-  if (payment_status) query.payment_status = payment_status;
   if (order_type) query.order_type = order_type;
   if (payment_method) query.payment_method = payment_method;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
@@ -363,6 +363,10 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       { "order_products.product_name": { $regex: searchTerm, $options: "i" } },
       { "order_products.product_unique_id": { $regex: searchTerm, $options: "i" } },
     ];
+
+  if (origin === "user") query.payment_status = {
+    $in: ["Successful", "Refunded"],
+  }
 
   const sortObj = buildSortObject(sort);
 
@@ -530,10 +534,10 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
       // Push to order's payment_transactions array
       order.payment_transactions.push(paymentTrans._id);
-      order.order_status = "Successful";
+      order.order_status = "Pending";
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
-      // order.payment_status = updateData?.payment_status;
+      order.payment_status = updateData?.payment_status?.toLowerCase() === "paid" ? "Successful": null;
     } else {
       // Existing logic: Find the latest transaction and update it
       // Simplified: Find the last linked transaction

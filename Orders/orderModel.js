@@ -175,6 +175,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["Online", "Offline"],
       required: true,
     },
+    payment_status: {
+      type: String,
+      enum: ["Pending", "Successful", "Failed", "Refunded"],
+      default: "Pending",
+    },
     // Relationship with PaymentTransactions
     payment_transactions: [
       {
