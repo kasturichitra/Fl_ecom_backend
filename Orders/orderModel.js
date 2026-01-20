@@ -108,6 +108,10 @@ const orderProductSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  unit_tax_percentage: {
+    type: Number,
+    default: 0,
+  }, 
   // Additional discount percentage (applied on discounted price)
   additional_discount_percentage: {
     type: Number,
@@ -262,7 +266,7 @@ const orderSchema = new mongoose.Schema(
     shipping_charges: { type: Number, default: 0 },
     currency: { type: String, default: "INR" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 orderSchema.index({ user_id: 1 });

@@ -68,9 +68,7 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
       "additional_discount_percentage": 0,
       "additional_discount_amount": 0,
       "additional_discount_type": "percentage", 
-      "cgst": 0,
-      "sgst": 0,
-      "igst": 0
+      "gst": 0, 
     }
   ],
 
@@ -123,6 +121,7 @@ export const createOrderServices = async (tenantId, payload) => {
       let unit_discount_price = Number(item.unit_discount_price || 0); // Discount amount
       let unit_discounted_price = Number(item.unit_discounted_price || 0); // Price after product discount
       let unit_gross_price = Number(item.unit_gross_price || 0); // Price after product discount
+      let unit_tax_percentage = Number(item.unit_tax_percentage) || 0;
       let unit_tax_value = Number(item.unit_tax_value || 0); // Tax extracted from discounted price
       let unit_final_price = Number(item.unit_final_price); // Final price per unit (tax-inclusive)
 
@@ -130,11 +129,6 @@ export const createOrderServices = async (tenantId, payload) => {
       let additional_discount_percentage = Number(item.additional_discount_percentage || 0);
       let additional_discount_amount = Number(item.additional_discount_amount || 0);
       let additional_discount_type = item.additional_discount_type || null;
-
-      let cgst = Number(item.cgst || 0);
-      let sgst = Number(item.sgst || 0);
-      let igst = Number(item.igst || 0);
-      const taxPercentage = cgst + sgst + igst;
 
       // Apply additional discount if provided
       if (additional_discount_type === "percentage" && additional_discount_percentage > 0) {
@@ -145,7 +139,7 @@ export const createOrderServices = async (tenantId, payload) => {
         const price_after_additional_discount = unit_discounted_price - additional_discount_amount;
 
         // Use reverse GST to extract tax from the final discounted price
-        const taxableValue = price_after_additional_discount / (1 + taxPercentage / 100);
+        const taxableValue = price_after_additional_discount / (1 + unit_tax_percentage / 100);
         unit_tax_value = Math.ceil(price_after_additional_discount - taxableValue);
 
         // Final price is the price after all discounts (still tax-inclusive)
@@ -155,7 +149,7 @@ export const createOrderServices = async (tenantId, payload) => {
         const price_after_additional_discount = unit_discounted_price - additional_discount_amount;
 
         // Use reverse GST to extract tax from the final discounted price
-        const taxableValue = price_after_additional_discount / (1 + taxPercentage / 100);
+        const taxableValue = price_after_additional_discount / (1 + unit_tax_percentage / 100);
         unit_tax_value = Math.ceil(price_after_additional_discount - taxableValue);
 
         // Final price is the price after all discounts (still tax-inclusive)
@@ -188,6 +182,7 @@ export const createOrderServices = async (tenantId, payload) => {
         unit_base_price,
         unit_discount_price,
         unit_discounted_price,
+        unit_tax_percentage,
         unit_tax_value,
         unit_final_price,
         unit_gross_price,

@@ -114,6 +114,10 @@ const orderProductSchema = Joi.object({
     "number.base": "Unit tax value must be a number.",
     "number.min": "Unit tax value cannot be negative.",
   }),
+  unit_tax_percentage: Joi.number().min(0).optional().messages({
+    "number.base": "Unit tax percentage must be a number.",
+    "number.min": "Unit tax percentage cannot be negative.,",
+  }), 
   unit_final_price: Joi.number().min(0).required().messages({
     "any.required": "Unit final price is required.",
     "number.base": "Unit final price must be a number.",
