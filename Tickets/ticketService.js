@@ -321,7 +321,7 @@ export const assignTicketService = async (tenantId, payload) => {
   throwIfTrue(existingTicket.status !== "pending", "Ticket is not in pending state");
 
   const existingUser = await userModelDB.findOne({
-    _id: payload.assigned_to,
+    user_id: payload.assigned_to,
   });
 
   throwIfTrue(!existingUser, "User not found");
@@ -375,7 +375,7 @@ export const resolveTicketService = async (tenantId, payload) => {
   const existingTicket = await ticketModelDB.findOne({ ticket_id: payload.ticket_id });
   throwIfTrue(!existingTicket, "Ticket not found");
 
-  const existingUser = await userModelDB.findOne({ _id: payload.resolved_by });
+  const existingUser = await userModelDB.findOne({ user_id: payload.resolved_by });
   throwIfTrue(!existingUser, "User not found");
 
   throwIfTrue(existingTicket.status === "resolved", "Ticket is already resolved");

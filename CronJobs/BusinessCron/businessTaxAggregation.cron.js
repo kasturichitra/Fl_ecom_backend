@@ -15,7 +15,7 @@ export const aggregateBusinessTaxService = async (tenantId) => {
     const currentYear = new Date().getFullYear();
 
     for (const user of businessUsers) {
-      const userId = user._id.toString();
+      const userId = user.user_id.toString();
 
       // Find the active and verified business for this user
       const activeBusiness = await businessModelDB.findOne({
