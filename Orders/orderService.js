@@ -104,7 +104,7 @@ export const createOrderServices = async (tenantId, payload) => {
   let username = null;
 
   if (payload.user_id) {
-    userDoc = await userModelDB.findById(payload.user_id);
+    userDoc = await userModelDB.findOne({ user_id: payload.user_id });
     throwIfTrue(!userDoc, `User not found with id: ${payload.user_id}`);
     username = userDoc.username;
   } else {
@@ -338,6 +338,8 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     origin = "admin",
   } = filters;
 
+  // console.log("✅✅ user_id is ", user_id);
+
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
 
@@ -352,6 +354,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       $lte: new Date(to),
     };
   }
+  
   if (user_id) query.user_id = user_id;
   if (order_type) query.order_type = order_type;
   if (payment_method) query.payment_method = payment_method;
@@ -382,7 +385,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   if (payment_status) paymentQuery["payment_details.payment_status"] = payment_status;
   if (payment_method) paymentQuery["payment_details.payment_method"] = payment_method;
   // if (transaction_id) paymentQuery["payment_details.transaction_id"] = transaction_id;
-
+  console.log("query is ", query);
   const pipeline = [
     { $match: query },
     {
@@ -424,11 +427,11 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       },
     },
   ];
-
+  console.log("pipeline is===>", pipeline);
   const result = await OrderModelDB.aggregate(pipeline);
   const orders = result[0].data;
   const totalCount = result[0].totalCount[0]?.count || 0;
-
+  
   return {
     totalCount,
     page,

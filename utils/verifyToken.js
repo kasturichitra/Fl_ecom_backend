@@ -59,7 +59,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    console.log("get user_id from verifyToken", user.user_id);
 
     /* ---------------------------------- */
     /* 5️⃣ Extract permission keys         */
@@ -80,7 +79,6 @@ const verifyToken = async (req, res, next) => {
       permissions, // Permission keys array for fast authorization
     };
     req.tenantId = tenantId;
-    console.log("User in verifyToken after attach ===>", req.user);
     next();
   } catch (error) {
     console.error("Auth error:", error);
