@@ -115,10 +115,7 @@ export const getAllTicketsService = async (tenantId, filters) => {
   }
 
   if (status) query.status = status;
-  if (assigned_to) {
-    throwIfTrue(!mongoose.Types.ObjectId.isValid(assigned_to), "Invalid MongoDB ID for assigned_to");
-    query.assigned_to = new mongoose.Types.ObjectId(assigned_to);
-  }
+  if (assigned_to) query.assigned_to = assigned_to;
 
   if (from) query.createdAt = { $gte: new Date(from) };
   if (to) query.createdAt = { $lte: new Date(to) };

@@ -55,18 +55,14 @@ const ticketSchema = new mongoose.Schema(
 
     // 👨‍💼 Assignment
     assigned_to: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // employee/admin
-      default: null,
+      type: String,
     },
 
     assigned_at: Date,
 
     // 👤 Admin actions
     resolved_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+      type: String,
     },
 
     relevant_images: [imageSchema],
