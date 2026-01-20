@@ -453,7 +453,6 @@ export const resetPasswordController = async (req, res) => {
 
 export const getMeController = async (req, res) => {
   try {
-    console.log("User in getMeController ===>", req.user);
     // If auth middleware didn't attach user
     if (!req.user) {
       return res.status(200).json({
@@ -462,7 +461,6 @@ export const getMeController = async (req, res) => {
         user: null,
       });
     }
-    console.log("User is ===>", req.user);
 
     return res.status(200).json({
       status: "success",
