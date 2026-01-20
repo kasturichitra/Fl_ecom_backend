@@ -31,10 +31,8 @@ const calculatePrices = (productData) => {
   const basePrice = Number(productData.base_price);
 
   // Step 2: Get GST rates
-  const cgst = Number(productData.cgst) || 0;
-  const sgst = Number(productData.sgst) || 0;
-  const igst = Number(productData.igst) || 0;
-  const taxPercentage = cgst + sgst + igst;
+  const gst = Number(productData.gst);
+  const taxPercentage = gst || 0;
 
   // Step 3: Calculate discount amount on base price
   const discountPercentage = Number(productData.discount_percentage) || 0;

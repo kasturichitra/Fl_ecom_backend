@@ -72,19 +72,9 @@ const productUpdateValidationSchema = Joi.object({
 
   gst_number: Joi.string().optional().allow("", null),
 
-  cgst: Joi.number().min(0).messages({
-    "number.base": "CGST must be a number.",
-    "number.min": "CGST must be 0 or greater.",
-  }),
-
-  sgst: Joi.number().min(0).messages({
-    "number.base": "SGST must be a number.",
-    "number.min": "SGST must be 0 or greater.",
-  }),
-
-  igst: Joi.number().min(0).messages({
-    "number.base": "IGST must be a number.",
-    "number.min": "IGST must be 0 or greater.",
+  gst: Joi.number().min(0).messages({
+    "number.base": "GST must be a number.",
+    "number.min": "GST must be 0 or greater.",
   }),
 
   tax_value: Joi.number().min(0).messages({

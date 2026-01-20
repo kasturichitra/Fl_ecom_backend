@@ -101,9 +101,7 @@ const productValidationSchema = Joi.object({
   discount_type: Joi.string().optional().allow("", null),
   discount_coupon: Joi.string().optional().allow("", null),
 
-  cgst: Joi.number().min(0).optional(),
-  sgst: Joi.number().min(0).optional(),
-  igst: Joi.number().min(0).optional(),
+  gst: Joi.number().min(0).optional(),
   tax_value: Joi.number().min(0).optional(),
 
   low_stock_threshold: Joi.number().optional(),

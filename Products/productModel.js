@@ -133,18 +133,22 @@ const productSchema = new mongoose.Schema(
     },
 
     // GST and tax related info (tax percentages)
-    cgst: {
+    // cgst: {
+    //   type: Number,
+    //   min: 0,
+    // },
+    // igst: {
+    //   type: Number,
+    //   min: 0,
+    // },
+    // sgst: {
+    //   type: Number,
+    //   min: 0,
+    // },
+    gst: {
       type: Number,
       min: 0,
-    },
-    igst: {
-      type: Number,
-      min: 0,
-    },
-    sgst: {
-      type: Number,
-      min: 0,
-    },
+    }, 
     // Tax value (calculated on base_price: base × tax_percentage)
     tax_value: {
       type: Number,
