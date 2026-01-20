@@ -36,7 +36,7 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
 
   const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
 
-  const user = await userModelDB.findById(user_id);
+  const user = await userModelDB.findOne({ user_id });
   throwIfTrue(!user, "User not found");
 
   // Check if business with same GSTIN already exists
@@ -259,7 +259,7 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
   // 📧 Send Verification Success Email & Update User Account Type
   if (updateData.is_verified === true) {
     const { userModelDB } = await getTenantModels(tenantId);
-    const user = await userModelDB.findById(business.user_id);
+    const user = await userModelDB.findOne({ user_id: business.user_id });
     if (user) {
       user.account_type = "Business";
       // As per request to "add that is is verify is true"
@@ -291,7 +291,7 @@ export const deactivateBusinessService = async (tenantId, user_id, gst_in_number
   throwIfTrue(!business, "Business not found for this user and GSTIN");
 
   // Update user account type to Personal
-  const user = await userModelDB.findByIdAndUpdate(user_id, { account_type: "Personal" }, { new: true });
+  const user = await userModelDB.findOneAndUpdate({ user_id }, { account_type: "Personal" }, { new: true });
   throwIfTrue(!user, "User not found");
 
   const res = user.toObject();
