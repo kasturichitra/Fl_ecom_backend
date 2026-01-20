@@ -270,14 +270,17 @@ export const employeCreateService = async (tenantId, userData, fileBuffer) => {
     role: role.name,
     image,
   };
+
+  userDoc.user_id = generateUserId();
+
   const validation = validateUserCreate(userDoc);
   throwIfTrue(!validation.isValid, validation.message);
   // Hash password
-  if (userData.password) {
-    userData.password = await bcrypt.hash(userData.password, 10);
+  if (userDoc.password) {
+    userDoc.password = await bcrypt.hash(userDoc.password, 10);
   }
-  userData.user_id = generateUserId();
-  return await userModelDB.create(userData);
+  
+  return await userModelDB.create(userDoc);
 };
 
 export const storeFcmTokenService = async (tenantId, user_id, token) => {
