@@ -8,6 +8,7 @@ import {
   getAllUsersService,
   getUserByIdService,
   storeFcmTokenService,
+  updateEmployeeService,
   updateUserAddressService,
   updateUserService,
 } from "./userService.js";
@@ -123,6 +124,22 @@ export const employeCreateController = async (req, res) => {
     res.status(201).json(successResponse("Employee created successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+
+export const updateEmployeeController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: user_id } = req.params;
+    let updateData = { ...req.body };
+
+    if (req.file) updateData.image = req.file.path;
+
+    const updatedUser = await updateEmployeeService(tenantId, user_id, updateData);
+    res.status(200).json(successResponse("Employee updated successfully", { data: updatedUser }));
+  } catch (error) {
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 

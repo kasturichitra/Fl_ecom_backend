@@ -279,8 +279,44 @@ export const employeCreateService = async (tenantId, userData, fileBuffer) => {
   if (userDoc.password) {
     userDoc.password = await bcrypt.hash(userDoc.password, 10);
   }
-  
+
   return await userModelDB.create(userDoc);
+};
+
+
+export const updateEmployeeService = async (tenantId, user_id, updateData) => {
+  throwIfTrue(!tenantId || !user_id, "Tenant ID & User ID Required");
+  // const usersDB = await UserModel(tenantId);
+  const { userModelDB } = await getTenantModels(tenantId);
+  const user = await userModelDB.findOne({ user_id });
+
+  throwIfTrue(!user, "User not found");
+  console.log('updatedData==>',updateData);
+  if (updateData.email) {
+    const emailExists = await userModelDB.findOne({
+      email: updateData.email,
+      user_id: { $ne: user_id },
+    });
+    throwIfTrue(emailExists, "Email already exists");
+  }
+
+  if (updateData.phone_number) {
+    const phoneExists = await userModelDB.findOne({
+      phone_number: updateData.phone_number,
+      user_id: { $ne: user_id },
+    });
+    throwIfTrue(phoneExists, "Phone number already exists");
+  }
+
+  if (updateData.password) {
+    user.password = await bcrypt.hash(updateData.password, 10);
+  }
+
+  Object.assign(user, updateData);
+  const updatedUser = await user.save();
+  const result = updatedUser.toObject();
+  delete result.password;
+  return result;
 };
 
 export const storeFcmTokenService = async (tenantId, user_id, token) => {

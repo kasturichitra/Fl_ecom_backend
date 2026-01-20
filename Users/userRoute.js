@@ -10,8 +10,9 @@ import {
   getAllUsersController,
   getUserByIdController,
   storeFcmTokenController,
+  updateEmployeeController,
   updateUserAddressController,
-  updateUserController
+  updateUserController,
 } from "./userController.js";
 
 const route = express.Router();
@@ -24,7 +25,7 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-all-users",
   }),
-  getAllUsersController
+  getAllUsersController,
 );
 
 route.get(
@@ -34,7 +35,7 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-user-roles",
   }),
-  getAllRolesController
+  getAllRolesController,
 );
 
 route.get(
@@ -44,10 +45,8 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-user-by-id",
   }),
-  getUserByIdController
+  getUserByIdController,
 );
-
-
 
 // User Update
 route.put(
@@ -58,7 +57,7 @@ route.put(
     keyPrefix: "update-user",
   }),
   upload.single("image"),
-  updateUserController
+  updateUserController,
 );
 
 // Address
@@ -69,7 +68,7 @@ route.post(
     maxRequests: 15,
     keyPrefix: "add-user-address",
   }),
-  addAddressController
+  addAddressController,
 );
 
 route.put(
@@ -79,7 +78,7 @@ route.put(
     maxRequests: 15,
     keyPrefix: "update-user-address",
   }),
-  updateUserAddressController
+  updateUserAddressController,
 );
 
 route.delete(
@@ -89,7 +88,7 @@ route.delete(
     maxRequests: 15,
     keyPrefix: "delete-user-address",
   }),
-  deleteUserAddressController
+  deleteUserAddressController,
 );
 
 route.put(
@@ -99,7 +98,7 @@ route.put(
     maxRequests: 15,
     keyPrefix: "update-user-fcm-token",
   }),
-  storeFcmTokenController
+  storeFcmTokenController,
 );
 
 // Employee Create (Admin only)
@@ -111,7 +110,18 @@ route.post(
     keyPrefix: "create-employe",
   }),
   upload.single("image"),
-  employeCreateController
+  employeCreateController,
+);
+
+route.put(
+  "/updatedEmploye/:id",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "update-employe",
+  }),
+  upload.single("image"),
+  updateEmployeeController,
 );
 route.delete(
   "/user/:id",
@@ -120,10 +130,7 @@ route.delete(
     maxRequests: 15,
     keyPrefix: "delete-user-account",
   }),
-  deleteUserAccountController
+  deleteUserAccountController,
 );
 
-
-
-
-export default route; 
+export default route;
