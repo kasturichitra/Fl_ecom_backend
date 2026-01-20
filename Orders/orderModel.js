@@ -180,6 +180,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["Pending", "Successful", "Failed", "Refunded"],
       default: "Pending",
     },
+    transaction_id: {
+      type: String,
+      trim: true,
+    },
     // Relationship with PaymentTransactions
     payment_transactions: [
       {

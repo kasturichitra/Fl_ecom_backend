@@ -533,11 +533,12 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
         key_id: updateData?.key_id,
       };
 
-      const paymentTrans = await paymentTransactionsModelDB.create(paymentDoc);
+      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
 
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTrans._id);
+      order.payment_transactions.push(paymentTransaction._id);
       order.order_status = "Pending";
+      order.transaction_id = paymentTransaction.transaction_id;
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
       order.payment_status = "Successful";
@@ -632,11 +633,12 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
         key_id: updateData?.key_id,
       };
 
-      const paymentTrans = await paymentTransactionsModelDB.create(paymentDoc);
+      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
 
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTrans._id);
+      order.payment_transactions.push(paymentTransaction._id);
       order.order_status = "Failed";
+      order.transaction_id = paymentTransaction.transaction_id;
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
       order.payment_status = "Failed";
