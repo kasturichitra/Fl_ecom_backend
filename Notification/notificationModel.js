@@ -14,9 +14,9 @@ const notificationSchema = new mongoose.Schema(
       enum: ["user", "admin"],
     },
 
-    receiver: {//receiver is the user who will receive the notification
-      type: mongoose.Schema.Types.ObjectId,
-      refPath: "receiverModel",
+    receiver: {
+      type: String, 
+      required: [true, "Receiver ID is required"],
     },
     receiverModel: {//receiverModel is the model of the user who will receive the notification
       type: String,

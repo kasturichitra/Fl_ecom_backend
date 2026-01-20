@@ -14,7 +14,7 @@ function extractPGGateways(response) {
       item.gateways.map((g) => ({
         gateway: g.gateway,
         gatewayCode: g.gatewayCode,
-      }))
+      })),
     );
 }
 
@@ -155,10 +155,11 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   amount = Number(amount);
 
   const existingUser = await userModelDB.findOne({
-    _id: userId,
+    user_id: userId,
     is_active: true,
   });
-  throwIfTrue(!existingUser, "User doesn't exist with this id");
+
+  throwIfTrue(!existingUser, `User doesn't exist with this id ${userId}`);
 
   console.log("Order Id in initiate payument order service ======>", orderId);
 
@@ -198,44 +199,44 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   const endpoint = `?referenceId=${orderId}`;
 
   try {
-    const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
+    var response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
 
-    const responseData = response?.data;
+    var responseData = response?.data;
 
     console.log("Response Data is ===>>", responseData);
-
-    if (responseData?.paymentStatus.trim().toLowerCase() === "success") {
-      const paymentDoc = {
-        payment_status: "Paid",
-        payment_method: responseData?.paymentMode,
-        transaction_id: responseData?.transactionId,
-        amount: responseData?.amount,
-        currency: responseData?.currency || "INR",
-        gateway: responseData?.gateway,
-        gateway_code: responseData?.gatewayCode,
-        key_id: responseData?.keyId || "Key Id",
-        is_verified: true,
-      };
-
-      const { orderModelDB } = await getTenantModels(tenantId);
-
-      const existingOrder = await orderModelDB.findOne({
-        order_id: orderId,
-      });
-      throwIfTrue(!existingOrder, "Order doesn't exist with this id");
-
-      const response = await updateOrderService(tenantId, existingOrder?._id, paymentDoc);
-
-      return {
-        order_id: response?.order_id,
-        paymentStatus: responseData?.paymentStatus,
-      };
-    }
-
-    return {
-      paymentStatus: responseData?.paymentStatus,
-    };
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
+
+  if (responseData?.paymentStatus.trim().toLowerCase() === "success") {
+    const paymentDoc = {
+      payment_status: "Paid",
+      payment_method: responseData?.paymentMode,
+      transaction_id: responseData?.transactionId,
+      amount: responseData?.amount,
+      currency: responseData?.currency || "INR",
+      gateway: responseData?.gateway,
+      gateway_code: responseData?.gatewayCode,
+      key_id: responseData?.keyId || "Key Id",
+      is_verified: true,
+    };
+
+    const { orderModelDB } = await getTenantModels(tenantId);
+
+    const existingOrder = await orderModelDB.findOne({
+      order_id: orderId,
+    });
+    throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+    const response = await updateOrderService(tenantId, existingOrder?._id, paymentDoc);
+
+    return {
+      order_id: response?.order_id,
+      paymentStatus: responseData?.paymentStatus,
+    };
+  }
+
+  return {
+    paymentStatus: responseData?.paymentStatus,
+  };
 };

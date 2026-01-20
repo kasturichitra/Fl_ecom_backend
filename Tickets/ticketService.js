@@ -49,7 +49,7 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
       existingTicket && existingTicket.faq_question_id === payload.faq_question_id,
       `A Pending ticket already exists for this order for the concern ${payload.faq_question_id}`
     );
-    throwIfTrue(existingTicket.is_prohibited, `Raising a ticket for this concern is prohibited`);
+    throwIfTrue(existingTicket?.is_prohibited, `Raising a ticket for this concern is prohibited`);
   } else {
     existingTicket = await ticketModelDB.findOne({
       raised_by: user_id,

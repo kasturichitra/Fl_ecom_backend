@@ -46,7 +46,7 @@ export const getAllNotificationService = async (
 
   // Role-based filter
   if (role === "user") {
-    let receiver = new mongoose.Types.ObjectId(userId);
+    let receiver = userId; 
     filter = {
       receiverModel: "user",
       // read: false,

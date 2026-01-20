@@ -566,7 +566,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     let username = null;
 
     if (order?.user_id) {
-      userDoc = await userModelDB.findById(order?.user_id);
+      userDoc = await userModelDB.findOne({user_id: order?.user_id});
       throwIfTrue(!userDoc, `User not found with id: ${order?.user_id}`);
       username = userDoc?.username;
     } else {

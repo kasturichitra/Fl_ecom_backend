@@ -33,7 +33,7 @@ export const sendUserNotification = async (tenantID, userId, data) => {
     const { userModelDB } = await getTenantModels(tenantID);
 
     const user = userModelDB.findOne({
-      _id: userId,
+      user_id: userId,
     });
     await fcm.send({
       notification: {
@@ -74,14 +74,14 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
     const { notificationModelDB, userModelDB } = await getTenantModels(tenantID);
 
     // Fetch all active admins
-    const admins = await userModelDB.find({ role: "admin", is_active: true }, "_id fcm_token");
+    const admins = await userModelDB.find({ role: "admin", is_active: true }, "user_id fcm_token");
 
     if (admins.length === 0) {
       console.log("No active admin users found to notify");
       return null;
     }
 
-    const adminIds = admins.map((a) => a._id);
+    const adminIds = admins.map((a) => a.user_id);
 
     // Prepare notifications for all admins
     const notificationRecords = adminIds.map((id) => ({
@@ -121,7 +121,7 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
             },
           });
         } catch (fcmErr) {
-          console.error(`FCM error for admin ${admin._id}:`, fcmErr.message);
+          console.error(`FCM error for admin ${admin.user_id}:`, fcmErr.message);
         }
       }
     }
