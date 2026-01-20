@@ -99,7 +99,6 @@ export const getUserByIdService = async (tenantId, user_id) => {
   // const usersDB = await UserModel(tenantId);
   const { userModelDB } = await getTenantModels(tenantId);
   const user = await userModelDB.findOne({ user_id });
-  console.log("get by id user", user);
 
   if (user) {
     user.password = undefined;
