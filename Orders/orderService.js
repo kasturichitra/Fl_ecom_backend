@@ -515,8 +515,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   }
 
   // Handle Payment Status Updates via PaymentTransactions
-  if (updateData?.payment_status) {
-    const { paymentTransactionsModelDB: PaymentTransactionsDB } = await getTenantModels(tenantId);
+  if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "paid") {
+    const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
     // If transaction_id is present, it means we are adding a NEW transaction (e.g. initial payment after order creation)
     if (updateData?.transaction_id) {
@@ -533,21 +533,21 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
         key_id: updateData?.key_id,
       };
 
-      const paymentTrans = await PaymentTransactionsDB.create(paymentDoc);
+      const paymentTrans = await paymentTransactionsModelDB.create(paymentDoc);
 
       // Push to order's payment_transactions array
       order.payment_transactions.push(paymentTrans._id);
       order.order_status = "Pending";
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
-      order.payment_status = updateData?.payment_status?.toLowerCase() === "paid" ? "Successful": null;
+      order.payment_status = "Successful";
     } else {
       // Existing logic: Find the latest transaction and update it
       // Simplified: Find the last linked transaction
       let lastTransId = order.payment_transactions[order.payment_transactions.length - 1];
 
       if (lastTransId) {
-        await PaymentTransactionsDB.findByIdAndUpdate(lastTransId, {
+        await paymentTransactionsModelDB.findByIdAndUpdate(lastTransId, {
           payment_status: updateData?.payment_status,
         });
       }
@@ -613,6 +613,33 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       // We don't set order.payment_status as it is gone.
       // We depend on the transaction.
       // However, we still need to trigger the cancellation logic
+    }
+  }
+
+  if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "failed") {
+    const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
+    if (updateData?.transaction_id) {
+      const paymentDoc = {
+        order_id: order.order_id,
+        user_id: order.user_id,
+        payment_status: updateData?.payment_status || "Pending",
+        payment_method: updateData?.payment_method || "Cash",
+        transaction_id: updateData?.transaction_id,
+        amount: order.total_amount, // Use order total amount
+        currency: order.currency || "INR", // Default to INR if not in order
+        gateway: updateData?.gateway,
+        gateway_code: updateData?.gateway_code,
+        key_id: updateData?.key_id,
+      };
+
+      const paymentTrans = await paymentTransactionsModelDB.create(paymentDoc);
+
+      // Push to order's payment_transactions array
+      order.payment_transactions.push(paymentTrans._id);
+      order.order_status = "Failed";
+
+      // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
+      order.payment_status = "Failed";
     }
   }
 

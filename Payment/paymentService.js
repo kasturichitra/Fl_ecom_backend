@@ -18,6 +18,37 @@ function extractPGGateways(response) {
     );
 }
 
+async function processOrderPayment({
+  tenantId,
+  orderId,
+  responseData,
+  paymentStatusLabel, // "Paid" | "Failed"
+}) {
+  const paymentDoc = {
+    payment_status: paymentStatusLabel,
+    payment_method: responseData?.paymentMode,
+    transaction_id: responseData?.transactionId,
+    amount: responseData?.amount,
+    currency: responseData?.currency || "INR",
+    gateway: responseData?.gateway,
+    gateway_code: responseData?.gatewayCode,
+    key_id: responseData?.keyId || "Key Id",
+    is_verified: true,
+  };
+
+  const { orderModelDB } = await getTenantModels(tenantId);
+
+  const existingOrder = await orderModelDB.findOne({ order_id: orderId });
+  throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+  const updatedOrder = await updateOrderService(tenantId, existingOrder._id, paymentDoc);
+
+  return {
+    order_id: updatedOrder?.order_id,
+    paymentStatus: responseData?.paymentStatus,
+  };
+}
+
 export const getAllPaymentGatewaysService = async () => {
   const endpoint = `api/v1/maintainance/get-allgateways`;
 
@@ -198,42 +229,35 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
 
   const endpoint = `?referenceId=${orderId}`;
 
+  let responseData = null;
   try {
-    var response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
+    const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
 
-    var responseData = response?.data;
+    responseData = response?.data;
 
     console.log("Response Data is ===>>", responseData);
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
 
-  if (responseData?.paymentStatus.trim().toLowerCase() === "success") {
-    const paymentDoc = {
-      payment_status: "Paid",
-      payment_method: responseData?.paymentMode,
-      transaction_id: responseData?.transactionId,
-      amount: responseData?.amount,
-      currency: responseData?.currency || "INR",
-      gateway: responseData?.gateway,
-      gateway_code: responseData?.gatewayCode,
-      key_id: responseData?.keyId || "Key Id",
-      is_verified: true,
-    };
+  const normalizedStatus = responseData?.paymentStatus?.trim().toLowerCase();
 
-    const { orderModelDB } = await getTenantModels(tenantId);
-
-    const existingOrder = await orderModelDB.findOne({
-      order_id: orderId,
+  if (normalizedStatus === "success") {
+    return await processOrderPayment({
+      tenantId,
+      orderId,
+      responseData,
+      paymentStatusLabel: "Paid",
     });
-    throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+  }
 
-    const response = await updateOrderService(tenantId, existingOrder?._id, paymentDoc);
-
-    return {
-      order_id: response?.order_id,
-      paymentStatus: responseData?.paymentStatus,
-    };
+  if (normalizedStatus === "failed") {
+    return await processOrderPayment({
+      tenantId,
+      orderId,
+      responseData,
+      paymentStatusLabel: "Failed",
+    });
   }
 
   return {
