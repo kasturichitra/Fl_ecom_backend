@@ -146,6 +146,9 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
   throwIfTrue(!existingCategory, "Category not found");
 
   let category_image = updates.category_image;
+  const normalizedName = updates.category_name.trim().toLowerCase();
+
+  updates.attributes?.forEach((a) => (a.code = normalizedName.replace(/\s+/g, "_")));
 
   // Handle Image Update
   if (fileBuffer) {
