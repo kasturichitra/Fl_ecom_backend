@@ -533,10 +533,10 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
 
   const categoryData = await categoryModelDB.findOne({ category_unique_id });
   throwIfTrue(!categoryData, `Category not found with id: ${category_unique_id}`);
+  console.log("categoryData===>", categoryData);
+  const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : [];
 
-  const categoryDbAttributes = categoryData.attributes.length ? categoryData.attributes : undefined;
-
-  const dynamicHeaders = categoryDbAttributes.map((attr) => ({
+  const dynamicHeaders = categoryDbAttributes?.map((attr) => ({
     header: `attr_${attr.name} *`,
     key: `attr_${attr.name}`,
     width: 30,
@@ -545,12 +545,9 @@ export const downloadExcelTemplateService = async (tenantId, category_unique_id)
   // const BrandModelDB = await BrandModel(tenantId);
   const brandsForCategory = await brandModelDB.find({ categories: { $in: categoryData?._id } });
 
-  console.log("brandsForCategory", brandsForCategory);
-
   const brandExcelDropDownData = await brandsForCategory.map(
     (brand) => `${brand.brand_name} (${brand.brand_unique_id})`,
   );
-  console.log("brandExcelDropDownData", brandExcelDropDownData);
 
   const brandExcelDropDownListString = `"${brandExcelDropDownData.join(",")}"`;
 
@@ -859,7 +856,9 @@ export const deleteProductImageFromS3Service = async (tenantId, imageDetails) =>
 
   const productImages = existingProduct.product_images || [];
 
-  const imageIndex = productImages.findIndex((image) => image.low === image_url || image.medium === image_url || image.original === image_url);
+  const imageIndex = productImages.findIndex(
+    (image) => image.low === image_url || image.medium === image_url || image.original === image_url,
+  );
   throwIfTrue(imageIndex === -1, `Image doesn't exist with this url - ${image_url}`);
 
   const imageToDelete = productImages[imageIndex];
