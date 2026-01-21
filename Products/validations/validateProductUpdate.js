@@ -150,6 +150,7 @@ const productUpdateValidationSchema = Joi.object({
       }, "JSON parsing")
     )
     .optional(),
+    is_active: Joi.boolean().optional(),
 });
 
 export function validateProductUpdateData(data) {

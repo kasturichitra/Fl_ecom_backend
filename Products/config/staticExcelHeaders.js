@@ -26,6 +26,11 @@ export const staticExcelHeaders = [
     width: 20,
   },
   {
+    header: "Product Size",
+    key: "product_size",
+    width: 20,
+  },
+  {
     header: "Stock Quantity *",
     key: "stock_quantity",
     width: 10,
@@ -41,20 +46,20 @@ export const staticExcelHeaders = [
     width: 10,
   },
   {
-    header: "CGST",
-    key: "cgst",
+    header: "GST",
+    key: "gst",
     width: 10,
   },
-  {
-    header: "SGST",
-    key: "sgst",
-    width: 10,
-  },
-  {
-    header: "IGST",
-    key: "igst",
-    width: 10,
-  },
+  // {
+  //   header: "SGST",
+  //   key: "sgst",
+  //   width: 10,
+  // },
+  // {
+  //   header: "IGST",
+  //   key: "igst",
+  //   width: 10,
+  // },
   {
     header: "Min Order Limit *",
     key: "min_order_limit",

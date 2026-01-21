@@ -763,7 +763,7 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
         }
       }
       // -------------------------------
-      const product_unique_id = await generateProductUniqueId(productModelDB, existingBrand.brand_unique_id);
+      const product_unique_id = await generateProductUniqueId(productModelDB,brandModelDB, existingBrand.brand_unique_id);
       valid[i].product_unique_id = product_unique_id;
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
       valid[i].category_unique_id = existingCategory.category_unique_id;
