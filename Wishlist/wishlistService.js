@@ -17,10 +17,10 @@ export const createWishlistServices = async (tenantID, user_id, product_id) => {
   // Check if the product exist in cart and remove it from cart
   const existingCart = await cartModelDB.findOne({ user_id, "products.product_unique_id": product_id });
   // if (existingCart) await cartDB.findOneAndDelete({ user_id, "products.product_unique_id": product_id });
-  if (existingCart) {
-    existingCart.products = existingCart.products.filter((item) => item.product_unique_id !== product_id);
-    await existingCart.save();
-  }
+  // if (existingCart) {
+  //   existingCart.products = existingCart.products.filter((item) => item.product_unique_id !== product_id);
+  //   await existingCart.save();
+  // }
 
   // Find and update in a single DB operation
   const wishlist = await wishlistModelDB.findOneAndUpdate(
