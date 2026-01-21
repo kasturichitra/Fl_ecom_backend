@@ -63,6 +63,12 @@ const contactInfoSchema = new mongoose.Schema(
     business_description: {
       type: String,
     },
+    gst_in_number: {
+      type: String,
+    },
+    business_address: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
