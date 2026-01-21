@@ -6,6 +6,11 @@ const updateTicketSchema = Joi.object({
     "any.only": "Status must be one of pending, assigned, in_progress, resolved.",
   }),
 
+  // 📊 Priority updates
+  priority: Joi.string().valid("low", "medium", "high", "critical").optional().messages({
+    "any.only": "Priority must be one of low, medium, high, critical.",
+  }),
+
   // 👨‍💼 Assignment
   assigned_to: Joi.string().trim().hex().length(24).allow(null).optional().messages({
     "string.hex": "Assigned To must be a valid ObjectId.",
