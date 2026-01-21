@@ -53,6 +53,12 @@ const ticketSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Priority of ticket is like the importance // Low, medium, high
+    priority: {
+      type: String, 
+      enum: ["low", "medium", "high", "critical"],
+    }, 
+
     // 👨‍💼 Assignment
     assigned_to: {
       type: String,
