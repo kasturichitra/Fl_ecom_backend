@@ -21,6 +21,18 @@ export const createCategoryService = async (tenantId, categoryData, fileBuffer) 
 
   // Check unique name
   const normalizedName = categoryData.category_name.trim().toLowerCase();
+  // console.log("get categoryData===>", categoryData);
+
+  categoryData.attributes?.forEach((a) => (a.code = normalizedName.replace(/\s+/g, "_")));
+
+  // const splitedName = normalizedName.split(" ").join("_");
+  // const replacedName = normalizedName.replace(/\s+/g, "_");
+
+  // categoryData.attributes = categoryData.attributes?.map((attr) => ({
+  //   ...attr,
+  //   code: replacedName,
+  // }));
+
   const existingCategory = await categoryModelDB.exists({
     category_name: { $regex: `^${normalizedName}$`, $options: "i" },
   });
@@ -47,7 +59,7 @@ export const createCategoryService = async (tenantId, categoryData, fileBuffer) 
   // Validate
   const { isValid, message } = validateCategoryCreate(categoryDoc);
   throwIfTrue(!isValid, message);
-
+  console.log("categoryDoc===>", categoryDoc);
   return await categoryModelDB.create(categoryDoc);
 };
 
@@ -162,7 +174,7 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
   const updatedRecord = await categoryModelDB.findOneAndUpdate(
     { category_unique_id },
     { $set: { ...categoryDoc, updatedAt: new Date() } },
-    { new: true }
+    { new: true },
   );
 
   // Auto inactive all products if category inactivated
@@ -170,7 +182,7 @@ export const updateCategoryService = async (tenantId, category_unique_id, update
     console.log("Updating products is_active to ", !!updates.is_active);
     await productModelDB.updateMany(
       { category_unique_id },
-      { $set: { is_active: !!updates.is_active, updatedAt: new Date() } }
+      { $set: { is_active: !!updates.is_active, updatedAt: new Date() } },
     );
   }
 

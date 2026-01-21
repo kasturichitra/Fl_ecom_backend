@@ -6,20 +6,20 @@ import { imageSchema } from "../lib/imageModel.js";
 const attributesSchema = new mongoose.Schema(
   {
     name: { type: String, trim: true },
-    code: { type: String, trim: true },
-    slug: { type: String, trim: true },
-    description: { type: String, trim: true },
     units: { type: String, trim: true },
-    is_active: { type: Boolean, default: true },
-    created_by: { type: String, trim: true },
-    updated_by: { type: String, trim: true },
+    code: { type: String, trim: true },
+    // slug: { type: String, trim: true },
+    // description: { type: String, trim: true },
+    // is_active: { type: Boolean, default: true },
+    // created_by: { type: String, trim: true },
+    // updated_by: { type: String, trim: true },
   },
   { timestamps: true }
 );
 
 // Indexes for attributes
 attributesSchema.index({ code: 1 });
-attributesSchema.index({ slug: 1 });
+// attributesSchema.index({ slug: 1 });
 
 // -------------------- CATEGORY SCHEMA --------------------
 const categorySchema = new mongoose.Schema(
