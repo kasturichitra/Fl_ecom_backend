@@ -52,107 +52,150 @@ export const getAllSaleTrendsService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   let { page = 1, limit = 10, sort, searchTerm, products_limit = 10, is_active } = filters;
+
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
   products_limit = parseInt(products_limit) || 10;
+
   const skip = (page - 1) * limit;
 
   const query = {};
 
   if (is_active === "true") query.is_active = true;
   if (is_active === "false") query.is_active = false;
-  
+
   if (searchTerm) {
     query.trend_name = { $regex: searchTerm, $options: "i" };
   }
 
   const sortObj = buildSortObject(sort);
-  // const SaleTrendDB = await SaleTrendModel(tenantId);
-  // const ProductModelDB = await ProductModel(tenantId);
+
   const { saleTrendModelDB: SaleTrendDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
 
-  /* -------------------------------------------------------------
-     🔥 OPTIMIZED QUERY with $facet (Single DB Call)
-  -------------------------------------------------------------- */
   const pipeline = [
     { $match: query },
-    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+
+    { $sort: Object.keys(sortObj).length ? sortObj : { createdAt: -1 } },
+
     {
       $facet: {
         data: [
           { $skip: skip },
           { $limit: limit },
-          // --- LOOKUP PRODUCTS ONLY FOR PAGINATED RESULTS ---
+
+          /* --------------------------------------------
+             🔥 LOOKUP ONLY ACTIVE PRODUCTS
+          --------------------------------------------- */
           {
             $lookup: {
               from: ProductModelDB.collection.name,
-              localField: "trend_products.product_unique_id",
-              foreignField: "product_unique_id",
+              let: { productIds: "$trend_products.product_unique_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [{ $in: ["$product_unique_id", "$$productIds"] }, { $eq: ["$is_active", true] }],
+                    },
+                  },
+                },
+                {
+                  $project: {
+                    product_unique_id: 1,
+                    product_name: 1,
+                    brand_name: 1,
+                    final_price: 1,
+                    gross_price: 1,
+                    base_price: 1,
+                    product_image: 1,
+                    stock_quantity: 1,
+                    discount_percentage: 1,
+                  },
+                },
+              ],
               as: "fetched_products",
             },
           },
-          // --- MAP PRODUCTS ---
+
+          /* --------------------------------------------
+             🔥 MAP + FILTER trend_products
+          --------------------------------------------- */
           {
             $addFields: {
               trend_products: {
-                $map: {
-                  input: products_limit ? { $slice: ["$trend_products", products_limit] } : "$trend_products",
-                  as: "tp",
-                  in: {
-                    $mergeObjects: [
-                      "$$tp",
-                      {
-                        $let: {
-                          vars: {
-                            matchedProduct: {
-                              $arrayElemAt: [
-                                {
-                                  $filter: {
-                                    input: "$fetched_products",
-                                    as: "fp",
-                                    cond: {
-                                      $eq: ["$$fp.product_unique_id", "$$tp.product_unique_id"],
-                                    },
-                                  },
-                                },
-                                0,
-                              ],
-                            },
-                          },
+                $slice: [
+                  {
+                    $filter: {
+                      input: {
+                        $map: {
+                          input: "$trend_products",
+                          as: "tp",
                           in: {
-                            product_name: "$$matchedProduct.product_name",
-                            brand_name: "$$matchedProduct.brand_name",
-                            final_price: "$$matchedProduct.final_price",
-                            gross_price: "$$matchedProduct.gross_price",
-                            base_price: "$$matchedProduct.base_price",
-                            product_image: "$$matchedProduct.product_image",
-                            stock_quantity: "$$matchedProduct.stock_quantity",
-                            discount_percentage: "$$matchedProduct.discount_percentage",
-                            product_unique_id: "$$matchedProduct.product_unique_id",
+                            $let: {
+                              vars: {
+                                matchedProduct: {
+                                  $arrayElemAt: [
+                                    {
+                                      $filter: {
+                                        input: "$fetched_products",
+                                        as: "fp",
+                                        cond: {
+                                          $eq: ["$$fp.product_unique_id", "$$tp.product_unique_id"],
+                                        },
+                                      },
+                                    },
+                                    0,
+                                  ],
+                                },
+                              },
+                              in: {
+                                $cond: [
+                                  {
+                                    $ifNull: ["$$matchedProduct", false],
+                                  }, // ✅ ONLY ACTIVE PRODUCTS
+                                  {
+                                    $mergeObjects: [
+                                      "$$tp",
+                                      {
+                                        product_name: "$$matchedProduct.product_name",
+                                        brand_name: "$$matchedProduct.brand_name",
+                                        final_price: "$$matchedProduct.final_price",
+                                        gross_price: "$$matchedProduct.gross_price",
+                                        base_price: "$$matchedProduct.base_price",
+                                        product_image: "$$matchedProduct.product_image",
+                                        stock_quantity: "$$matchedProduct.stock_quantity",
+                                        discount_percentage: "$$matchedProduct.discount_percentage",
+                                      },
+                                    ],
+                                  },
+                                  null, // ❌ inactive → removed
+                                ],
+                              },
+                            },
                           },
                         },
                       },
-                    ],
+                      as: "item",
+                      cond: { $ne: ["$$item", null] }, // remove inactive
+                    },
                   },
-                },
+                  products_limit,
+                ],
               },
             },
           },
-          // --- CLEANUP ---
-          {
-            $project: {
-              fetched_products: 0,
-            },
-          },
+
+          { $project: { fetched_products: 0 } },
         ],
+
         totalCount: [{ $count: "count" }],
       },
     },
   ];
 
   const result = await SaleTrendDB.aggregate(pipeline);
-  const data = result[0].data;
-  const totalCount = result[0].totalCount[0]?.count || 0;
+
+  const data = result[0]?.data || [];
+  const totalCount = result[0]?.totalCount[0]?.count || 0;
 
   return {
     totalCount,
