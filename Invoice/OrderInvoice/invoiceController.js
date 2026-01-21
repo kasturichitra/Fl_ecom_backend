@@ -4,7 +4,7 @@ export const generateInvoiceController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const { id: order_id } = req.params;
-    const user_id = req?.user?._id;
+    const user_id = req?.user?.user_id;
 
     const pdfBuffer = await generateInvoiceService(tenantId, order_id, user_id);
 

@@ -37,8 +37,10 @@ const baseStyles = `
 `;
 
 // Product table generator - FIXED to not repeat headers
-const generateProductTable = (order, theme) => {
+const generateProductTable = (order, taxType = "same") => {
   const isBusiness = !!order.business_details;
+  const isSameState = taxType === "same";
+
   return `
   <table>
     <thead>
@@ -47,9 +49,24 @@ const generateProductTable = (order, theme) => {
         <th class="text-right">Qty</th>
         ${
           isBusiness
-            ? `
+            ? isSameState
+              ? `
         <th class="text-right">Unit Gross</th>
-        <th class="text-right">Unit Tax</th>
+        <th class="text-right">CGST (${
+          order.order_products[0]?.unit_tax_percentage
+            ? (order.order_products[0].unit_tax_percentage / 2).toFixed(1)
+            : "0"
+        }%)</th>
+        <th class="text-right">SGST (${
+          order.order_products[0]?.unit_tax_percentage
+            ? (order.order_products[0].unit_tax_percentage / 2).toFixed(1)
+            : "0"
+        }%)</th>
+        <th class="text-right">Unit Final</th>
+        `
+              : `
+        <th class="text-right">Unit Gross</th>
+        <th class="text-right">IGST (${order.order_products[0]?.unit_tax_percentage || "0"}%)</th>
         <th class="text-right">Unit Final</th>
         `
             : `
@@ -61,16 +78,27 @@ const generateProductTable = (order, theme) => {
     </thead>
     <tbody>
       ${order.order_products
-        .map(
-          (p) => `
+        .map((p) => {
+          const cgstValue = isSameState ? (p.unit_tax_value / 2).toFixed(2) : "0.00";
+          const sgstValue = isSameState ? (p.unit_tax_value / 2).toFixed(2) : "0.00";
+          const igstValue = !isSameState ? p.unit_tax_value.toFixed(2) : "0.00";
+
+          return `
       <tr>
         <td>${p.product_name}</td>
         <td class="text-right">${p.quantity}</td>
         ${
           isBusiness
-            ? `
+            ? isSameState
+              ? `
         <td class="text-right">${order.currency} ${p.unit_gross_price.toFixed(2)}</td>
-        <td class="text-right">${order.currency} ${p.unit_tax_value.toFixed(2)}</td>
+        <td class="text-right">${order.currency} ${cgstValue}</td>
+        <td class="text-right">${order.currency} ${sgstValue}</td>
+        <td class="text-right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
+        `
+              : `
+        <td class="text-right">${order.currency} ${p.unit_gross_price.toFixed(2)}</td>
+        <td class="text-right">${order.currency} ${igstValue}</td>
         <td class="text-right">${order.currency} ${p.unit_final_price.toFixed(2)}</td>
         `
             : `
@@ -78,8 +106,8 @@ const generateProductTable = (order, theme) => {
         `
         }
         <td class="text-right">${order.currency} ${p.total_final_price.toFixed(2)}</td>
-      </tr>`
-        )
+      </tr>`;
+        })
         .join("")}
     </tbody>
   </table>
@@ -569,7 +597,7 @@ const templates = {
 };
 
 // Main export function - FINAL FIX
-export const generateInvoiceTemplate = (order, templateType = "default") => {
+export const generateInvoiceTemplate = (order, templateType = "default", taxType = "same") => {
   const finalType = templateType || "default";
   const template = templates[finalType] || templates["default"];
 
@@ -580,7 +608,7 @@ export const generateInvoiceTemplate = (order, templateType = "default") => {
         <div class="container">
           ${template.header(order)}
           ${template.body(order)}
-          ${generateProductTable(order)}
+          ${generateProductTable(order, taxType)}
           ${generateTotals(order)}
           <div class="footer"><p>Thank you for your business!</p></div>
           ${finalType === "classic-elegance" ? '<div class="bottom-bar"></div>' : ""}
@@ -591,9 +619,13 @@ export const generateInvoiceTemplate = (order, templateType = "default") => {
 };
 
 // Usage:
-// generateInvoiceTemplate(orderData, 'modern-minimalist')
-// generateInvoiceTemplate(orderData, 'colorful-gradient')
+// generateInvoiceTemplate(orderData, 'modern-minimalist', 'same') // For same state (CGST/SGST)
+// generateInvoiceTemplate(orderData, 'colorful-gradient', 'different') // For different state (IGST)
 // generateInvoiceTemplate(orderData, 'professional-corporate')
 // generateInvoiceTemplate(orderData, 'modern-tech')
 // generateInvoiceTemplate(orderData, 'classic-elegance')
 // generateInvoiceTemplate(orderData, 'default') or generateInvoiceTemplate(orderData)
+//
+// taxType parameter:
+// - "same": Same state transaction (shows CGST and SGST, each half of unit_tax_value)
+// - "different": Inter-state transaction (shows IGST with full unit_tax_value) [DEFAULT]
