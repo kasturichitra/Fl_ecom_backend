@@ -129,16 +129,16 @@ export const updateBannerService = async (tenantId, banner_unique_id, updateData
   }
 
   // Handle banner images upload and cleanup (now an array)
-  if (bannerImageBuffers && bannerImageBuffers.length > 0) {
-    // Delete existing banner images from S3 (all images and their variants)
-    if (existingBanner.banner_image && Array.isArray(existingBanner.banner_image)) {
-      for (const imageObj of existingBanner.banner_image) {
-        if (imageObj && typeof imageObj === "object") {
-          const imageUrls = Object.values(imageObj).filter((url) => typeof url === "string");
-          await Promise.all(imageUrls.map(autoDeleteFromS3));
-        }
-      }
-    }
+  // if (bannerImageBuffers && bannerImageBuffers.length > 0) {
+  //   // Delete existing banner images from S3 (all images and their variants)
+  //   if (existingBanner.banner_image && Array.isArray(existingBanner.banner_image)) {
+  //     for (const imageObj of existingBanner.banner_image) {
+  //       if (imageObj && typeof imageObj === "object") {
+  //         const imageUrls = Object.values(imageObj).filter((url) => typeof url === "string");
+  //         await Promise.all(imageUrls.map(autoDeleteFromS3));
+  //       }
+  //     }
+  //   }
 
     // Upload new banner images as an array
     const uploadedImages = [];
@@ -150,7 +150,7 @@ export const updateBannerService = async (tenantId, banner_unique_id, updateData
       uploadedImages.push(imageVariants);
     }
     updateData.banner_image = uploadedImages;
-  }
+  // }
 
   const updatedBanner = await bannerModelDB.findOneAndUpdate({ banner_unique_id }, updateData, {
     new: true,
