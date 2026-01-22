@@ -118,10 +118,12 @@ const orderUpdateSchema = Joi.object({
     "date.base": "Order return date must be a valid date.",
   }),
 
-  order_status: Joi.string().valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned").messages({
-    "string.base": "Order status must be a string.",
-    "any.only": "Invalid order status.",
-  }),
+  order_status: Joi.string()
+    .valid("Pending", "Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled", "Returned", "Refunded")
+    .messages({
+      "string.base": "Order status must be a string.",
+      "any.only": "Invalid order status.",
+    }),
 
   order_products: Joi.array().items(orderProductSchemaUpdate),
 
@@ -147,6 +149,12 @@ const orderUpdateSchema = Joi.object({
 
   currency: Joi.string(),
   offline_address: Joi.string().optional(),
+
+  // New optional fields for updates
+  status_note: Joi.string().optional().allow(null, ""),
+  updated_by: Joi.string().optional().allow(null, ""),
+  customer_name: Joi.string().optional().allow(null, ""),
+  mobile_number: Joi.string().optional().allow(null, ""),
 });
 
 export function validateOrderUpdate(data) {

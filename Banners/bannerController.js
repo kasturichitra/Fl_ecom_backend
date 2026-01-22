@@ -57,7 +57,7 @@ export const getAllBannersController = async (req, res) => {
 export const getBannerByUniqueIdController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id: banner_unique_id } = req.params;
+    const { banner_unique_id } = req.params;
 
     const response = await getBannerByUniqueIdService(tenantId, banner_unique_id);
 
@@ -73,7 +73,7 @@ export const getBannerByUniqueIdController = async (req, res) => {
 export const updateBannerController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id: banner_unique_id } = req.params;
+    const { banner_unique_id } = req.params;
     const images_base64 = req.body.banner_image || []; // Array of base64 images
     const fileBuffers = [];
 
@@ -102,7 +102,7 @@ export const updateBannerController = async (req, res) => {
 export const deleteBannerController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
-    const { id: banner_unique_id } = req.params;
+    const { banner_unique_id } = req.params;
 
     const response = await deleteBannerService(tenantId, banner_unique_id);
 

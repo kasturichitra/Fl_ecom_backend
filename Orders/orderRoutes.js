@@ -5,6 +5,7 @@ import {
   updateOrderController,
   getOrderProductController,
   getOrderSingleProductController,
+  updateOrderStatusController,
 } from "./orderController.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
 
@@ -17,7 +18,7 @@ route.post(
     maxRequests: 15,
     keyPrefix: "create-order",
   }),
-  createOrderController
+  createOrderController,
 );
 
 route.get(
@@ -27,7 +28,7 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-order-single-product",
   }),
-  getOrderSingleProductController
+  getOrderSingleProductController,
 );
 
 route.get(
@@ -37,7 +38,7 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-all-orders",
   }),
-  getAllOrdersController
+  getAllOrdersController,
 );
 
 route.get(
@@ -47,7 +48,7 @@ route.get(
     maxRequests: 60,
     keyPrefix: "get-order-product",
   }),
-  getOrderProductController
+  getOrderProductController,
 );
 
 route.put(
@@ -57,7 +58,17 @@ route.put(
     maxRequests: 15,
     keyPrefix: "update-order",
   }),
-  updateOrderController
+  updateOrderController,
+);
+
+route.patch(
+  "/:id/status",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "update-order-status",
+  }),
+  updateOrderStatusController,
 );
 
 export default route;
