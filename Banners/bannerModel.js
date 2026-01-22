@@ -3,27 +3,41 @@ import { getTenanteDB } from "../Config/tenantDB.js";
 
 const bannerSchema = new mongoose.Schema(
   {
-    banner_title: {
+    banner_unique_id: {
       type: String,
-      required: [true, "Banner title is required"],
+      unique: true,
+      required: [true, "Banner unique ID is required"],
+    },
+    section: {
+      type: String,
+      enum: ["course", "home", "recommended"],
+      default: "home",
+    },
+    title: {
+      type: String,
+      required: [true, "Title is required"],
       trim: true,
     },
-    banner_subtitle: {
+    banner_type: {
       type: String,
-      trim: true,
+      enum: ["store", "item", "default"],
+      default: "default",
     },
-    banner_description: {
+    store: {
       type: String,
-      trim: true,
     },
-    banner_image: {
+    item: {
       type: String,
-      required: [true, "Banner image is required"],
     },
-    banner_link: {
+    link: {
       type: String,
-      trim: true,
     },
+    banner_image: [
+      {
+        type: mongoose.Schema.Types.Mixed,
+        required: [true, "Banner image is required"],
+      },
+    ],
     start_date: {
       type: Date,
       required: [true, "Start date is required"],
@@ -41,7 +55,7 @@ const bannerSchema = new mongoose.Schema(
       default: 1,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const BannerModel = async (tenantId) => {

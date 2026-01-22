@@ -1,197 +1,113 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   createBannerService,
-  deleteBannerService,
   getAllBannersService,
+  getBannerByUniqueIdService,
   updateBannerService,
+  deleteBannerService,
 } from "./bannersService.js";
 
+/**
+ * Create a new banner
+ */
 export const createBannerController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
+    const images_base64 = req.body.banner_image || []; // Array of base64 images
+    const fileBuffers = [];
 
-    if (!tenantID) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Tenant ID is required in headers",
-      });
+    // Convert all base64 images to buffers
+    if (Array.isArray(images_base64) && images_base64.length > 0) {
+      for (const image_base64 of images_base64) {
+        if (image_base64) {
+          // Remove base64 header if present
+          const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+          fileBuffers.push(Buffer.from(base64Data, "base64"));
+        }
+      }
     }
 
-    const banner_image = req.file ? req.file.path : null;
+    const response = await createBannerService(tenantId, req.body, fileBuffers);
 
-    const {
-      banner_title,
-      banner_subtitle,
-      banner_description,
-      banner_link,
-      start_date,
-      end_date,
-      is_active,
-      priority,
-    } = req.body;
-
-    if (!banner_title || !start_date || !end_date) {
-      // return res.status(400).json({
-      //   status: "Failed",
-      //   message: "banner_title, start_date and end_date are required",
-      // });
-      return res.status(400).json(errorResponse("banner_title, start_date and end_date are required"));
-    }
-
-    const bannerData = {
-      banner_title,
-      banner_subtitle,
-      banner_description,
-      banner_link,
-      start_date,
-      end_date,
-      is_active,
-      priority,
-      banner_image,
-    };
-
-    const newBanner = await createBannerService(tenantID, bannerData);
-
-    // return res.status(201).json({
-    //   status: "Success",
-    //   message: "Offer banner created successfully",
-    //   data: newBanner,
-    // });
-
-    return res.status(201).json(successResponse("Banner created successfully", { data: newBanner }));
+    res.status(201).json(successResponse("Banner created successfully", response));
   } catch (error) {
-    // console.error("Error creating banner:", error);
-    // return res.status(500).json({
-    //   status: "Failed",
-    //   message: error.message || "Internal server error",
-    // });
-    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
+/**
+ * Get all banners with filtering and pagination
+ */
 export const getAllBannersController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
+    const tenantId = req.headers["x-tenant-id"];
+    const filters = req.query;
 
-    if (!tenantID) {
-      // return res.status(400).json({
-      //   status: "Failed",
-      //   message: "Tenant ID is required in headers",
-      // });
-      return res.status(400).json(errorResponse("Tenant ID is required in headers"));
-    }
+    const response = await getAllBannersService(tenantId, filters);
 
-    const banners = await getAllBannersService(tenantID);
-
-    // const baseUrl = `${req.protocol}://${req.get("host")}`;
-    // const bannersWithUrl = banners.map((banner) => ({
-    //   ...banner._doc,
-    //   banner_image: banner.banner_image
-    //     ? `${baseUrl}/uploads/bannersImages/${banner.banner_image}`
-    //     : null,
-    // }));
-
-    // return res.status(200).json({
-    //   status: "Success",
-    //   message: "Banners fetched successfully",
-    //   data: banners,
-    // });
-
-    return res.status(200).json(successResponse("Banners fetched successfully", { data: banners }));
+    res.status(200).json(successResponse("Banners retrieved successfully", response));
   } catch (error) {
-    // console.error("Error fetching banners:", error);
-    // return res.status(500).json({
-    //   status: "Failed",
-    //   message: error.message || "Internal server error",
-    // });
-    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
+/**
+ * Get banner by unique ID
+ */
+export const getBannerByUniqueIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: banner_unique_id } = req.params;
+
+    const response = await getBannerByUniqueIdService(tenantId, banner_unique_id);
+
+    res.status(200).json(successResponse("Banner retrieved successfully", response));
+  } catch (error) {
+    res.status(400).json(errorResponse(error.message, error));
+  }
+};
+
+/**
+ * Update banner by unique ID
+ */
 export const updateBannerController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; // banner _id
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: banner_unique_id } = req.params;
+    const images_base64 = req.body.banner_image || []; // Array of base64 images
+    const fileBuffers = [];
 
-    if (!tenantID || !id) {
-      // return res.status(400).json({
-      //   status: "Failed",
-      //   message: "Tenant ID and Banner ID are required",
-      // });
-      return res.status(400).json(errorResponse("Tenant ID and Banner ID are required"));
+    // Convert all base64 images to buffers
+    if (Array.isArray(images_base64) && images_base64.length > 0) {
+      for (const image_base64 of images_base64) {
+        if (image_base64) {
+          // Remove base64 header if present
+          const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, "");
+          fileBuffers.push(Buffer.from(base64Data, "base64"));
+        }
+      }
     }
 
-    const {
-      banner_title,
-      banner_subtitle,
-      banner_description,
-      banner_link,
-      start_date,
-      end_date,
-      is_active,
-      priority,
-    } = req.body;
+    const response = await updateBannerService(tenantId, banner_unique_id, req.body, fileBuffers);
 
-    const updatedData = {
-      banner_title,
-      banner_subtitle,
-      banner_description,
-      banner_link,
-      start_date,
-      end_date,
-      is_active,
-      priority,
-    };
-
-    const newImageFilename = req.file ? req.file.path : null;
-
-    const updatedBanner = await updateBannerService(tenantID, id, updatedData, newImageFilename);
-
-    // return res.status(200).json({
-    //   status: "Success",
-    //   message: "Banner updated successfully",
-    //   data: updatedBanner,
-    // });
-
-    return res.status(200).json(successResponse("Banner updated successfully", { data: updatedBanner }));
+    res.status(200).json(successResponse("Banner updated successfully", response));
   } catch (error) {
-    // console.error("Error updating banner:", error);
-    // return res.status(500).json({
-    //   status: "Failed",
-    //   message: error.message || "Internal server error",
-    // });
-    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
 
+/**
+ * Delete banner (soft delete)
+ */
 export const deleteBannerController = async (req, res) => {
   try {
-    const tenantID = req.headers["x-tenant-id"];
-    const { id } = req.params; // banner ID
+    const tenantId = req.headers["x-tenant-id"];
+    const { id: banner_unique_id } = req.params;
 
-    if (!tenantID || !id) {
-      // return res.status(400).json({
-      //   status: "Failed",
-      //   message: "Tenant ID and Banner ID are required",
-      // });
-      return res.status(400).json(errorResponse("Tenant ID and Banner ID are required"));
-    }
+    const response = await deleteBannerService(tenantId, banner_unique_id);
 
-    const deletedBanner = await deleteBannerService(tenantID, id);
-
-    // return res.status(200).json({
-    //   status: "Success",
-    //   message: "Banner deleted successfully",
-    //   data: deletedBanner,
-    // });
-
-    return res.status(200).json(successResponse("Banner deleted successfully", { data: deletedBanner }));
+    res.status(200).json(successResponse("Banner deleted successfully", response));
   } catch (error) {
-    // console.error("Error deleting banner:", error);
-    // return res.status(500).json({
-    //   status: "Failed",
-    //   message: error.message || "Internal server error",
-    // });
-    return res.status(500).json(errorResponse(error.message || "Internal server error", error));
+    res.status(400).json(errorResponse(error.message, error));
   }
 };
