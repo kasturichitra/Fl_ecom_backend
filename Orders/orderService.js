@@ -240,6 +240,9 @@ export const createOrderServices = async (tenantId, payload) => {
 
   let order_id = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
 
+  const existingUser = await userModelDB.findOne({ user_id: payload.user_id });
+  throwIfTrue(!existingUser, `User not found`);
+
   // Remove unwanted fields from payload
   const {
     is_from_cart,
@@ -273,10 +276,12 @@ export const createOrderServices = async (tenantId, payload) => {
         status: "Pending",
         updated_at: new Date(),
         updated_by: payload.user_id || "system",
+        updated_name: username || "System",
         note: "Order created",
       },
     ],
   };
+  console.log("orderDoc=====>", orderDoc);
 
   // const existingOrderWithTransaction = await PaymentTransactionsDB.findOne({
   //   order_id,
@@ -304,7 +309,7 @@ export const createOrderServices = async (tenantId, payload) => {
     await userModelDB.findByIdAndUpdate(payload.user_id, { $push: { address: addressToSave } }, { new: true });
   }
 
-  // console.log("✅✅ order Doc is ", orderDoc);
+  console.log("✅✅ order Doc is ", orderDoc);
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 
@@ -859,10 +864,13 @@ export const updateOrderStatusService = async (tenantId, orderId, newStatus, upd
   throwIfTrue(!orderId, "Valid Order ID is required");
   throwIfTrue(!newStatus, "Status is required");
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, userModelDB } = await getTenantModels(tenantId);
 
   const order = await orderModelDB.findOne({ order_id: orderId });
   throwIfTrue(!order, "Order not found");
+  const existingUser = await userModelDB.findOne({ user_id: updatedBy });
+  throwIfTrue(!existingUser, `User not found`);
+  // console.log("existingUser=====>", existingUser);
 
   // Check if the new status already exists in the history
   const statusExists = order.order_status_history.some((entry) => entry.status === newStatus);
@@ -873,10 +881,11 @@ export const updateOrderStatusService = async (tenantId, orderId, newStatus, upd
   order.order_status_history.push({
     status: newStatus,
     updated_at: new Date(),
-    updated_by: updatedBy || "system",
+    updated_by: existingUser.user_id,
+    updated_name: existingUser.username,
     note: note || `Status changed to ${newStatus}`,
   });
-
+  // console.log("order data=====>", order);
   // Save the updated order
   return await order.save();
 };

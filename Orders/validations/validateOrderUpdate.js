@@ -153,6 +153,7 @@ const orderUpdateSchema = Joi.object({
   // New optional fields for updates
   status_note: Joi.string().optional().allow(null, ""),
   updated_by: Joi.string().optional().allow(null, ""),
+  updated_name: Joi.string().optional().allow(null, ""),
   customer_name: Joi.string().optional().allow(null, ""),
   mobile_number: Joi.string().optional().allow(null, ""),
 });

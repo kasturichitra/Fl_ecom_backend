@@ -196,6 +196,7 @@ export const orderValidationSchema = Joi.object({
           .required(),
         updated_at: Joi.date().optional(),
         updated_by: Joi.string().allow(null, "").optional(),
+        updated_name: Joi.string().allow(null, "").optional(),
         note: Joi.string().allow(null, "").optional(),
       }),
     )

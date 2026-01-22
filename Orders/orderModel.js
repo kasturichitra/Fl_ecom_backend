@@ -175,7 +175,10 @@ const orderStatusHistorySchema = new mongoose.Schema({
     default: Date.now,
   },
   updated_by: {
-    type: String, // admin_id or system
+    type: String, 
+  },
+  updated_name: {
+    type: String,
   },
   note: {
     type: String,
