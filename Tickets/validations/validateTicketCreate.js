@@ -35,6 +35,7 @@ const createTicketSchema = Joi.object({
   }),
 
   status: Joi.string().valid("pending", "assigned", "in_progress", "resolved").optional(),
+  priority: Joi.string().valid("low", "medium", "high", "critical").optional(),
 
   assigned_to: Joi.string().trim().hex().length(24).allow(null).optional(),
   assigned_at: Joi.date().optional(),

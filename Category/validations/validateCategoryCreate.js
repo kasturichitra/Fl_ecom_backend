@@ -38,12 +38,12 @@ const categoryCreateSchema = Joi.object({
       Joi.object({
         name: Joi.string().required(),
         code: Joi.string().required(),
-        slug: Joi.string().optional().allow("", null),
-        description: Joi.string().optional().allow("", null),
+        // slug: Joi.string().optional().allow("", null),
+        // description: Joi.string().optional().allow("", null),
         units: Joi.string().optional().allow("", null),
-        is_active: Joi.boolean().default(true),
-        created_by: Joi.string().optional().allow("", null),
-        updated_by: Joi.string().optional().allow("", null),
+        // is_active: Joi.boolean().default(true),
+        // created_by: Joi.string().optional().allow("", null),
+        // updated_by: Joi.string().optional().allow("", null),
       })
     )
     .optional(),

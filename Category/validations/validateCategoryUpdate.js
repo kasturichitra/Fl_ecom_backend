@@ -34,12 +34,12 @@ const categoryUpdateSchema = Joi.object({
       Joi.object({
         name: Joi.string().optional(),
         code: Joi.string().required(),
-        slug: Joi.string().optional(),
-        description: Joi.string().optional(),
+        // slug: Joi.string().optional(),
+        // description: Joi.string().optional(),
         units: Joi.string().optional(),
-        is_active: Joi.boolean(),
-        created_by: Joi.string().optional(),
-        updated_by: Joi.string().optional(),
+        // is_active: Joi.boolean(),
+        // created_by: Joi.string().optional(),
+        // updated_by: Joi.string().optional(),
       })
     )
     .optional(),
