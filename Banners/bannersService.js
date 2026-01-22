@@ -118,8 +118,10 @@ export const updateBannerService = async (tenantId, banner_unique_id, updateData
 
   const { bannerModelDB } = await getTenantModels(tenantId);
 
-  const existingBanner = await bannerModelDB.findOne({ banner_unique_id }).lean();
+  const existingBanner = await bannerModelDB.findOne({ banner_unique_id });
   throwIfTrue(!existingBanner, "Banner not found");
+
+  throwIfTrue(existingBanner.banner_image.length + bannerImageBuffers.length > 5, "You can upload a maximum of 5 images for a banner");
 
   // Validate date ranges if both dates are provided
   if (updateData.start_date && updateData.end_date) {
@@ -128,34 +130,18 @@ export const updateBannerService = async (tenantId, banner_unique_id, updateData
     throwIfTrue(endDate <= startDate, "End date must be after start date");
   }
 
-  // Handle banner images upload and cleanup (now an array)
-  // if (bannerImageBuffers && bannerImageBuffers.length > 0) {
-  //   // Delete existing banner images from S3 (all images and their variants)
-  //   if (existingBanner.banner_image && Array.isArray(existingBanner.banner_image)) {
-  //     for (const imageObj of existingBanner.banner_image) {
-  //       if (imageObj && typeof imageObj === "object") {
-  //         const imageUrls = Object.values(imageObj).filter((url) => typeof url === "string");
-  //         await Promise.all(imageUrls.map(autoDeleteFromS3));
-  //       }
-  //     }
-  //   }
+  // Upload new banner images as an array
+  const uploadedImages = [];
+  for (let i = 0; i < bannerImageBuffers.length; i++) {
+    const imageVariants = await uploadImageVariants({
+      fileBuffer: bannerImageBuffers[i],
+      basePath: `${tenantId}/Banners/${banner_unique_id}/image-${i}`,
+    });
+    uploadedImages.push(imageVariants);
+  }
+  existingBanner.banner_image.push(...uploadedImages);
 
-    // Upload new banner images as an array
-    const uploadedImages = [];
-    for (let i = 0; i < bannerImageBuffers.length; i++) {
-      const imageVariants = await uploadImageVariants({
-        fileBuffer: bannerImageBuffers[i],
-        basePath: `${tenantId}/Banners/${banner_unique_id}/image-${i}`,
-      });
-      uploadedImages.push(imageVariants);
-    }
-    updateData.banner_image = uploadedImages;
-  // }
-
-  const updatedBanner = await bannerModelDB.findOneAndUpdate({ banner_unique_id }, updateData, {
-    new: true,
-    runValidators: true,
-  });
+  const updatedBanner = await existingBanner.save();
 
   return updatedBanner;
 };
