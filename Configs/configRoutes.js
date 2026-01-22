@@ -8,12 +8,14 @@ import {
   deleteConfigController,
 } from "./configController.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
+import verifyToken from "../utils/verifyToken.js";
 
 const router = express.Router();
 
 // Create config
 router.post(
   "/",
+  verifyToken,
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
     maxRequests: 15,
@@ -58,6 +60,7 @@ router.get(
 // Update config
 router.put(
   "/",
+  verifyToken, 
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
     maxRequests: 15,
@@ -69,6 +72,7 @@ router.put(
 // Delete config
 router.delete(
   "/:id",
+  verifyToken, 
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
     maxRequests: 15,
