@@ -859,30 +859,15 @@ export const updateOrderStatusService = async (tenantId, orderId, newStatus, upd
   throwIfTrue(!orderId, "Valid Order ID is required");
   throwIfTrue(!newStatus, "Status is required");
 
-  const validStatuses = [
-    "Pending",
-    "Processing",
-    "Shipped",
-    "Out for Delivery",
-    "Delivered",
-    "Cancelled",
-    "Returned",
-    "Refunded",
-  ];
-
-  throwIfTrue(!validStatuses.includes(newStatus), `Invalid order status: ${newStatus}`);
-
   const { orderModelDB } = await getTenantModels(tenantId);
 
   const order = await orderModelDB.findOne({ order_id: orderId });
   throwIfTrue(!order, "Order not found");
 
-  // Get the last status from history
-  const lastStatusEntry = order.order_status_history[order.order_status_history.length - 1];
-  const lastStatus = lastStatusEntry ? lastStatusEntry.status : null;
+  // Check if the new status already exists in the history
+  const statusExists = order.order_status_history.some((entry) => entry.status === newStatus);
 
-  // Check if the new status is the same as the current active status
-  throwIfTrue(lastStatus === newStatus, `Order is already in ${newStatus} status`);
+  throwIfTrue(statusExists, `Order is already in ${newStatus} status`);
 
   // Push new status to history
   order.order_status_history.push({
