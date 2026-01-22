@@ -57,7 +57,7 @@ router.get(
 
 // Update config
 router.put(
-  "/:id",
+  "/",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
     maxRequests: 15,

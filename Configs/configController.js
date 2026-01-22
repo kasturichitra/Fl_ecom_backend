@@ -68,11 +68,10 @@ export const getCurrentConfigController = async (req, res) => {
 // Update Config By Id
 export const updateConfigController = async (req, res) => {
   try {
-    const { id } = req.params;
     const updateConfig = req.body;
     const tenantId = req.headers["x-tenant-id"];
 
-    const response = await updateConfigService(tenantId, id, updateConfig);
+    const response = await updateConfigService(tenantId, updateConfig);
 
     res.status(200).json(successResponse("Config updated successfully", { data: response }));
   } catch (error) {

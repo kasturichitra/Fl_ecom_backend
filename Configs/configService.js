@@ -90,21 +90,34 @@ export const getCurrentConfigService = async (tenantID) => {
 };
 
 // Update Config
-export const updateConfigService = async (tenantID, id, updateConfigData) => {
+// Will create config if it doesn't exist
+export const updateConfigService = async (tenantID, updateConfigData) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
-  throwIfTrue(!id, "Config ID is required");
 
   const { configModelDB } = await getTenantModels(tenantID);
 
-  const existingConfig = await configModelDB.findById(id);
-  throwIfTrue(!existingConfig, `Config not found with id: ${id}`);
+  // If Id exists, update the config
+  if (updateConfigData?._id) {
+    const existingConfig = await configModelDB.findById(updateConfigData._id);
+    throwIfTrue(!existingConfig, `Config not found with id: ${updateConfigData._id}`);
 
-  const updated = await configModelDB.findByIdAndUpdate(id, updateConfigData, {
-    new: true,
-    runValidators: true,
-  });
+    const { _id, ...rest } = updateConfigData;
 
-  return updated;
+    const updated = await configModelDB.findByIdAndUpdate(updateConfigData._id, rest, {
+      new: true,
+      runValidators: true,
+    });
+
+    return updated;
+  }
+  // If Id doesn't exist, create a new config
+  else if (!updateConfigData?._id) {
+    const existingConfig = await configModelDB.findOne({});
+    throwIfTrue(existingConfig, "Config already exists for this tenant. Please use update instead.");
+
+    const response = await configModelDB.create(updateConfigData);
+    return response;
+  }
 };
 
 // Delete Config
