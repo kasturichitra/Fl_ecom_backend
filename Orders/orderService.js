@@ -163,14 +163,14 @@ export const createOrderServices = async (tenantId, payload) => {
       // Check if order quantity exceeds available stock
       throwIfTrue(
         existingProduct.stock_quantity < quantity,
-        `Insufficient stock for product "${existingProduct.product_name}"`
+        `Insufficient stock for product "${existingProduct.product_name}"`,
       );
 
       // Check if order quantity exceeds max_order_limit
       if (existingProduct.max_order_limit) {
         throwIfTrue(
           quantity > existingProduct.max_order_limit,
-          `Order quantity exceeds maximum limit for product "${existingProduct.product_name}". Maximum allowed: ${existingProduct.max_order_limit}, Requested: ${quantity}`
+          `Order quantity exceeds maximum limit for product "${existingProduct.product_name}". Maximum allowed: ${existingProduct.max_order_limit}, Requested: ${quantity}`,
         );
       }
 
@@ -199,7 +199,7 @@ export const createOrderServices = async (tenantId, payload) => {
         total_tax_value: Math.ceil(unit_tax_value * quantity),
         total_final_price: Math.ceil(unit_final_price * quantity), // Total price (tax-inclusive)
       };
-    })
+    }),
   );
 
   // Step 2: Calculate ORDER-LEVEL totals by summing from all products
@@ -220,7 +220,7 @@ export const createOrderServices = async (tenantId, payload) => {
   // Total amount = Σ(final_price of all products) + shipping
   // where each product's final_price = (base - discount) + tax
   let total_amount = Math.ceil(
-    productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges
+    productsWithTotals.reduce((sum, item) => sum + item.total_final_price, 0) + shipping_charges,
   );
 
   // Check for additional order level discounts
@@ -268,7 +268,14 @@ export const createOrderServices = async (tenantId, payload) => {
     additional_discount_percentage,
     additional_discount_type,
     order_id,
-    order_status: "Pending",
+    order_status_history: [
+      {
+        status: "Pending",
+        updated_at: new Date(),
+        updated_by: payload.user_id || "system",
+        note: "Order created",
+      },
+    ],
   };
 
   // const existingOrderWithTransaction = await PaymentTransactionsDB.findOne({
@@ -349,7 +356,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       $lte: new Date(to),
     };
   }
-  
+
   if (user_id) query.user_id = user_id;
   if (order_type) query.order_type = order_type;
   if (payment_method) query.payment_method = payment_method;
@@ -362,9 +369,10 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
       { "order_products.product_unique_id": { $regex: searchTerm, $options: "i" } },
     ];
 
-  if (origin === "user") query.payment_status = {
-    $in: ["Successful", "Refunded"],
-  }
+  if (origin === "user")
+    query.payment_status = {
+      $in: ["Successful", "Refunded", "Pending"],
+    };
 
   const sortObj = buildSortObject(sort);
 
@@ -426,7 +434,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   const result = await OrderModelDB.aggregate(pipeline);
   const orders = result[0].data;
   const totalCount = result[0].totalCount[0]?.count || 0;
-  
+
   return {
     totalCount,
     page,
@@ -454,7 +462,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
   throwIfTrue(
     allDelivered || allCancelled || allReturned,
-    "Cannot update order that is fully Delivered, Cancelled, or Returned"
+    "Cannot update order that is fully Delivered, Cancelled, or Returned",
   );
 
   let stockRestored = false;
@@ -472,6 +480,46 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     const hasShipped = order.order_Products?.some((p) => ["Shipped", "Delivered"].includes(p.status));
     throwIfTrue(hasShipped, "Cannot change offline address after any item is shipped");
     order.offline_address = updateData?.offline_address;
+  }
+
+  // Handle Order Status Update via order_status_history
+  if (updateData?.order_status) {
+    const validStatuses = [
+      "Pending",
+      "Processing",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+      "Returned",
+      "Refunded",
+    ];
+    throwIfTrue(!validStatuses.includes(updateData.order_status), `Invalid order status: ${updateData.order_status}`);
+
+    order.order_status_history.push({
+      status: updateData.order_status,
+      updated_at: new Date(),
+      updated_by: updateData.updated_by || "system",
+      note: updateData.status_note || `Status changed to ${updateData.order_status}`,
+    });
+  }
+
+  // Handle Customer Details Update (for Offline orders)
+  if (updateData?.customer_name) {
+    order.customer_name = updateData.customer_name;
+  }
+
+  if (updateData?.mobile_number) {
+    order.mobile_number = updateData.mobile_number;
+  }
+
+  // Handle Shipping and Currency Updates
+  if (updateData?.shipping_charges !== undefined) {
+    order.shipping_charges = Number(updateData.shipping_charges);
+  }
+
+  if (updateData?.currency) {
+    order.currency = updateData.currency;
   }
 
   // Handle Individual Product Status Updates
@@ -532,8 +580,15 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
       // Push to order's payment_transactions array
       order.payment_transactions.push(paymentTransaction._id);
-      order.order_status = "Pending";
       order.transaction_id = paymentTransaction.transaction_id;
+
+      // Add to order status history
+      order.order_status_history.push({
+        status: "Pending",
+        updated_at: new Date(),
+        updated_by: updateData.updated_by || "system",
+        note: "Payment successful, order confirmed",
+      });
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
       order.payment_status = "Successful";
@@ -562,7 +617,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     let username = null;
 
     if (order?.user_id) {
-      userDoc = await userModelDB.findOne({user_id: order?.user_id});
+      userDoc = await userModelDB.findOne({ user_id: order?.user_id });
       throwIfTrue(!userDoc, `User not found with id: ${order?.user_id}`);
       username = userDoc?.username;
     } else {
@@ -632,8 +687,15 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
       // Push to order's payment_transactions array
       order.payment_transactions.push(paymentTransaction._id);
-      order.order_status = "Failed";
       order.transaction_id = paymentTransaction.transaction_id;
+
+      // Add to order status history
+      order.order_status_history.push({
+        status: "Cancelled",
+        updated_at: new Date(),
+        updated_by: updateData.updated_by || "system",
+        note: "Payment failed",
+      });
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
       order.payment_status = "Failed";
@@ -645,6 +707,14 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     wasJustCancelled = true;
     // order.payment_status = "Refunded"; // REMOVED
     order.order_cancel_date = new Date();
+
+    // Add to order status history
+    order.order_status_history.push({
+      status: "Cancelled",
+      updated_at: new Date(),
+      updated_by: updateData.updated_by || "system",
+      note: updateData.cancellation_reason || "Order cancelled",
+    });
 
     order.order_Products.forEach((p) => {
       if (!["Delivered", "Returned"].includes(p.status)) {
@@ -782,4 +852,46 @@ export const getOrderSingleProductService = async (tenantId, order_id, product_u
   order.product = matchedProduct;
 
   return order;
+};
+
+export const updateOrderStatusService = async (tenantId, orderId, newStatus, updatedBy, note) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!orderId, "Valid Order ID is required");
+  throwIfTrue(!newStatus, "Status is required");
+
+  const validStatuses = [
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Out for Delivery",
+    "Delivered",
+    "Cancelled",
+    "Returned",
+    "Refunded",
+  ];
+
+  throwIfTrue(!validStatuses.includes(newStatus), `Invalid order status: ${newStatus}`);
+
+  const { orderModelDB } = await getTenantModels(tenantId);
+
+  const order = await orderModelDB.findOne({ order_id: orderId });
+  throwIfTrue(!order, "Order not found");
+
+  // Get the last status from history
+  const lastStatusEntry = order.order_status_history[order.order_status_history.length - 1];
+  const lastStatus = lastStatusEntry ? lastStatusEntry.status : null;
+
+  // Check if the new status is the same as the current active status
+  throwIfTrue(lastStatus === newStatus, `Order is already in ${newStatus} status`);
+
+  // Push new status to history
+  order.order_status_history.push({
+    status: newStatus,
+    updated_at: new Date(),
+    updated_by: updatedBy || "system",
+    note: note || `Status changed to ${newStatus}`,
+  });
+
+  // Save the updated order
+  return await order.save();
 };

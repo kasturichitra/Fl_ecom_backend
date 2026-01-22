@@ -117,7 +117,7 @@ const orderProductSchema = Joi.object({
   unit_tax_percentage: Joi.number().min(0).optional().messages({
     "number.base": "Unit tax percentage must be a number.",
     "number.min": "Unit tax percentage cannot be negative.,",
-  }), 
+  }),
   unit_final_price: Joi.number().min(0).required().messages({
     "any.required": "Unit final price is required.",
     "number.base": "Unit final price must be a number.",
@@ -179,11 +179,30 @@ export const orderValidationSchema = Joi.object({
     "date.base": "Order cancel date must be a valid date.",
   }),
 
-  order_status: Joi.string()
-    .valid("Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned")
-    .default("Pending")
+  order_status_history: Joi.array()
+    .items(
+      Joi.object({
+        status: Joi.string()
+          .valid(
+            "Pending",
+            "Processing",
+            "Shipped",
+            "Out for Delivery",
+            "Delivered",
+            "Cancelled",
+            "Returned",
+            "Refunded",
+          )
+          .required(),
+        updated_at: Joi.date().optional(),
+        updated_by: Joi.string().allow(null, "").optional(),
+        note: Joi.string().allow(null, "").optional(),
+      }),
+    )
+    .required()
     .messages({
-      "any.only": "Invalid order status.",
+      "array.base": "Order status history must be an array.",
+      "any.required": "Order status history is required.",
     }),
 
   order_products: Joi.array().items(orderProductSchema).min(1).required().messages({

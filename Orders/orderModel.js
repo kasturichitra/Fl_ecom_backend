@@ -111,7 +111,7 @@ const orderProductSchema = new mongoose.Schema({
   unit_tax_percentage: {
     type: Number,
     default: 0,
-  }, 
+  },
   // Additional discount percentage (applied on discounted price)
   additional_discount_percentage: {
     type: Number,
@@ -163,6 +163,25 @@ const orderProductSchema = new mongoose.Schema({
   },
 });
 
+// Order Status History Schema
+const orderStatusHistorySchema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ["Pending", "Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled", "Returned", "Refunded"],
+    required: true,
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now,
+  },
+  updated_by: {
+    type: String, // admin_id or system
+  },
+  note: {
+    type: String,
+  },
+});
+
 const orderSchema = new mongoose.Schema(
   {
     user_id: {
@@ -200,19 +219,26 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
     order_cancel_date: { type: Date },
-    order_status: {
-      type: String,
-      enum: ["Pending", "Successful", "Failed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
-      default: "Pending",
-    },
+    // order_status: {
+    //   type: String,
+    //   enum: ["Pending", "Successful", "Failed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
+    //   default: "Pending",
+    // },
 
-    order_delivery_date: {
-      type: Date,
-    },
+    // order_delivery_date: {
+    //   type: Date,
+    // },
 
-    order_refund_date: {
-      type: Date,
-    },
+    // order_refund_date: {
+    //   type: Date,
+    // },
+
+    order_status_history: [
+      {
+        type: orderStatusHistorySchema,
+        required: true,
+      },
+    ],
 
     // Customer details for offline orders
     customer_name: {
