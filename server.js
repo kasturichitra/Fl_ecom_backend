@@ -153,7 +153,7 @@ app.use(
   cartRoutes
 );
 app.use("/notifications", verifyToken, notificationRoutes);
-app.use("/configs", verifyToken, configRoutes);
+app.use("/configs", configRoutes);
 app.use(
   "/dashboard",
   // verifyToken,
