@@ -33,6 +33,8 @@ import paymentRoutes from "./Payment/paymentRoutes.js";
 import businessRoutes from "./Business/businessRoute.js";
 import permissionRoutes from "./Permission/permissionRoute.js";
 import roleRoutes from "./Role/roleRoute.js";
+import ecomFeaturesRoutes from "./EcomFeatures/ecomFeatureRoutes.js";
+
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
@@ -170,6 +172,7 @@ app.use("/payment", paymentRoutes);
 app.use("/business", businessRoutes);
 app.use("/permissions", permissionRoutes);
 app.use("/role", roleRoutes);
+app.use("/ecom-features", ecomFeaturesRoutes);
 
 app.use("/", userRoutes);
 
