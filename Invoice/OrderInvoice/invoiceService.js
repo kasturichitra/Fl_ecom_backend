@@ -22,10 +22,13 @@ export const generateInvoiceService = async (tenantId, orderId, user_id) => {
   order.business_details = business;
 
   // Fetch the admin selected invoice template from db if not found then use default invoice template
-  const selectedgenerateInvoiceTemplate = await contactInfoModelDB.findOne().lean();
-  const invoiceTemplate = selectedgenerateInvoiceTemplate.invoice_template;
+  const selectedgenerateInvoiceTemplate = await contactInfoModelDB
+    .findOne()
+    .populate("invoice_template gst_in_number")
+    .lean();
+  const { invoice_template, gst_in_number } = selectedgenerateInvoiceTemplate;
 
-  const html = generateInvoiceTemplate(order, invoiceTemplate);
+  const html = generateInvoiceTemplate(order, invoice_template, gst_in_number);
 
   const browser = await puppeteer.launch({
     headless: "new",
