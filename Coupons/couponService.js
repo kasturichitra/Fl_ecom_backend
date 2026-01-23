@@ -79,7 +79,7 @@ export const getAllCouponsService = async (tenantId, filters, search, page, limi
   const { couponModelDB } = await getTenantModels(tenantId);
   const { product_id, category_id, brand_id, ...cleanedFilters } = filters;
   let query = { ...cleanedFilters };
-
+  console.log("product id", filters);
   if (search) {
     const searchRegex = { $regex: search, $options: "i" };
     const searchNumber = Number(search);
@@ -96,7 +96,7 @@ export const getAllCouponsService = async (tenantId, filters, search, page, limi
         { discount_percentage: searchNumber },
         { discount_amount: searchNumber },
         { min_order_amount: searchNumber },
-        { total_useage_limit: searchNumber }
+        { total_useage_limit: searchNumber },
       );
     }
     query.$or = searchOr;
@@ -104,27 +104,67 @@ export const getAllCouponsService = async (tenantId, filters, search, page, limi
 
   // Advanced filtering: Contextual applicability
   // If identifying info is provided, we want coupons that match THAT specific context OR are global ('Order')
+  // if (product_id || category_id || brand_id) {
+  //   const contextConditions = [
+  //     { apply_on: "Order" }, // Global coupons are always applicable
+  //   ];
+
+  //   if (product_id) {
+  //     contextConditions.push({ apply_on: "Product", "selected_products.value": product_id });
+  //   }
+  //   if (category_id) {
+  //     contextConditions.push({ apply_on: "Category", "selected_categories.value": category_id });
+  //   }
+  //   if (brand_id) {
+  //     contextConditions.push({ apply_on: "Brand", "selected_brands.value": brand_id });
+  //   }
+
+  //   if (query.$or) {
+  //     // If search exists, we need BOTH (search matches AND context matches)
+  //     query.$and = [{ $or: query.$or }, { $or: contextConditions }];
+  //     delete query.$or;
+  //   } else {
+  //     query.$or = contextConditions;
+  //   }
+  // }
+
+  // Context-based filtering (FIXED)
   if (product_id || category_id || brand_id) {
-    const contextConditions = [
-      { apply_on: "Order" }, // Global coupons are always applicable
-    ];
+    const contextOr = [];
+
+    // Global coupons
+    contextOr.push({ apply_on: "Order" });
 
     if (product_id) {
-      contextConditions.push({ apply_on: "Product", "selected_products.value": product_id });
-    }
-    if (category_id) {
-      contextConditions.push({ apply_on: "Category", "selected_categories.value": category_id });
-    }
-    if (brand_id) {
-      contextConditions.push({ apply_on: "Brand", "selected_brands.value": brand_id });
+      contextOr.push({
+        apply_on: "Product",
+        "selected_products.value": product_id,
+      });
     }
 
+    if (category_id) {
+      contextOr.push({
+        apply_on: "Category",
+        "selected_categories.value": category_id,
+      });
+    }
+
+    if (brand_id) {
+      contextOr.push({
+        apply_on: "Brand",
+        "selected_brands.value": brand_id,
+      });
+    }
+
+    // Merge with search safely
     if (query.$or) {
-      // If search exists, we need BOTH (search matches AND context matches)
-      query.$and = [{ $or: query.$or }, { $or: contextConditions }];
+      query.$and = [
+        { $or: query.$or }, // search conditions
+        { $or: contextOr }, // context conditions
+      ];
       delete query.$or;
     } else {
-      query.$or = contextConditions;
+      query.$or = contextOr;
     }
   }
 
@@ -213,7 +253,7 @@ export const updateCouponService = async (tenantId, id, updateData) => {
   let updatedCoupon = await couponModelDB.findByIdAndUpdate(
     id,
     { $set: updateData },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   throwIfTrue(!updatedCoupon, "Coupon not found");
@@ -222,7 +262,7 @@ export const updateCouponService = async (tenantId, id, updateData) => {
   // We check who hasn't received an email yet (email_sent: false)
   if (updatedCoupon.coupon_type === "User_Specific" && updatedCoupon.user && updatedCoupon.user.length > 0) {
     processBackgroundEmails(tenantId, updatedCoupon).catch((err) =>
-      console.error("Background update email error:", err)
+      console.error("Background update email error:", err),
     );
   }
 
@@ -254,7 +294,7 @@ const processBackgroundEmails = async (tenantId, coupon) => {
           // We need to mutate the mongoose document or prepare an update operation
           await couponModelDB.updateOne(
             { _id: coupon._id, "user.value": user._id.toString() },
-            { $set: { "user.$.email_sent": true } }
+            { $set: { "user.$.email_sent": true } },
           );
         }
       });
