@@ -13,6 +13,7 @@ import { sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
   throwIfTrue(!payload.business_name, "Business Name Required");
+  console.log("gstinVerifyUrl", gstinVerifyUrl);
 
   try {
     const { data } = await axios.post(`${gstinVerifyUrl}/business/Gstinverify`, {

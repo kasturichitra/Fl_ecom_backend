@@ -34,6 +34,7 @@ import businessRoutes from "./Business/businessRoute.js";
 import permissionRoutes from "./Permission/permissionRoute.js";
 import roleRoutes from "./Role/roleRoute.js";
 import ecomFeaturesRoutes from "./EcomFeatures/ecomFeatureRoutes.js";
+import themeRoutes from "./ThemeConfig/themeRoute.js";
 
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
@@ -52,7 +53,7 @@ app.use(compression());
 app.use(
   express.json({
     limit: "50mb",
-  })
+  }),
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -70,7 +71,7 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-tenant-id"],
     credentials: true,
-  })
+  }),
 );
 
 /* ---------------------- HTTP + Socket.IO ---------------------- */
@@ -144,7 +145,7 @@ app.use("/reviews", productsReviewsRoute);
 app.use(
   "/orders",
   // verifyToken,
-  orderRoute
+  orderRoute,
 );
 // app.use("/ticket",verifyToken, ticketRoute);
 app.use("/wishlists", verifyToken, wishlistRoute);
@@ -153,14 +154,14 @@ app.use("/brands", brandRoutes);
 app.use(
   "/cart",
   // verifyToken,
-  cartRoutes
+  cartRoutes,
 );
 app.use("/notifications", verifyToken, notificationRoutes);
 app.use("/configs", configRoutes);
 app.use(
   "/dashboard",
   // verifyToken,
-  dashboardRoutes
+  dashboardRoutes,
 );
 app.use("/saleTrends", saleTrendRoutes);
 
@@ -174,6 +175,7 @@ app.use("/business", businessRoutes);
 app.use("/permissions", permissionRoutes);
 app.use("/role", roleRoutes);
 app.use("/ecom-features", ecomFeaturesRoutes);
+app.use("/theme", themeRoutes);
 
 app.use("/", userRoutes);
 

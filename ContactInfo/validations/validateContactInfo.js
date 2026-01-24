@@ -69,6 +69,12 @@ const contactInfoSchema = Joi.object({
   business_description: Joi.string().optional().allow("", null).messages({
     "string.base": "Business description must be a string.",
   }),
+  gst_in_number: Joi.string().optional().allow("", null).messages({
+    "string.base": "GSTIN must be a string.",
+  }),
+  business_address: Joi.string().optional().allow("", null).messages({
+    "string.base": "Business address must be a string.",
+  }),
 });
 
 function validateContactInfo(data) {
