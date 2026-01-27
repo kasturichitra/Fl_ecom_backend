@@ -170,7 +170,7 @@ export const deletePaymentDocumentService = async (tenantId, keyId) => {
 export const initiatePaymentOrderService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { userModelDB } = await getTenantModels(tenantId);
+  const { userModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   let {
     gateway = "CASHFREE",
@@ -181,7 +181,7 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
     paymentMethod,
     redirectUrl,
     userId,
-    orderId,
+    referenceId, // Id of transaction created along with order
   } = payload;
 
   amount = Number(amount);
@@ -193,10 +193,18 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
 
   throwIfTrue(!existingUser, `User doesn't exist with this id ${userId}`);
 
-  console.log("Order Id in initiate payument order service ======>", orderId);
+  console.log("Reference Id in initiate payument order service ======>", referenceId);
+
+  // Check for the transaction with referenceId and also check it's status
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  throwIfTrue(existingTransaction?.payment_status?.toLowerCase() !== "pending", "Payment already initiated");
 
   const sendablePayload = {
-    referenceId: orderId,
+    referenceId,
     projectId: process.env.PROJECT_ID || "ecommerce_app",
     tenantId,
     flow,
@@ -224,8 +232,6 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   }
 };
 
-
-
 export const getPaymentStatusService = async (tenantId, orderId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderId, "Order ID is required");
@@ -239,11 +245,14 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   const existingOrder = await orderModelDB.findOne({ order_id: orderId });
   throwIfTrue(!existingOrder, "Order doesn't exist with this id");
 
-  if (existingOrder?.payment_status?.toLowerCase() === "failed" || existingOrder?.payment_status?.toLowerCase() === "successful") {
+  if (
+    existingOrder?.payment_status?.toLowerCase() === "failed" ||
+    existingOrder?.payment_status?.toLowerCase() === "successful"
+  ) {
     return {
       order_id: orderId,
-      paymentStatus: existingOrder?.payment_status
-    }
+      paymentStatus: existingOrder?.payment_status,
+    };
   }
 
   try {
