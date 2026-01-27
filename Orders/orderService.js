@@ -331,7 +331,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   return {
     ...order,
-    transaction_reference_id: paymentTransaction?.transaction_id,
+    transaction_reference_id: paymentTransaction?.transaction_reference_id,
   };
 };
 
