@@ -4,6 +4,7 @@ import validatePaymentDocuments from "./validations/validatePayment.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { v4 as uuidv4 } from "uuid";
 import { updateOrderService } from "../Orders/orderService.js";
+import { updateTransactionAnalytics } from "../lib/producers/updateTransactionAnalytics.js";
 
 function extractPGGateways(response) {
   if (!response?.data || !Array.isArray(response.data)) return [];
@@ -236,6 +237,21 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     responseData = response?.data;
 
     console.log("Response Data is ===>>", responseData);
+
+    /**
+     Response Data is ===>> {
+    transactionId: 'TXN_9e45e054636d4f3b',
+    amount: '40500.00',
+    tenantId: 'tenant123',
+    projectId: 'ecommerce_app',
+    paymentStatus: 'SUCCESS',
+    gateway: 'CASHFREE',
+    gatewayCode: 'CA103',
+    paymentMode: 'CREDIT_CARD',
+    paymentType: 'NORMAL_CREDIT_CARD',
+    paymentMethod: 'VISA'
+    }
+     */
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
@@ -243,6 +259,18 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   const normalizedStatus = responseData?.paymentStatus?.trim().toLowerCase();
 
   if (normalizedStatus === "success") {
+    const mqPayload = {
+      eventId: responseData?.transactionId,
+      tenantId: responseData?.tenantId,
+      gateway: responseData?.gateway,
+      gatewayCode: responseData?.gatewayCode,
+      keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
+      paymentMode: responseData?.paymentMode,
+      totalAmount: responseData?.amount,
+      status: "success",
+    };
+
+    updateTransactionAnalytics(mqPayload);
     return await processOrderPayment({
       tenantId,
       orderId,
@@ -252,6 +280,19 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   }
 
   if (normalizedStatus === "failed") {
+    const mqPayload = {
+      eventId: responseData?.transactionId,
+      tenantId: responseData?.tenantId,
+      gateway: responseData?.gateway,
+      gatewayCode: responseData?.gatewayCode,
+      keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
+      paymentMode: responseData?.paymentMode,
+      totalAmount: responseData?.amount,
+      status: "failed",
+    };
+
+    updateTransactionAnalytics(mqPayload);
+
     return await processOrderPayment({
       tenantId,
       orderId,
