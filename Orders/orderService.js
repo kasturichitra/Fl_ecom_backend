@@ -96,7 +96,12 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
 export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { orderModelDB: OrderModelDB, userModelDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
+  const {
+    orderModelDB: OrderModelDB,
+    userModelDB,
+    productModelDB: ProductModelDB,
+    paymentTransactionsModelDB,
+  } = await getTenantModels(tenantId);
 
   let userDoc = null;
   let username = null;
@@ -238,7 +243,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   let order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
-  let order_id = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
+  let order_id = `OD_${Date.now()}_${uuidv4().slice(-6)}`;
 
   const existingUser = await userModelDB.findOne({ user_id: payload.user_id });
   throwIfTrue(!existingUser, `User not found`);
@@ -313,7 +318,21 @@ export const createOrderServices = async (tenantId, payload) => {
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 
-  return order;
+  const transactionId = `TXN_${order?.order_id}`;
+
+  const paymentTransactionDoc = {
+    order_id: order?.order_id,
+    transaction_id: transactionId,
+    user_id: order?.user_id,
+    amount: order?.total_amount,
+  };
+
+  const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
+
+  return {
+    ...order, 
+    transaction_id: paymentTransaction?.transaction_id
+  };
 };
 
 // Get all orders for a user

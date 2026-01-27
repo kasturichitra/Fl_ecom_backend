@@ -10,7 +10,6 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     payment_method: {
       type: String,
-      required: true,
     },
     transaction_id: {
       type: String,
@@ -35,15 +34,12 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     gateway: {
       type: String,
-      required: true,
     },
     gateway_code: {
       type: String,
-      required: true,
     },
     key_id: {
       type: String,
-      required: true,
     },
     is_verified: {
       type: Boolean,
@@ -52,7 +48,7 @@ const paymentTransactionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const PaymentTransactionsModel = async (tenantID) => {

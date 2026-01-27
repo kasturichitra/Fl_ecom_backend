@@ -211,12 +211,12 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
     // Relationship with PaymentTransactions
-    payment_transactions: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PaymentTransactions",
-      },
-    ],
+    // payment_transactions: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "PaymentTransactions",
+    //   },
+    // ],
     order_create_date: {
       type: Date,
       required: true,
