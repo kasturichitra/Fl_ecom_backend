@@ -191,7 +191,7 @@ export const resendOtpController = async (req, res) => {
     const { otp_id } = req.body;
     throwIfTrue(!otp_id, "otp_id is required");
 
-    const { otpModelDB } = await getTenantModels(tenantId);
+    const { otpModelDB, userModelDB } = await getTenantModels(tenantId);
 
     const oldOtp = await otpModelDB.findOne({
       _id: otp_id,
