@@ -21,11 +21,12 @@ function extractPGGateways(response) {
 
 async function processOrderPayment({
   tenantId,
-  orderId,
+  referenceId,
   responseData,
   paymentStatusLabel, // "Paid" | "Failed"
 }) {
   const paymentDoc = {
+    payment_transaction_id: referenceId,
     payment_status: paymentStatusLabel,
     payment_method: responseData?.paymentMode,
     transaction_id: responseData?.transactionId,
@@ -37,16 +38,38 @@ async function processOrderPayment({
     is_verified: true,
   };
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { paymentTransactionsModelDB, orderModelDB } = await getTenantModels(tenantId);
 
-  const existingOrder = await orderModelDB.findOne({ order_id: orderId });
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  existingTransaction.payment_status = paymentStatusLabel;
+  existingTransaction.payment_method = responseData?.paymentMode;
+  existingTransaction.gateway_reference_id = responseData?.gatewayReferenceId;
+  existingTransaction.transaction_id = responseData?.transactionId;
+  existingTransaction.amount = responseData?.amount;
+  existingTransaction.currency = responseData?.currency || "INR";
+  existingTransaction.gateway = responseData?.gateway;
+  existingTransaction.gateway_code = responseData?.gatewayCode;
+  existingTransaction.key_id = responseData?.keyId || "Key Id";
+  existingTransaction.is_verified = true;
+
+  await existingTransaction.save();
+
+  const existingOrder = await orderModelDB.findOne({
+    order_id: existingTransaction.order_id
+  })
   throwIfTrue(!existingOrder, "Order doesn't exist with this id");
 
   const updatedOrder = await updateOrderService(tenantId, existingOrder._id, paymentDoc);
 
+  console.log("Response Data before return in process order payment", responseData);
+
   return {
     order_id: updatedOrder?.order_id,
-    paymentStatus: responseData?.paymentStatus,
+    paymentStatus: responseData?.status,
   };
 }
 
@@ -170,7 +193,7 @@ export const deletePaymentDocumentService = async (tenantId, keyId) => {
 export const initiatePaymentOrderService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { userModelDB } = await getTenantModels(tenantId);
+  const { userModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   let {
     gateway = "CASHFREE",
@@ -181,7 +204,7 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
     paymentMethod,
     redirectUrl,
     userId,
-    orderId,
+    referenceId, // Id of transaction created along with order
   } = payload;
 
   amount = Number(amount);
@@ -193,10 +216,18 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
 
   throwIfTrue(!existingUser, `User doesn't exist with this id ${userId}`);
 
-  console.log("Order Id in initiate payument order service ======>", orderId);
+  console.log("Reference Id in initiate payument order service ======>", referenceId);
+
+  // Check for the transaction with referenceId and also check it's status
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  throwIfTrue(existingTransaction?.payment_status?.toLowerCase() !== "pending", "Payment already initiated");
 
   const sendablePayload = {
-    referenceId: orderId,
+    referenceId,
     projectId: process.env.PROJECT_ID || "ecommerce_app",
     tenantId,
     flow,
@@ -224,13 +255,34 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   }
 };
 
-export const getPaymentStatusService = async (tenantId, orderId) => {
+export const getPaymentStatusService = async (tenantId, referenceId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!orderId, "Order ID is required");
+  throwIfTrue(!referenceId, "Order ID is required");
 
-  const endpoint = `?referenceId=${orderId}`;
+  const endpoint = `?referenceId=${referenceId}`;
 
   let responseData = null;
+
+  const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
+
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  const existingOrder = await orderModelDB.findOne({ order_id: existingTransaction?.order_id });
+  throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+  if (
+    existingTransaction?.payment_status?.toLowerCase() === "failed" ||
+    existingTransaction?.payment_status?.toLowerCase() === "paid"
+  ) {
+    return {
+      order_id: referenceId,
+      paymentStatus: existingTransaction?.payment_status === "Paid" ? "SUCCESS" : "FAILED",
+    };
+  }
+
   try {
     const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
 
@@ -244,7 +296,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     amount: '40500.00',
     tenantId: 'tenant123',
     projectId: 'ecommerce_app',
-    paymentStatus: 'SUCCESS',
+    status: 'SUCCESS',
     gateway: 'CASHFREE',
     gatewayCode: 'CA103',
     paymentMode: 'CREDIT_CARD',
@@ -256,12 +308,12 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     throwIfTrue(true, `External API error: ${error}`);
   }
 
-  const normalizedStatus = responseData?.paymentStatus?.trim().toLowerCase();
+  const normalizedStatus = responseData?.status?.trim().toLowerCase();
 
   if (normalizedStatus === "success") {
     const mqPayload = {
       eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId,
+      tenantId: responseData?.tenantId || tenantId,
       gateway: responseData?.gateway,
       gatewayCode: responseData?.gatewayCode,
       keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
@@ -273,7 +325,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     updateTransactionAnalytics(mqPayload);
     return await processOrderPayment({
       tenantId,
-      orderId,
+      referenceId,
       responseData,
       paymentStatusLabel: "Paid",
     });
@@ -282,7 +334,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   if (normalizedStatus === "failed") {
     const mqPayload = {
       eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId,
+      tenantId: responseData?.tenantId || tenantId,
       gateway: responseData?.gateway,
       gatewayCode: responseData?.gatewayCode,
       keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
@@ -295,13 +347,13 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
 
     return await processOrderPayment({
       tenantId,
-      orderId,
+      referenceId,
       responseData,
       paymentStatusLabel: "Failed",
     });
   }
 
   return {
-    paymentStatus: responseData?.paymentStatus,
+    paymentStatus: responseData?.status,
   };
 };

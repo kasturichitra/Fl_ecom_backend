@@ -96,7 +96,12 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
 export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { orderModelDB: OrderModelDB, userModelDB, productModelDB: ProductModelDB } = await getTenantModels(tenantId);
+  const {
+    orderModelDB: OrderModelDB,
+    userModelDB,
+    productModelDB: ProductModelDB,
+    paymentTransactionsModelDB,
+  } = await getTenantModels(tenantId);
 
   let userDoc = null;
   let username = null;
@@ -238,7 +243,7 @@ export const createOrderServices = async (tenantId, payload) => {
 
   let order_cancel_date = payload.order_cancel_date ? new Date(payload.order_cancel_date) : undefined;
 
-  let order_id = `OD_${Date.now()}_${uuidv4().slice(-4)}`;
+  let order_id = `OD_${Date.now()}_${uuidv4().slice(-6)}`;
 
   const existingUser = await userModelDB.findOne({ user_id: payload.user_id });
   throwIfTrue(!existingUser, `User not found`);
@@ -313,7 +318,21 @@ export const createOrderServices = async (tenantId, payload) => {
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 
-  return order;
+  const transactionReferenceId = `TXN_${order?.order_id}`;
+
+  const paymentTransactionDoc = {
+    order_id: order?.order_id,
+    transaction_reference_id: transactionReferenceId,
+    user_id: order?.user_id,
+    amount: order?.total_amount,
+  };
+
+  const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
+
+  return {
+    ...order,
+    transaction_reference_id: paymentTransaction?.transaction_reference_id,
+  };
 };
 
 // Get all orders for a user
@@ -568,24 +587,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
     // If transaction_id is present, it means we are adding a NEW transaction (e.g. initial payment after order creation)
     if (updateData?.transaction_id) {
-      const paymentDoc = {
-        order_id: order.order_id,
-        user_id: order.user_id,
-        payment_status: updateData?.payment_status || "Pending",
-        payment_method: updateData?.payment_method || "Cash",
-        transaction_id: updateData?.transaction_id,
-        amount: order.total_amount, // Use order total amount
-        currency: order.currency || "INR", // Default to INR if not in order
-        gateway: updateData?.gateway,
-        gateway_code: updateData?.gateway_code,
-        key_id: updateData?.key_id,
-      };
-
-      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
-
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTransaction._id);
-      order.transaction_id = paymentTransaction.transaction_id;
+      order.transaction_id = updateData.transaction_id;
 
       // Add to order status history
       order.order_status_history.push({
@@ -675,24 +678,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "failed") {
     const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
     if (updateData?.transaction_id) {
-      const paymentDoc = {
-        order_id: order.order_id,
-        user_id: order.user_id,
-        payment_status: updateData?.payment_status || "Pending",
-        payment_method: updateData?.payment_method || "Cash",
-        transaction_id: updateData?.transaction_id,
-        amount: order.total_amount, // Use order total amount
-        currency: order.currency || "INR", // Default to INR if not in order
-        gateway: updateData?.gateway,
-        gateway_code: updateData?.gateway_code,
-        key_id: updateData?.key_id,
-      };
-
-      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
-
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTransaction._id);
-      order.transaction_id = paymentTransaction.transaction_id;
+      order.transaction_id = updateData?.transaction_id;
 
       // Add to order status history
       order.order_status_history.push({

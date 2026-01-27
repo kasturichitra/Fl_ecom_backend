@@ -191,15 +191,14 @@ export const resendOtpController = async (req, res) => {
     const { otp_id } = req.body;
     throwIfTrue(!otp_id, "otp_id is required");
 
-    const { otpModelDB } = await getTenantModels(tenantId);
+    const { otpModelDB, userModelDB } = await getTenantModels(tenantId);
 
     const oldOtp = await otpModelDB.findOne({
       _id: otp_id,
       consumed_at: null,
       expires_at: { $gt: new Date() },
     });
-
-    console.log("OTP Created At", oldOtp.createdAt);
+    throwIfTrue(!oldOtp, "OTP expired. Please restart login.");
 
     const RESEND_COOLDOWN_MS = 30 * 1000;
 
