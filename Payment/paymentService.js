@@ -46,7 +46,7 @@ async function processOrderPayment({
 
   return {
     order_id: updatedOrder?.order_id,
-    paymentStatus: responseData?.paymentStatus,
+    paymentStatus: responseData?.status,
   };
 }
 
@@ -224,6 +224,8 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   }
 };
 
+
+
 export const getPaymentStatusService = async (tenantId, orderId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderId, "Order ID is required");
@@ -231,6 +233,19 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   const endpoint = `?referenceId=${orderId}`;
 
   let responseData = null;
+
+  const { orderModelDB } = await getTenantModels(tenantId);
+
+  const existingOrder = await orderModelDB.findOne({ order_id: orderId });
+  throwIfTrue(!existingOrder, "Order doesn't exist with this id");
+
+  if (existingOrder?.payment_status?.toLowerCase() === "failed" || existingOrder?.payment_status?.toLowerCase() === "successful") {
+    return {
+      order_id: orderId,
+      paymentStatus: existingOrder?.payment_status
+    }
+  }
+
   try {
     const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
 
@@ -244,7 +259,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     amount: '40500.00',
     tenantId: 'tenant123',
     projectId: 'ecommerce_app',
-    paymentStatus: 'SUCCESS',
+    status: 'SUCCESS',
     gateway: 'CASHFREE',
     gatewayCode: 'CA103',
     paymentMode: 'CREDIT_CARD',
@@ -256,12 +271,12 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     throwIfTrue(true, `External API error: ${error}`);
   }
 
-  const normalizedStatus = responseData?.paymentStatus?.trim().toLowerCase();
+  const normalizedStatus = responseData?.status?.trim().toLowerCase();
 
   if (normalizedStatus === "success") {
     const mqPayload = {
       eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId,
+      tenantId: responseData?.tenantId || tenantId,
       gateway: responseData?.gateway,
       gatewayCode: responseData?.gatewayCode,
       keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
@@ -302,6 +317,6 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   }
 
   return {
-    paymentStatus: responseData?.paymentStatus,
+    paymentStatus: responseData?.status,
   };
 };
