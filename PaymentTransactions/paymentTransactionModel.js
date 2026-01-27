@@ -11,6 +11,14 @@ const paymentTransactionSchema = new mongoose.Schema(
     payment_method: {
       type: String,
     },
+    // Transaction reference Id is generated when order is created and hence it has to be unique and required
+    transaction_reference_id: {
+      type: String,
+      trim: true,
+      required: true, 
+      unique: true
+    }, 
+    // Transaction id is what we will get from internal payment gateway
     transaction_id: {
       type: String,
       trim: true,

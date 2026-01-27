@@ -318,11 +318,11 @@ export const createOrderServices = async (tenantId, payload) => {
   // Create order
   const order = await OrderModelDB.create(orderDoc);
 
-  const transactionId = `TXN_${order?.order_id}`;
+  const transactionReferenceId = `TXN_${order?.order_id}`;
 
   const paymentTransactionDoc = {
     order_id: order?.order_id,
-    transaction_id: transactionId,
+    transaction_reference_id: transactionReferenceId,
     user_id: order?.user_id,
     amount: order?.total_amount,
   };
@@ -330,8 +330,8 @@ export const createOrderServices = async (tenantId, payload) => {
   const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
 
   return {
-    ...order, 
-    transaction_id: paymentTransaction?.transaction_id
+    ...order,
+    transaction_reference_id: paymentTransaction?.transaction_id,
   };
 };
 
