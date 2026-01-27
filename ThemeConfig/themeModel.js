@@ -279,13 +279,10 @@
 
 // export default ThemeModel;
 
-
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
-// ============================================================================
 // GLOBAL STYLES SCHEMA
-// ============================================================================
 const globalStylesSchema = new mongoose.Schema(
   {
     // Colors
@@ -622,7 +619,7 @@ const globalStylesSchema = new mongoose.Schema(
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // ============================================================================
@@ -672,7 +669,7 @@ const sectionStyleSchema = new mongoose.Schema(
       enum: ["left", "center", "right"],
       default: "left",
     },
-    
+
     // Layout
     containerMaxWidth: {
       type: String,
@@ -764,12 +761,10 @@ const sectionStyleSchema = new mongoose.Schema(
       default: "none",
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
-// ============================================================================
 // SECTION CONFIG SCHEMA
-// ============================================================================
 const sectionConfigSchema = new mongoose.Schema(
   {
     section_id: {
@@ -809,6 +804,10 @@ const sectionConfigSchema = new mongoose.Schema(
         "faq",
       ],
       required: true,
+    },
+    image: {
+      type: String,
+      default: "",
     },
     order: {
       type: Number,
@@ -863,12 +862,10 @@ const sectionConfigSchema = new mongoose.Schema(
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
-// ============================================================================
 // PAGE CONFIG SCHEMA
-// ============================================================================
 const pageConfigSchema = new mongoose.Schema(
   {
     sections: [sectionConfigSchema],
@@ -919,13 +916,15 @@ const pageConfigSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
   },
-  { _id: false }
+  { _id: false },
 );
 
-// ============================================================================
 // MAIN THEME SCHEMA
-// ============================================================================
 const themeSchema = new mongoose.Schema(
   {
     template_name: {
@@ -937,6 +936,19 @@ const themeSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    theme_amount: {
+      type: Number,
+      default: 0,
+    },
+    theme_currency: {
+      type: String,
+      default: "USD",
+    },
+    theme_image: {
+      type: String,
+      default: "",
+    },
+    
     description: {
       type: String,
       default: "",
@@ -962,7 +974,7 @@ const themeSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    
+
     // Global Styles
     global_style: {
       type: globalStylesSchema,
@@ -1156,7 +1168,7 @@ const themeSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes
