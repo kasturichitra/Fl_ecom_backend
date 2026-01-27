@@ -587,24 +587,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
     // If transaction_id is present, it means we are adding a NEW transaction (e.g. initial payment after order creation)
     if (updateData?.transaction_id) {
-      const paymentDoc = {
-        order_id: order.order_id,
-        user_id: order.user_id,
-        payment_status: updateData?.payment_status || "Pending",
-        payment_method: updateData?.payment_method || "Cash",
-        transaction_id: updateData?.transaction_id,
-        amount: order.total_amount, // Use order total amount
-        currency: order.currency || "INR", // Default to INR if not in order
-        gateway: updateData?.gateway,
-        gateway_code: updateData?.gateway_code,
-        key_id: updateData?.key_id,
-      };
-
-      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
-
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTransaction._id);
-      order.transaction_id = paymentTransaction.transaction_id;
+      order.transaction_id = updateData.transaction_id;
 
       // Add to order status history
       order.order_status_history.push({
@@ -694,24 +678,8 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "failed") {
     const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
     if (updateData?.transaction_id) {
-      const paymentDoc = {
-        order_id: order.order_id,
-        user_id: order.user_id,
-        payment_status: updateData?.payment_status || "Pending",
-        payment_method: updateData?.payment_method || "Cash",
-        transaction_id: updateData?.transaction_id,
-        amount: order.total_amount, // Use order total amount
-        currency: order.currency || "INR", // Default to INR if not in order
-        gateway: updateData?.gateway,
-        gateway_code: updateData?.gateway_code,
-        key_id: updateData?.key_id,
-      };
-
-      const paymentTransaction = await paymentTransactionsModelDB.create(paymentDoc);
-
       // Push to order's payment_transactions array
-      order.payment_transactions.push(paymentTransaction._id);
-      order.transaction_id = paymentTransaction.transaction_id;
+      order.transaction_id = updateData?.transaction_id;
 
       // Add to order status history
       order.order_status_history.push({

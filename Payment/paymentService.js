@@ -21,11 +21,12 @@ function extractPGGateways(response) {
 
 async function processOrderPayment({
   tenantId,
-  orderId,
+  referenceId,
   responseData,
   paymentStatusLabel, // "Paid" | "Failed"
 }) {
   const paymentDoc = {
+    payment_transaction_id: referenceId,
     payment_status: paymentStatusLabel,
     payment_method: responseData?.paymentMode,
     transaction_id: responseData?.transactionId,
@@ -37,12 +38,34 @@ async function processOrderPayment({
     is_verified: true,
   };
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { paymentTransactionsModelDB, orderModelDB } = await getTenantModels(tenantId);
 
-  const existingOrder = await orderModelDB.findOne({ order_id: orderId });
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  existingTransaction.payment_status = paymentStatusLabel;
+  existingTransaction.payment_method = responseData?.paymentMode;
+  existingTransaction.gateway_reference_id = responseData?.gatewayReferenceId;
+  existingTransaction.transaction_id = responseData?.transactionId;
+  existingTransaction.amount = responseData?.amount;
+  existingTransaction.currency = responseData?.currency || "INR";
+  existingTransaction.gateway = responseData?.gateway;
+  existingTransaction.gateway_code = responseData?.gatewayCode;
+  existingTransaction.key_id = responseData?.keyId || "Key Id";
+  existingTransaction.is_verified = true;
+
+  await existingTransaction.save();
+
+  const existingOrder = await orderModelDB.findOne({
+    order_id: existingTransaction.order_id
+  })
   throwIfTrue(!existingOrder, "Order doesn't exist with this id");
 
   const updatedOrder = await updateOrderService(tenantId, existingOrder._id, paymentDoc);
+
+  console.log("Response Data before return in process order payment", responseData);
 
   return {
     order_id: updatedOrder?.order_id,
@@ -232,26 +255,31 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   }
 };
 
-export const getPaymentStatusService = async (tenantId, orderId) => {
+export const getPaymentStatusService = async (tenantId, referenceId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!orderId, "Order ID is required");
+  throwIfTrue(!referenceId, "Order ID is required");
 
-  const endpoint = `?referenceId=${orderId}`;
+  const endpoint = `?referenceId=${referenceId}`;
 
   let responseData = null;
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
-  const existingOrder = await orderModelDB.findOne({ order_id: orderId });
+  const existingTransaction = await paymentTransactionsModelDB.findOne({
+    transaction_reference_id: referenceId,
+  });
+  throwIfTrue(!existingTransaction, "Invalid reference Id");
+
+  const existingOrder = await orderModelDB.findOne({ order_id: existingTransaction?.order_id });
   throwIfTrue(!existingOrder, "Order doesn't exist with this id");
 
   if (
-    existingOrder?.payment_status?.toLowerCase() === "failed" ||
-    existingOrder?.payment_status?.toLowerCase() === "successful"
+    existingTransaction?.payment_status?.toLowerCase() === "failed" ||
+    existingTransaction?.payment_status?.toLowerCase() === "paid"
   ) {
     return {
-      order_id: orderId,
-      paymentStatus: existingOrder?.payment_status,
+      order_id: referenceId,
+      paymentStatus: existingTransaction?.payment_status === "Paid" ? "SUCCESS" : "FAILED",
     };
   }
 
@@ -297,7 +325,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
     updateTransactionAnalytics(mqPayload);
     return await processOrderPayment({
       tenantId,
-      orderId,
+      referenceId,
       responseData,
       paymentStatusLabel: "Paid",
     });
@@ -306,7 +334,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
   if (normalizedStatus === "failed") {
     const mqPayload = {
       eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId,
+      tenantId: responseData?.tenantId || tenantId,
       gateway: responseData?.gateway,
       gatewayCode: responseData?.gatewayCode,
       keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
@@ -319,7 +347,7 @@ export const getPaymentStatusService = async (tenantId, orderId) => {
 
     return await processOrderPayment({
       tenantId,
-      orderId,
+      referenceId,
       responseData,
       paymentStatusLabel: "Failed",
     });
