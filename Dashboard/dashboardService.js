@@ -88,7 +88,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   let { from, to, order_status, order_type, cash_on_delivery } = filters;
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   // Apply filters
   const baseQuery = {};
@@ -121,26 +121,46 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     };
   }
 
-  // List of all supported payment methods
-  const methodList = ["Cash", "Credit Card", "Debit Card", "Net Banking", "UPI", "Wallet"];
+  // Fetch unique payment methods from transactions
+  const uniqueMethods = await paymentTransactionsModelDB.distinct("payment_method");
 
-  // Initialize result object
-  const paymentMethodResult = {};
-  methodList.forEach((method) => {
-    paymentMethodResult[method.toLowerCase().replace(/ /g, "_")] = {
-      count: 0,
-      value: 0,
-    };
+  // Initialize result object with unique methods found in DB
+  const paymentMethodResult = {
+    unknown: { count: 0, value: 0 },
+  };
+
+  
+  uniqueMethods.forEach((method) => {
+    if (method) {
+      const key = method;
+      paymentMethodResult[key] = { count: 0, value: 0 };
+    }
   });
+  console.log("paymentMethodResult", uniqueMethods);
+
+
 
   // AGGREGATE BY PAYMENT METHOD
   const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
+    // Handle status filtering robustly for legacy orders
+    {
+      $addFields: {
+        last_history: { $arrayElemAt: ["$order_status_history", -1] },
+      },
+    },
+    {
+      $addFields: {
+        computed_status: { $ifNull: ["$order_status", "$last_history.status"] },
+      },
+    },
+    ...(order_status ? [{ $match: { computed_status: order_status } }] : []),
+    // Join with transactions using order_id (more reliable than transaction_id)
     {
       $lookup: {
         from: "paymenttransactions",
-        localField: "transaction_id",
-        foreignField: "transaction_id",
+        localField: "order_id",
+        foreignField: "order_id",
         as: "transaction_details",
       },
     },
@@ -158,10 +178,15 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     },
   ]);
 
+  console.log("stats==>", stats);
+
   // Map DB results
   stats.forEach((item) => {
     const key = item._id?.toLowerCase().replace(/ /g, "_");
-    if (paymentMethodResult[key]) {
+    if (key) {
+      if (!paymentMethodResult[key]) {
+        paymentMethodResult[key] = { count: 0, value: 0 };
+      }
       paymentMethodResult[key].count = item.count;
       paymentMethodResult[key].value = item.value;
     }
