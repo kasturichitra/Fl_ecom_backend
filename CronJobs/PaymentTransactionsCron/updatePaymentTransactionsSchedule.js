@@ -6,7 +6,7 @@ cron.schedule("*/10 * * * * *", async () => {
 
   try {
     await updatePaymentTransactionsCronService();
-    console.log("✅ Payment transactions update finished");
+    // console.log("✅ Payment transactions update finished");
   } catch (err) {
     console.error("❌ Payment transactions update error", err);
   }

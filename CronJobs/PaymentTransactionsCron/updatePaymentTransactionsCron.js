@@ -18,8 +18,6 @@ async function updateTenantPaymentTransactions(tenantId) {
     .sort({ createdAt: -1 })
     .lean();
 
-    console.log("pendingTransactions", pendingTransactions);
-
   for (const transaction of pendingTransactions) {
     const transactionPayload = {
       tenant_id: tenantId,
