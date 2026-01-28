@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
-import { mongoUri } from "../env.js"
+import { mongoUri } from "../env.js";
 
-const connections = {}
+const connections = {};
 
 export const getTenanteDB = async (tenateID) => {
   try {
     if (!tenateID) throw new Error("Tenate ID is required");
 
-    if (connections[tenateID]) return connections[tenateID]
-    
-    const connt =await mongoose.createConnection(`${mongoUri}${tenateID}_DB`, {
+    if (connections[tenateID]) return connections[tenateID];
+
+    const connt = await mongoose.createConnection(`${mongoUri}${tenateID}_DB`, {
       useNewUrlParser: true,
       // useUnifiedTopology: true,
-    })
+    });
 
     connt.on("connected", () => {
       console.log(`Connected successfully for tenant: ${tenateID}`);
@@ -22,15 +22,13 @@ export const getTenanteDB = async (tenateID) => {
       console.error(`Connection error for tenant ${tenateID}:`, err);
     });
 
-    connections[tenateID] = connt
-    return connt
+    connections[tenateID] = connt;
+    return connt;
   } catch (error) {
     console.log("DB Connection is failed ", error);
     throw new Error("DB Connection is failed ", error.message);
   }
-
-}
-
+};
 
 // const connectDB = async () => {
 //   try {
@@ -44,4 +42,4 @@ export const getTenanteDB = async (tenateID) => {
 //     process.exit(1);
 //   }
 // };
-// export default connectDB; 
+// export default connectDB;
