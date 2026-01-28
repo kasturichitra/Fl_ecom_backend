@@ -137,10 +137,23 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
     {
+      $lookup: {
+        from: "paymenttransactions",
+        localField: "transaction_id",
+        foreignField: "transaction_id",
+        as: "transaction_details",
+      },
+    },
+    {
+      $addFields: {
+        payment_method_val: { $arrayElemAt: ["$transaction_details.payment_method", 0] },
+      },
+    },
+    {
       $group: {
-        _id: "$payment_method",
+        _id: { $ifNull: ["$payment_method_val", "Unknown"] },
         count: { $sum: 1 },
-        value: { $sum: "$total_amount" }, // change if needed
+        value: { $sum: "$total_amount" },
       },
     },
   ]);
@@ -638,18 +651,28 @@ export const getTotalCountsService = async (tenantId) => {
     // 1. Order Collection Stats
     orderModelDB.aggregate([
       {
+        $addFields: {
+          last_history: { $arrayElemAt: ["$order_status_history", -1] },
+        },
+      },
+      {
+        $addFields: {
+          computed_status: { $ifNull: ["$order_status", "$last_history.status"] },
+        },
+      },
+      {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
           offlineOrders: { $sum: { $cond: [{ $eq: ["$order_type", "Offline"] }, 1, 0] } },
           onlineOrders: { $sum: { $cond: [{ $eq: ["$order_type", "Online"] }, 1, 0] } },
           totalProductsSold: { $sum: { $sum: "$order_products.quantity" } },
-          pendingCount: { $sum: { $cond: [{ $eq: ["$order_status", "Pending"] }, 1, 0] } },
-          processingCount: { $sum: { $cond: [{ $eq: ["$order_status", "Processing"] }, 1, 0] } },
-          shippedCount: { $sum: { $cond: [{ $eq: ["$order_status", "Shipped"] }, 1, 0] } },
-          deliveredCount: { $sum: { $cond: [{ $eq: ["$order_status", "Delivered"] }, 1, 0] } },
-          cancelledCount: { $sum: { $cond: [{ $eq: ["$order_status", "Cancelled"] }, 1, 0] } },
-          returnedCount: { $sum: { $cond: [{ $eq: ["$order_status", "Returned"] }, 1, 0] } },
+          pendingCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Pending"] }, 1, 0] } },
+          processingCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Processing"] }, 1, 0] } },
+          shippedCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Shipped"] }, 1, 0] } },
+          deliveredCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Delivered"] }, 1, 0] } },
+          cancelledCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Cancelled"] }, 1, 0] } },
+          returnedCount: { $sum: { $cond: [{ $eq: ["$computed_status", "Returned"] }, 1, 0] } },
         },
       },
       { $project: { _id: 0 } },
