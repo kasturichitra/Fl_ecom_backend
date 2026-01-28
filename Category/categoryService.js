@@ -199,17 +199,30 @@ export const deleteCategoryService = async (tenantId, category_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!category_unique_id, "category_unique_id is required");
 
-  const { categoryModelDB } = await getTenantModels(tenantId);
-  const existing = await categoryModelDB.findOne({ category_unique_id }).lean();
-  throwIfTrue(!existing, "Category not found");
+  const { categoryModelDB, productModelDB } = await getTenantModels(tenantId);
 
-  // Cleanup S3 images
-  if (existing.category_image) {
-    const urls = Object.values(existing.category_image).filter((u) => typeof u === "string");
-    await Promise.all(urls.map(autoDeleteFromS3));
-  }
+  // Find current status to toggle
+  const category = await categoryModelDB.findOne({ category_unique_id }).select("is_active").lean();
+  throwIfTrue(!category, "Category not found");
 
-  return await categoryModelDB.findOneAndDelete({ category_unique_id });
+  const newActiveStatus = !category.is_active;
+
+  // Update Category status
+  const updatedCategory = await categoryModelDB
+    .findOneAndUpdate(
+      { category_unique_id },
+      { $set: { is_active: newActiveStatus, updatedAt: new Date() } },
+      { new: true },
+    )
+    .lean();
+
+  // Cascade status to products
+  await productModelDB.updateMany(
+    { category_unique_id },
+    { $set: { is_active: newActiveStatus, updatedAt: new Date() } },
+  );
+
+  return updatedCategory;
 };
 
 /**
