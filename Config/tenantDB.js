@@ -5,7 +5,6 @@ const connections = {}
 
 export const getTenanteDB = async (tenateID) => {
   try {
-
     if (!tenateID) throw new Error("Tenate ID is required");
 
     if (connections[tenateID]) return connections[tenateID]
@@ -20,13 +19,13 @@ export const getTenanteDB = async (tenateID) => {
     });
 
     connt.on("error", (err) => {
-      console.error(`Connection error for tenant ${tenateID}:`, err.message);
+      console.error(`Connection error for tenant ${tenateID}:`, err);
     });
 
     connections[tenateID] = connt
     return connt
   } catch (error) {
-    console.log("DB Connection is failed ", error.message);
+    console.log("DB Connection is failed ", error);
     throw new Error("DB Connection is failed ", error.message);
   }
 

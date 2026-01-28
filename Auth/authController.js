@@ -104,14 +104,14 @@ export const loginUserController = async (req, res) => {
       model: roleModelDB,
     });
 
-    console.log("Existing User Role", existingUser);
+    // console.log("Existing User Role", existingUser);
 
     // console.log("Existing User", existingUser);
     throwIfTrue(!existingUser, "User not found");
 
     // Check if user account is active
     throwIfTrue(!existingUser.is_active, "Your account has been deactivated. Please contact support for assistance.");
-    console.log("Existing User Role", existingUser);
+    // console.log("Existing User Role", existingUser);
     if (is_admin) {
       throwIfTrue(
         existingUser.role_id.name !== "admin" && existingUser.role_id.name !== "employee",
