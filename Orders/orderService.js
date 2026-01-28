@@ -395,7 +395,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
 
   if (origin === "user")
     query.payment_status = {
-      $in: ["Successful", "Refunded", "Pending"],
+      $in: ["Successful", "Refunded"],
     };
 
   const sortObj = buildSortObject(sort);
@@ -798,7 +798,9 @@ export const getOrderProductService = async (tenantId, orderId) => {
   if (!orderDoc) throw new Error("Order not found");
 
   // 2. Get manual transactions
-  const transactions = await paymentTransactionsModelDB.find({ order_id: orderId }).lean();
+  const transaction = await paymentTransactionsModelDB.findOne({ order_id: orderId }).lean();
+
+  console.log("Transaction", transaction); 
 
   // 3. Get matching products
   const ids = orderDoc.order_products.map((p) => p.product_unique_id);
@@ -811,14 +813,12 @@ export const getOrderProductService = async (tenantId, orderId) => {
   }));
 
   // 5. Flatten payment details from the first transaction
-  const paymentDetails = transactions?.[0] || {};
-  const { _id, createdAt, updatedAt, ...paymentFields } = paymentDetails;
+  const { _id, createdAt, updatedAt, ...paymentFields } = transaction;
 
   return {
     ...orderDoc,
     ...paymentFields, // Merge payment fields to root
     order_products: mergedProducts,
-    payment_transactions: transactions, // Ensure transactions list is still available
   };
 };
 
