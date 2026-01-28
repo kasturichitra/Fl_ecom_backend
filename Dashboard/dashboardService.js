@@ -129,16 +129,12 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     // unknown: { count: 0, value: 0 },
   };
 
-  
   uniqueMethods.forEach((method) => {
     if (method) {
       const key = method;
       paymentMethodResult[key] = { count: 0, value: 0 };
     }
   });
-  console.log("paymentMethodResult", uniqueMethods);
-
-
 
   // AGGREGATE BY PAYMENT METHOD
   const stats = await orderModelDB.aggregate([
@@ -178,12 +174,10 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     },
   ]);
 
-  console.log("stats==>", stats);
-
   // Map DB results
   stats.forEach((item) => {
     // const key = item._id?.toLowerCase().replace(/ /g, "_");
-    const key = item._id; 
+    const key = item._id;
     if (key) {
       if (!paymentMethodResult[key]) {
         paymentMethodResult[key] = { count: 0, value: 0 };
