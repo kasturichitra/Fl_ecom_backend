@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import PermissionModel from "../Permission/permissionModel.js";
-import RoleModel from "../Role/roleModel.js";
+import PermissionModel from "../permissionModel.js";
+import RoleModel from "../../Role/roleModel.js";
 
 dotenv.config();
 

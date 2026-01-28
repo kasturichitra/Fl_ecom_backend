@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
     "dev": "nodemon server.js",
-    "seed": "node utils/seedAccessControl.js", 
+    "seed": "node Permission/utils/seedAccessControl.js", 
     "seed-faq": "node lib/seed/seedFaq.js",
     "seed-theme": "node ThemeConfig/utils/seedTheme.js"
   },
