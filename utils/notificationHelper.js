@@ -1,5 +1,4 @@
 import { getTenantModels } from "../lib/tenantModelsCache.js";
-import { connectedUsers, io } from "../server.js";
 import { fcm } from "./firebase-admin.js";
 
 /**
@@ -21,14 +20,6 @@ export const sendUserNotification = async (tenantID, userId, data) => {
       relatedModel: data.relatedModel || null,
       link: data.link || null,
     });
-
-    // console.log(saved, "use notification saved....?");
-
-    // 🔹 Send through Socket.IO if user is online
-    const socketId = connectedUsers.get(userId);
-    if (socketId) {
-      io.to(socketId).emit("newNotification", saved);
-    }
 
     const { userModelDB } = await getTenantModels(tenantID);
 
@@ -100,9 +91,6 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
 
     // Create records in database
     const saved = await notificationModelDB.insertMany(notificationRecords);
-
-    // Broadcast real-time through Socket.IO to the "admins" room
-    io.to("admins").emit("newAdminNotification", saved[0]);
 
     // Send FCM notifications individually to each admin
     for (const admin of admins) {
