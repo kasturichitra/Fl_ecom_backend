@@ -19,7 +19,7 @@ export const getTenanteDB = async (tenateID) => {
     });
 
     connt.on("error", (err) => {
-      console.error(`Connection error for tenant ${tenateID}:`, err.message);
+      console.error(`Connection error for tenant ${tenateID}:`, err);
     });
 
     connections[tenateID] = connt
