@@ -42,6 +42,7 @@ import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
 import "./CronJobs/CouponsCron/couponsCronSchedule.js";
 import "./CronJobs/BusinessCron/businessTaxSchedule.js";
 import "./CronJobs/OrderCron/deletePendingOrdersSchedule.js";
+// import "./CronJobs/PaymentTransactionsCron/updatePaymentTransactionsSchedule.js"; 
 
 import morgan from "morgan";
 import accessLogStream from "./utils/buildLogStream.js";
