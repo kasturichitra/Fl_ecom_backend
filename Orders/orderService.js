@@ -791,35 +791,34 @@ export const getOrderProductService = async (tenantId, orderId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderId, "Valid Order ID is required");
 
-  // const Order = await OrdersModel(tenantId);
-  // const Product = await ProductModel(tenantId);
-  const { orderModelDB: Order, productModelDB: Product } = await getTenantModels(tenantId);
-  //  Get order
-  const orderDoc = await Order.findOne({ order_id: orderId }).populate("payment_transactions");
+  const { orderModelDB, productModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
+
+  // 1. Get order without populate
+  const orderDoc = await orderModelDB.findOne({ order_id: orderId }).lean();
   if (!orderDoc) throw new Error("Order not found");
 
-  const order = orderDoc.toObject();
+  // 2. Get manual transactions
+  const transactions = await paymentTransactionsModelDB.find({ order_id: orderId }).lean();
 
-  //  Extract product_unique_ids from order
-  const ids = order.order_products.map((p) => p.product_unique_id);
-
-  //  Get matching products in one query
-  const products = await Product.find({ product_unique_id: { $in: ids } });
+  // 3. Get matching products
+  const ids = orderDoc.order_products.map((p) => p.product_unique_id);
+  const products = await productModelDB.find({ product_unique_id: { $in: ids } }).lean();
 
   // 4. Attach product object
-  const mergedProducts = order.order_products.map((item) => ({
+  const mergedProducts = orderDoc.order_products.map((item) => ({
     ...item,
     product_details: products.find((prod) => prod.product_unique_id === item.product_unique_id) || null,
   }));
 
-  // Flatten payment details from the first transaction
-  const paymentDetails = order.payment_transactions?.[0] || {};
+  // 5. Flatten payment details from the first transaction
+  const paymentDetails = transactions?.[0] || {};
   const { _id, createdAt, updatedAt, ...paymentFields } = paymentDetails;
 
   return {
-    ...order,
+    ...orderDoc,
     ...paymentFields, // Merge payment fields to root
     order_products: mergedProducts,
+    payment_transactions: transactions, // Ensure transactions list is still available
   };
 };
 
