@@ -5,8 +5,6 @@ const connections = {}
 
 export const getTenanteDB = async (tenateID) => {
   try {
-    console.log("Tenant id coming into getTenanteDB function", tenateID);
-
     if (!tenateID) throw new Error("Tenate ID is required");
 
     if (connections[tenateID]) return connections[tenateID]
