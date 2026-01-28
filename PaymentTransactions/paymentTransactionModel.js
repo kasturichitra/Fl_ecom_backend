@@ -46,6 +46,10 @@ const paymentTransactionSchema = new mongoose.Schema(
     gateway_code: {
       type: String,
     },
+    // Gateway Reference Id
+    gateway_reference_id: {
+      type: String,
+    },
     key_id: {
       type: String,
     },
