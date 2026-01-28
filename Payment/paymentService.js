@@ -59,8 +59,8 @@ async function processOrderPayment({
   await existingTransaction.save();
 
   const existingOrder = await orderModelDB.findOne({
-    order_id: existingTransaction.order_id
-  })
+    order_id: existingTransaction.order_id,
+  });
   throwIfTrue(!existingOrder, "Order doesn't exist with this id");
 
   const updatedOrder = await updateOrderService(tenantId, existingOrder._id, paymentDoc);
