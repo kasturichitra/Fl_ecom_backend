@@ -126,7 +126,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   // Initialize result object with unique methods found in DB
   const paymentMethodResult = {
-    unknown: { count: 0, value: 0 },
+    // unknown: { count: 0, value: 0 },
   };
 
   
@@ -182,7 +182,8 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   // Map DB results
   stats.forEach((item) => {
-    const key = item._id?.toLowerCase().replace(/ /g, "_");
+    // const key = item._id?.toLowerCase().replace(/ /g, "_");
+    const key = item._id; 
     if (key) {
       if (!paymentMethodResult[key]) {
         paymentMethodResult[key] = { count: 0, value: 0 };
