@@ -64,7 +64,7 @@ export const getIndustrysSearchServices = async (
   endDate,
   page = 1,
   limit = 10,
-  sortParam
+  sortParam,
 ) => {
   throwIfTrue(!tenantID, "Tenant ID is required");
 
@@ -158,7 +158,7 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
     .findOneAndUpdate(
       { industry_unique_id },
       { $set: { ...updates, image_url, updatedAt: new Date() } },
-      { new: true, fields: { image_url: 1, is_active: 1 } }
+      { new: true, fields: { image_url: 1, is_active: 1 } },
     )
     .lean();
 
@@ -175,11 +175,11 @@ export const updateIndustrytypeServices = async (tenantID, industry_unique_id, u
     await Promise.all([
       categoryModelInstance.updateMany(
         { industry_unique_id },
-        { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
+        { $set: { is_active: isActiveFlag, updatedAt: new Date() } },
       ),
       productModelInstance.updateMany(
         { industry_unique_id },
-        { $set: { is_active: isActiveFlag, updatedAt: new Date() } }
+        { $set: { is_active: isActiveFlag, updatedAt: new Date() } },
       ),
     ]);
   }
@@ -193,16 +193,28 @@ export const deleteIndustryTypeServices = async (tenantID, industry_unique_id) =
   throwIfTrue(!tenantID, "Tenant ID is required");
   throwIfTrue(!industry_unique_id, "Industry Type Unique ID is required");
 
-  const { industryTypeModelDB } = await getTenantModels(tenantID);
+  const { industryTypeModelDB, categoryModelDB, productModelDB } = await getTenantModels(tenantID);
 
-  // One query: get image_url + delete atomically
-  const doc = await industryTypeModelDB.findOneAndDelete({ industry_unique_id }).select("image_url").lean();
-  throwIfTrue(!doc, "Industry Type not found");
-  
-  // Delete the relevant s3 files
-  await Promise.all(Object.values(doc.image_url).map(autoDeleteFromS3));
+  // Find current status to toggle
+  const industry = await industryTypeModelDB.findOne({ industry_unique_id }).select("is_active").lean();
+  throwIfTrue(!industry, "Industry Type not found");
 
-  // if (doc.image_url) fs.unlink(path.resolve(doc.image_url), () => {});
+  const newActiveStatus = !industry.is_active;
 
-  return doc;
+  // Update Industry status
+  const updatedIndustry = await industryTypeModelDB
+    .findOneAndUpdate(
+      { industry_unique_id },
+      { $set: { is_active: newActiveStatus, updatedAt: new Date() } },
+      { new: true },
+    )
+    .lean();
+
+  // Cascade status to categories and products
+  await Promise.all([
+    categoryModelDB.updateMany({ industry_unique_id }, { $set: { is_active: newActiveStatus, updatedAt: new Date() } }),
+    productModelDB.updateMany({ industry_unique_id }, { $set: { is_active: newActiveStatus, updatedAt: new Date() } }),
+  ]);
+
+  return updatedIndustry;
 };
