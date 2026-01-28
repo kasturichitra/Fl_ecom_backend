@@ -49,14 +49,24 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
     dashboardResult[status.toLowerCase()] = { count: 0, value: 0 };
   });
 
-  // AGGREGATION: GROUP ONLY BY ORDER_STATUS
+  // AGGREGATION: GROUP BY DERIVED ORDER_STATUS
   const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
     {
+      $addFields: {
+        last_history: { $arrayElemAt: ["$order_status_history", -1] },
+      },
+    },
+    {
+      $addFields: {
+        computed_status: { $ifNull: ["$order_status", "$last_history.status"] },
+      },
+    },
+    {
       $group: {
-        _id: "$order_status",
+        _id: "$computed_status",
         count: { $sum: 1 },
-        value: { $sum: "$total_amount" }, // change field if needed
+        value: { $sum: "$total_amount" },
       },
     },
   ]);
