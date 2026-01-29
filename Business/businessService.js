@@ -16,7 +16,7 @@ export const gstinVerifyService = async (payload) => {
   console.log("gstinVerifyUrl", gstinVerifyUrl);
 
   try {
-    const { data } = await axios.post(`${gstinVerifyUrl}/business/Gstinverify`, {
+    const { data } = await axios.post(`${gstinVerifyUrl}/kyc/api/v1/inhouse/business/Gstinverify`, {
       gstinNumber: payload.gst_in_number,
     });
     const isNameMatching = data.data.companyName.toLowerCase().trim() === payload.business_name.toLowerCase().trim();
