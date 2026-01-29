@@ -373,7 +373,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
 
   const query = {};
 
-  if (order_status) query.order_status = order_status;
+  // if (order_status) query.order_status = order_status;
   if (from && to) {
     query.createdAt = {
       $gte: new Date(from),
@@ -389,6 +389,7 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     query.$or = [
       { customer_name: { $regex: searchTerm, $options: "i" } },
       { mobile_number: { $regex: searchTerm, $options: "i" } },
+      { order_id: { $regex: searchTerm, $options: "i" } },
       { "order_products.product_name": { $regex: searchTerm, $options: "i" } },
       { "order_products.product_unique_id": { $regex: searchTerm, $options: "i" } },
     ];
@@ -415,6 +416,13 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   console.log("query is ", query);
   const pipeline = [
     { $match: query },
+    {
+      $addFields: {
+        order_status: { $arrayElemAt: ["$order_status_history.status", -1] },
+      },
+    },
+    // Filter by order_status if provided
+    ...(order_status ? [{ $match: { order_status: order_status } }] : []),
     {
       $lookup: {
         from: "paymenttransactions",
@@ -800,7 +808,7 @@ export const getOrderProductService = async (tenantId, orderId) => {
   // 2. Get manual transactions
   const transaction = await paymentTransactionsModelDB.findOne({ order_id: orderId }).lean();
 
-  console.log("Transaction", transaction); 
+  console.log("Transaction", transaction);
 
   // 3. Get matching products
   const ids = orderDoc.order_products.map((p) => p.product_unique_id);
