@@ -112,7 +112,7 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   const result = await paymentTransactionsModelDB.aggregate(pipeline);
 
   /* -------------------- NORMALIZATION -------------------- */
-  const defaultStatuses = ["Pending", "Paid", "Failed", "Refunded"];
+  const defaultStatuses = ["Pending", "Paid", "Failed", "Refunded","Processing"];
 
   const statusMap = {};
   (result[0]?.statusStats || []).forEach((r) => {
