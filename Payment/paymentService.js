@@ -255,9 +255,15 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   }
 };
 
-export const getPaymentStatusService = async (tenantId, referenceId) => {
+export const getPaymentStatusService = async (tenantId, referenceIdToken) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!referenceId, "Order ID is required");
+  throwIfTrue(!referenceIdToken, "Order ID is required");
+
+  const decoded = JSON.parse(Buffer.from(referenceIdToken, "base64url").toString("utf8"));
+
+  const referenceId = decoded.referenceId;
+
+  console.log("referenceId ===>>", referenceId);
 
   const endpoint = `?referenceId=${referenceId}`;
 
@@ -284,7 +290,8 @@ export const getPaymentStatusService = async (tenantId, referenceId) => {
   }
 
   try {
-    const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}/${endpoint}`);
+    console.log("Hitting the endpoint", `${process.env.PAYMENT_STATUS_URL}${endpoint}`);
+    const response = await axios.get(`${process.env.PAYMENT_STATUS_URL}${endpoint}`);
 
     responseData = response?.data;
 
