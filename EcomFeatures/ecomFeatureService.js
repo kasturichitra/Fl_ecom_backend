@@ -7,6 +7,21 @@ export const getAllEcomFeaturesService = async (tenantId) => {
   return await ecomFeatureModelDB.find();
 };
 
+/*
+  Example JSON
+  {
+    "ecomFeatures": [
+      {
+        "featureId": "Feature-001", 
+        "is_active": true
+      },
+      {
+        "featureId": "Feature-002", 
+        "is_active": false
+      }
+    ]
+  }
+*/
 export const updateEcomFeaturesService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!payload, "Payload is required");
@@ -16,11 +31,9 @@ export const updateEcomFeaturesService = async (tenantId, payload) => {
 
   const { ecomFeatureModelDB } = await getTenantModels(tenantId);
 
-  // Remove existing features
   await ecomFeatureModelDB.deleteMany({});
 
-  // Insert new features
-  const docs = ecomFeatures.map((featureId) => ({ featureId: featureId.trim().toLowerCase() }));
+  const updated = await ecomFeatureModelDB.insertMany(ecomFeatures);
 
-  return await ecomFeatureModelDB.insertMany(docs);
+  return updated;
 };

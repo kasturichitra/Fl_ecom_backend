@@ -8,6 +8,10 @@ const ecomFeatureSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true },
 );
