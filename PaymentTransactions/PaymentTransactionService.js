@@ -143,13 +143,50 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
 };
 
 
-// const getPaymentTransactionByIdService = async (tenantId, id) => {
-//   throwIfTrue(!tenantId, "Tenant ID is required");
+export const getPaymentTransactionByIdService = async (
+  tenantId,
+  transaction_reference_id
+) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!transaction_reference_id, "Transaction reference ID is required");
 
-//   const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
-//   // const result = await paymentTransactionsModelDB.findById(id).lean();
-//   // return result;
+  const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
-//   const PaymentTransaction = await paymentTransactionsModelDB.aggregate([{}]);
-//   return PaymentTransaction;
-// };
+  const transaction = await paymentTransactionsModelDB.aggregate([
+    {
+      $match: { transaction_reference_id },
+    },
+
+    /* Optional lookups (future ready)
+    {
+      $lookup: {
+        from: "orders",
+        localField: "order_id",
+        foreignField: "order_id",
+        as: "order",
+      },
+    },
+    {
+      $unwind: { path: "$order", preserveNullAndEmptyArrays: true },
+    },
+    */
+
+    /* Optional computed fields */
+    {
+      $addFields: {
+        is_success: { $eq: ["$payment_status", "Paid"] },
+      },
+    },
+
+    /* Optional cleanup */
+    {
+      $project: {
+        __v: 0,
+      },
+    },
+  ]);
+
+  return transaction[0] || null;
+};
+
+
