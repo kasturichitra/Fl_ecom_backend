@@ -9,7 +9,7 @@ export const getTenanteDB = async (tenateID) => {
 
     if (connections[tenateID]) return connections[tenateID];
 
-    const connt = await mongoose.createConnection(`${mongoUri}${tenateID}_DB`, {
+    const connt = await mongoose.createConnection(`${mongoUri}${tenateID}_DB?authSource=admin`, {
       useNewUrlParser: true,
       // useUnifiedTopology: true,
     });
