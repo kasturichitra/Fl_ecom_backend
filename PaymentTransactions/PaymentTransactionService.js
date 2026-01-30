@@ -42,10 +42,6 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   if (payment_method) query.payment_method = payment_method;
   if (gateway_code) query.gateway_code = gateway_code;
   if (key_id) query.key_id = key_id;
-  //   if (currency) query.currency = currency;
-  //   if (gateway) query.gateway = gateway;
-  //   if (order_id) query.order_id = order_id;
-  //   if (user_id) query.user_id = user_id;
 
   if (is_verified === "true") query.is_verified = true;
   if (is_verified === "false") query.is_verified = false;
@@ -66,49 +62,60 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
       { payment_method: { $regex: searchTerm, $options: "i" } },
       { payment_status: { $regex: searchTerm, $options: "i" } },
       { gateway_code: { $regex: searchTerm, $options: "i" } },
-      //   { currency: { $regex: searchTerm, $options: "i" } },
-      //   { gateway: { $regex: searchTerm, $options: "i" } },
-      //   { user_id: { $regex: searchTerm, $options: "i" } },
-      //   { order_id: { $regex: searchTerm, $options: "i" } },
     ];
   }
 
   /* -------------------- SORT -------------------- */
   const sortObj = buildSortObject(sort);
 
-  /* -------------------- AGGREGATION -------------------- */
+  /* -------------------- AGGREGATION (RECORDS + STATS) -------------------- */
   const pipeline = [
     { $match: query },
 
     {
-      $group: {
-        _id: "$payment_status",
-        count: { $sum: 1 },
-        totalAmount: { $sum: "$amount" }, // optional useful metric
-      },
-    },
+      $facet: {
+        /* ---------- RECORDS ---------- */
+        records: [
+          { $sort: sortObj },
+          { $skip: skip },
+          { $limit: limit },
+        ],
 
-    {
-      $project: {
-        _id: 0,
-        payment_status: "$_id",
-        count: 1,
-        totalAmount: 1,
-      },
-    },
+        /* ---------- STATUS COUNTS ---------- */
+        statusStats: [
+          {
+            $group: {
+              _id: "$payment_status",
+              count: { $sum: 1 },
+              totalAmount: { $sum: "$amount" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              payment_status: "$_id",
+              count: 1,
+              totalAmount: 1,
+            },
+          },
+        ],
 
-    { $sort: sortObj },
+        /* ---------- TOTAL COUNT ---------- */
+        totalCount: [
+          { $count: "count" }
+        ]
+      }
+    }
   ];
 
   /* -------------------- EXECUTION (TENANT DB) -------------------- */
   const result = await paymentTransactionsModelDB.aggregate(pipeline);
 
-  console.log("result", result);
-
+  /* -------------------- NORMALIZATION -------------------- */
   const defaultStatuses = ["Pending", "Paid", "Failed", "Refunded"];
 
   const statusMap = {};
-  result.forEach((r) => {
+  (result[0]?.statusStats || []).forEach((r) => {
     statusMap[r.payment_status] = {
       count: r.count,
       totalAmount: r.totalAmount,
@@ -121,10 +128,7 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
     totalAmount: statusMap[status]?.totalAmount || 0,
   }));
 
-  const data = result[0]?.data || [];
-
-  console.log("Resuilt", result);
-  console.log("final Result", finalResult); 
+  const data = result[0]?.records || [];
   const totalCount = result[0]?.totalCount[0]?.count || 0;
 
   /* -------------------- RESPONSE -------------------- */
@@ -133,18 +137,19 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
     page,
     limit,
     totalPages: Math.ceil(totalCount / limit),
-    data,
-    finalResult,
+    data,            // ✅ filtered records
+    finalResult,     // ✅ payment_status stats
   };
 };
 
-const getPaymentTransactionByIdService = async (tenantId, id) => {
-  throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
-  // const result = await paymentTransactionsModelDB.findById(id).lean();
-  // return result;
+// const getPaymentTransactionByIdService = async (tenantId, id) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const PaymentTransaction = await paymentTransactionsModelDB.aggregate([{}]);
-  return PaymentTransaction;
-};
+//   const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
+//   // const result = await paymentTransactionsModelDB.findById(id).lean();
+//   // return result;
+
+//   const PaymentTransaction = await paymentTransactionsModelDB.aggregate([{}]);
+//   return PaymentTransaction;
+// };
