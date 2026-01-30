@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
-import { getAllPaymentTransactionsService } from "./PaymentTransactionService.js";
+import { getAllPaymentTransactionsService, getPaymentTransactionByIdService } from "./PaymentTransactionService.js";
 
 
 
@@ -17,18 +17,18 @@ export const getAllPaymentTransactions = async (req, res) => {
 };
 
 
-// export const getPaymentTransactionByIdController = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const tenantId = req.headers["x-tenant-id"];
+export const getPaymentTransactionByIdController = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenantId = req.headers["x-tenant-id"];
 
-//         if (!id) {
-//             return res.status(400).json(errorResponse("Payment Transaction unique ID is required in URL"));
-//         }
+        if (!id) {
+            return res.status(400).json(errorResponse("Payment Transaction unique ID is required in URL"));
+        }
 
-//         const response = await getPaymentTransactionByIdService(tenantId,id);
-//         res.status(200).json(successResponse("Payment Transaction fetched successfully", { data: response }));
-//     } catch (error) {
-//         res.status(500).json(errorResponse(error.message, error));
-//     }
-// };
+        const response = await getPaymentTransactionByIdService(tenantId,id);
+        res.status(200).json(successResponse("Payment Transaction fetched successfully", { data: response }));
+    } catch (error) {
+        res.status(500).json(errorResponse(error.message, error));
+    }
+};
