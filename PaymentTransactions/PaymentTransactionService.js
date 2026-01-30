@@ -10,7 +10,11 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
-  console.log(`[DEBUG] Querying payment transactions for tenant:)`, paymentTransactionsModelDB);
+
+  const paymentMethods = await paymentTransactionsModelDB.distinct("payment_method");
+  const gateways = await paymentTransactionsModelDB.distinct("gateway");
+  const keyIds = await paymentTransactionsModelDB.distinct("key_id");
+
 
   let {
     page = 1,
@@ -21,13 +25,13 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
     to,
     payment_status,
     payment_method,
-    gateway_code,
+    // gateway_code,
     key_id,
     is_verified,
-    currency,
+    // currency,
     gateway,
-    order_id,
-    user_id,
+    // order_id,
+    // user_id,
   } = filters;
 
   const query = {};
@@ -40,7 +44,8 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   /* -------------------- BASIC FILTERS -------------------- */
   if (payment_status) query.payment_status = payment_status;
   if (payment_method) query.payment_method = payment_method;
-  if (gateway_code) query.gateway_code = gateway_code;
+  // if (gateway_code) query.gateway_code = gateway_code;
+  if (gateway) query.gateway = gateway;
   if (key_id) query.key_id = key_id;
 
   if (is_verified === "true") query.is_verified = true;
@@ -112,7 +117,7 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   const result = await paymentTransactionsModelDB.aggregate(pipeline);
 
   /* -------------------- NORMALIZATION -------------------- */
-  const defaultStatuses = ["Pending", "Paid", "Failed", "Refunded"];
+  const defaultStatuses = ["Pending", "Processing", "Paid", "Failed", "Refunded"];
 
   const statusMap = {};
   (result[0]?.statusStats || []).forEach((r) => {
@@ -131,6 +136,14 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
   const data = result[0]?.records || [];
   const totalCount = result[0]?.totalCount[0]?.count || 0;
 
+  const paidCount = statusMap["Paid"]?.count || 0;
+  const paidAmount = statusMap["Paid"]?.totalAmount || 0;
+  finalResult.push({
+    payment_status: "Total",
+    count: paidCount,
+    totalAmount: paidAmount,
+  });
+
   /* -------------------- RESPONSE -------------------- */
   return {
     totalCount,
@@ -139,6 +152,11 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
     totalPages: Math.ceil(totalCount / limit),
     data,            // ✅ filtered records
     finalResult,     // ✅ payment_status stats
+    filtersMeta: {   // ✅ available filter values
+      paymentMethods,
+      gateways,
+      keyIds,
+    },
   };
 };
 
