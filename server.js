@@ -35,6 +35,7 @@ import permissionRoutes from "./Permission/permissionRoute.js";
 import roleRoutes from "./Role/roleRoute.js";
 import ecomFeaturesRoutes from "./EcomFeatures/ecomFeatureRoutes.js";
 import themeRoutes from "./ThemeConfig/themeRoute.js";
+import paymentTransactionRoute from './PaymentTransactions/PaymentTransactionRoute.js';
 
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
@@ -177,6 +178,7 @@ app.use("/permissions", permissionRoutes);
 app.use("/role", roleRoutes);
 app.use("/ecom-features", ecomFeaturesRoutes);
 app.use("/theme", themeRoutes);
+app.use("/paymentTransactions", paymentTransactionRoute);
 
 app.use("/", userRoutes);
 
