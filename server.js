@@ -42,7 +42,7 @@ import "./CronJobs/reviewsCronSchedule.js";
 import "./CronJobs/SaleTrandsCornJobs/saleTrendSchedule.js";
 import "./CronJobs/CouponsCron/couponsCronSchedule.js";
 import "./CronJobs/BusinessCron/businessTaxSchedule.js";
-import "./CronJobs/OrderCron/deletePendingOrdersSchedule.js";
+// import "./CronJobs/OrderCron/deletePendingOrdersSchedule.js";
 // import "./CronJobs/PaymentTransactionsCron/updatePaymentTransactionsSchedule.js"; 
 
 import morgan from "morgan";

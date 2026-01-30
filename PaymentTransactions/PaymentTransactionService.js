@@ -113,6 +113,35 @@ export const getAllPaymentTransactionsService = async (tenantId, filters = {}) =
     }
   ];
 
+//   const pipeline = [
+//   {
+//     $facet: {
+//       records: [
+//         { $match: query },
+//         { $sort: sortObj },
+//         { $skip: skip },
+//         { $limit: limit },
+//       ],
+
+//       statusStats: [
+//         {
+//           $group: {
+//             _id: "$payment_status",
+//             count: { $sum: 1 },
+//             totalAmount: { $sum: "$amount" },
+//           },
+//         },
+//       ],
+
+//       totalCount: [
+//         { $match: query },
+//         { $count: "count" }
+//       ]
+//     }
+//   }
+// ];
+
+  
   /* -------------------- EXECUTION (TENANT DB) -------------------- */
   const result = await paymentTransactionsModelDB.aggregate(pipeline);
 
