@@ -8,12 +8,12 @@ async function updateTenantPaymentTransactions(tenantId) {
   const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   const todayDate = new Date();
-  const dateThreeDaysAgo = new Date(todayDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const fifteenMinutesAgo = new Date(todayDate.getTime() - 15 * 60 * 60 * 1000);
 
   const pendingTransactions = await paymentTransactionsModelDB
     .find({
-      payment_status: "Pending",
-      createdAt: { $gte: dateThreeDaysAgo },
+      payment_status: { $in: ["Pending", "Processing"] },
+      createdAt: { $lte: fifteenMinutesAgo },
     })
     .sort({ createdAt: -1 })
     .lean();

@@ -311,53 +311,62 @@ export const getPaymentStatusService = async (tenantId, referenceIdToken) => {
     paymentMethod: 'VISA'
     }
      */
+
+    const normalizedStatus = responseData?.status?.trim().toLowerCase();
+
+    if (normalizedStatus === "success") {
+      const mqPayload = {
+        eventId: responseData?.transactionId,
+        tenantId: responseData?.tenantId || tenantId,
+        gateway: responseData?.gateway,
+        gatewayCode: responseData?.gatewayCode,
+        keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
+        paymentMode: responseData?.paymentMode,
+        totalAmount: responseData?.amount,
+        status: "success",
+      };
+
+      updateTransactionAnalytics(mqPayload);
+      return await processOrderPayment({
+        tenantId,
+        referenceId,
+        responseData,
+        paymentStatusLabel: "Paid",
+      });
+    }
+
+    if (normalizedStatus === "failed") {
+      const mqPayload = {
+        eventId: responseData?.transactionId,
+        tenantId: responseData?.tenantId || tenantId,
+        gateway: responseData?.gateway,
+        gatewayCode: responseData?.gatewayCode,
+        keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
+        paymentMode: responseData?.paymentMode,
+        totalAmount: responseData?.amount,
+        status: "failed",
+      };
+
+      updateTransactionAnalytics(mqPayload);
+
+      return await processOrderPayment({
+        tenantId,
+        referenceId,
+        responseData,
+        paymentStatusLabel: "Failed",
+      });
+    }
+
+    if (normalizedStatus === "processing") {
+      return await processOrderPayment({
+        tenantId,
+        referenceId,
+        responseData,
+        paymentStatusLabel: "Processing",
+      });
+    }
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
-  }
-
-  const normalizedStatus = responseData?.status?.trim().toLowerCase();
-
-  if (normalizedStatus === "success") {
-    const mqPayload = {
-      eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId || tenantId,
-      gateway: responseData?.gateway,
-      gatewayCode: responseData?.gatewayCode,
-      keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
-      paymentMode: responseData?.paymentMode,
-      totalAmount: responseData?.amount,
-      status: "success",
-    };
-
-    updateTransactionAnalytics(mqPayload);
-    return await processOrderPayment({
-      tenantId,
-      referenceId,
-      responseData,
-      paymentStatusLabel: "Paid",
-    });
-  }
-
-  if (normalizedStatus === "failed") {
-    const mqPayload = {
-      eventId: responseData?.transactionId,
-      tenantId: responseData?.tenantId || tenantId,
-      gateway: responseData?.gateway,
-      gatewayCode: responseData?.gatewayCode,
-      keyId: responseData?.keyId || `${Date.now()}_${uuidv4().slice(-4)}`,
-      paymentMode: responseData?.paymentMode,
-      totalAmount: responseData?.amount,
-      status: "failed",
-    };
-
-    updateTransactionAnalytics(mqPayload);
-
-    return await processOrderPayment({
-      tenantId,
-      referenceId,
-      responseData,
-      paymentStatusLabel: "Failed",
-    });
   }
 
   return {

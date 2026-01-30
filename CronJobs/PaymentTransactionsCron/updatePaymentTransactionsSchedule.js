@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { updatePaymentTransactionsCronService } from "./updatePaymentTransactionsCron.js";
 
-cron.schedule("*/10 * * * * *", async () => {
+cron.schedule("* */10 * * * *", async () => {
   console.log("🕑 Payment transactions update started");
 
   try {
