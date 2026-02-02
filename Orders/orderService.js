@@ -2,10 +2,11 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
+import { sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 import { ADMIN_ID } from "../lib/constants.js";
+import { sendAdminNotificationProducer } from "../lib/producers/sendAdminNotificationProducer.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantId, products) => {
@@ -658,7 +659,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
     // Notify admin
     if (order.order_type === "Online") {
-      sendAdminNotification(tenantId, ADMIN_ID, {
+      sendAdminNotificationProducer(tenantId, ADMIN_ID, {
         title: "New Order Received",
         message: `New order from user ${username}. Total: ₹${order.total_amount}`,
         type: "order",
@@ -761,7 +762,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       },
     }).catch((err) => console.error("Background Cancel User Notification error:", err.message));
 
-    sendAdminNotification(tenantId, {
+    sendAdminNotificationProducer(tenantId, {
       title: "Order Cancelled",
       message: `Order cancelled by user/admin. Amount: ₹${updatedOrder.total_amount}`,
       type: "order_cancelled",
@@ -784,7 +785,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       data: { returnedItems: itemsList },
     }).catch((err) => console.error("Background Return User Notification error:", err.message));
 
-    sendAdminNotification(tenantId, {
+    sendAdminNotificationProducer(tenantId, {
       title: "Items Returned",
       message: `User returned items in order #${updatedOrder._id}: ${itemsList}`,
       type: "order_returned",

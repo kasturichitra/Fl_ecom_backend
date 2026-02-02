@@ -57,6 +57,7 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
       finalData = adminId;
     }
 
+    console.log("Data coming to send admin notification function in notification helper", data);
     if (!finalData) {
       console.error("sendAdminNotification: No data provided");
       return null;
