@@ -8,7 +8,13 @@ import generateBusinessId from "./utils/generateBusinessId.js";
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
 import { uploadDocuments } from "../lib/aws-s3/uploadDocuments.js";
 import mongoose from "mongoose";
-import { sendBusinessVerificationSuccessEmail } from "../utils/sendEmail.js";
+import {
+  generateBusinessApprovalEmailTemplate,
+  generateBusinessAssignedTemplate,
+  generateBusinessVerificationSuccessTemplate,
+} from "../utils/sendEmail.js";
+import { sendEmailProducer } from "../lib/producers/sendEmailProducer.js";
+import { send } from "process";
 
 export const gstinVerifyService = async (payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
@@ -64,7 +70,7 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
           basePath: `businesses/${business_unique_id}/images`,
         });
         return { ...result, label: file.originalname };
-      })
+      }),
     );
   }
 
@@ -79,7 +85,7 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
           originalName: file.originalname,
         });
         return { url, label: file.originalname };
-      })
+      }),
     );
   }
 
@@ -140,7 +146,7 @@ export const addBusinessDetailsService = async (tenantId, user_id, businessData,
 
 export const getAllBusinessDetailsService = async (
   tenantId,
-  { assigned_to, page = 1, limit = 10, sort, search, is_active, is_verified }
+  { assigned_to, page = 1, limit = 10, sort, search, is_active, is_verified },
 ) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
   const { businessModelDB } = await getTenantModels(tenantId);
@@ -241,7 +247,7 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
   throwIfTrue(!tenantId, "Tenant ID is Required");
   throwIfTrue(!business_unique_id, "Business ID is Required");
 
-  const { businessModelDB } = await getTenantModels(tenantId);
+  const { businessModelDB, userModelDB } = await getTenantModels(tenantId);
 
   const business = await businessModelDB.findOne({ business_unique_id });
 
@@ -255,7 +261,17 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
   // ✅ Update remaining fields
   Object.assign(business, updateData);
 
-  await business.save();
+  const updatedBusiness = await business.save();
+
+  const existingUser = await userModelDB.findOne({ user_id: updatedBusiness.assigned_to });
+
+  if (existingUser) {
+    sendEmailProducer({
+      to: existingUser.email,
+      subject: `Business Assigned - ${updatedBusiness.business_name}`,
+      html: generateBusinessAssignedTemplate(updatedBusiness.business_name, existingUser.username),
+    });
+  }
 
   // 📧 Send Verification Success Email & Update User Account Type
   if (updateData.is_verified === true) {
@@ -268,7 +284,13 @@ export const assignBusinessDetailsService = async (tenantId, business_unique_id,
       await user.save();
 
       if (user.email) {
-        await sendBusinessVerificationSuccessEmail(user.email, business.business_name);
+        console.log(`Sending business verification success email to ${user.email}`);
+        // await sendBusinessVerificationSuccessEmail(user.email, business.business_name);
+        sendEmailProducer({
+          to: user.email,
+          subject: `Business Verification Successful! 🎉 - ${business.business_name}`,
+          html: generateBusinessVerificationSuccessTemplate(business.business_name),
+        });
       }
     }
   }
@@ -287,7 +309,7 @@ export const deactivateBusinessService = async (tenantId, user_id, gst_in_number
   const business = await businessModelDB.findOneAndUpdate(
     { user_id, gst_in_number },
     { is_active: false },
-    { new: true }
+    { new: true },
   );
   throwIfTrue(!business, "Business not found for this user and GSTIN");
 
@@ -312,12 +334,20 @@ const backgroundEmailProcess = async (tenantId, businessData) => {
     const admins = await userModelDB.find({ role: "admin", is_active: true }, "email");
 
     if (admins.length > 0) {
-      await Promise.all(admins.map((admin) => sendBusinessApprovalEmailToAdmin(admin.email, businessData)));
+      // await Promise.all(admins.map((admin) => sendBusinessApprovalEmailToAdmin(admin.email, businessData)));
+
+      admins.map((admin) => {
+        sendEmailProducer({
+          to: admin.email,
+          subject: `New Business Approval Request - ${businessData.business_name}`,
+          html: generateBusinessApprovalEmailTemplate(businessData),
+        });
+      });
       console.log(`Business approval emails sent to ${admins.length} admins.`);
     } else {
       console.log("No active admins found to notify for business approval.");
     }
   } catch (error) {
-    console.error("Error in backgroundEmailProcess:", error.message);
+    console.error("Error in background Email Process:", error.message);
   }
 };

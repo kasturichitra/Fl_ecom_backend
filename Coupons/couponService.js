@@ -3,8 +3,9 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { couponAlphabet } from "../env.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendCouponEmail } from "../utils/sendEmail.js";
-import UserModel from "../Users/userModel.js";
+import { generateCouponEmailTemplate } from "../utils/sendEmail.js";
+
+import { sendEmailProducer } from "../lib/producers/sendEmailProducer.js";
 
 const generateNanoId = customAlphabet(couponAlphabet, 8);
 
@@ -288,10 +289,22 @@ const processBackgroundEmails = async (tenantId, coupon) => {
       const usersData = await userModelDB.find({ _id: { $in: userIds } }).select("email");
 
       const emailPromises = usersData.map(async (user) => {
+        // if (user.email) {
+        //   await sendCouponEmail(user.email, coupon);
+        //   // Update the specific user in the users array
+        //   // We need to mutate the mongoose document or prepare an update operation
+        //   await couponModelDB.updateOne(
+        //     { _id: coupon._id, "user.value": user._id.toString() },
+        //     { $set: { "user.$.email_sent": true } },
+        //   );
+        // }
+
         if (user.email) {
-          await sendCouponEmail(user.email, coupon);
-          // Update the specific user in the users array
-          // We need to mutate the mongoose document or prepare an update operation
+          sendEmailProducer({
+            to: user.email,
+            subject: `Exclusive Coupon for You! 🎁 - ${coupon.coupon_code}`,
+            html: generateCouponEmailTemplate(coupon),
+          });
           await couponModelDB.updateOne(
             { _id: coupon._id, "user.value": user._id.toString() },
             { $set: { "user.$.email_sent": true } },

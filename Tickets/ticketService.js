@@ -544,16 +544,7 @@ const notifyUsersInBackground = async ({
       relatedModel: "Ticket",
       link: `/tickets/${ticketData.ticket_id}`,
     }).catch((err) => console.error("Failed to send user in-app notification:", err.message));
-
-    const emailHtml = templateFunction(ticketData);
-    await sendEmailNotification({
-      to: user.email,
-      subject: subject,
-      html: emailHtml,
-    });
-    // Wait for everything to complete
-    await Promise.all([userNotificationPromise]);
   } catch (error) {
-    console.error("Error in notifyAdminsInBackground:", error);
+    console.error("Error in notifyUsersInBackground:", error);
   }
 };
