@@ -6,6 +6,9 @@ import { fcm } from "./firebase-admin.js";
  */
 export const sendUserNotification = async (tenantID, userId, data) => {
   try {
+    console.log("tenantID", tenantID);
+    console.log("userId", userId);
+    console.log("data", data);
     // const Notification = await NotificationModel(tenantID);
     const { notificationModelDB } = await getTenantModels(tenantID);
     const saved = await notificationModelDB.create({
@@ -23,7 +26,7 @@ export const sendUserNotification = async (tenantID, userId, data) => {
 
     const { userModelDB } = await getTenantModels(tenantID);
 
-    const user = userModelDB.findOne({
+    const user = await userModelDB.findOne({
       user_id: userId,
     });
     await fcm.send({
@@ -57,6 +60,7 @@ export const sendAdminNotification = async (tenantID, adminId, data) => {
       finalData = adminId;
     }
 
+    console.log("Data coming to send admin notification function in notification helper", data);
     if (!finalData) {
       console.error("sendAdminNotification: No data provided");
       return null;

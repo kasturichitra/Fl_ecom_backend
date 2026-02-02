@@ -1,19 +1,20 @@
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { sendAdminNotificationProducer } from "../lib/producers/sendAdminNotificationProducer.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
-import validateTicketCreate from "./validations/validateTicketCreate.js";
-import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
+import { sendUserNotification } from "../utils/notificationHelper.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 import {
-  sendEmailNotification,
-  generateTicketEmailTemplate,
-  generateTicketResolvedForUserEmail,
   generateTicketAssignedToEmployeeEmail,
   generateTicketAssignedToUserEmail,
+  generateTicketEmailTemplate,
+  generateTicketResolvedForUserEmail,
+  sendEmailNotification,
 } from "./utils/sendEmail.js";
-import mongoose from "mongoose";
+import validateTicketCreate from "./validations/validateTicketCreate.js";
 import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
 import { sendEmailProducer } from "../lib/producers/sendEmailProducer.js";
+import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
 
 /*
     Example JSON 
@@ -322,7 +323,6 @@ export const getUserTicketForOrderService = async (tenantId, order_id) => {
 export const assignTicketService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-
   const { ticketModelDB, userModelDB } = await getTenantModels(tenantId);
 
   const existingTicket = await ticketModelDB.findOne({
@@ -349,17 +349,16 @@ export const assignTicketService = async (tenantId, payload) => {
   // 🔥 populate AFTER save
   await existingTicket.populate("assigned_to raised_by");
 
-  // notifyUsersInBackground({
-  //   tenantId,
-  //   ticketData: existingTicket,
-  //   user_id: existingTicket.assigned_to,
-  //   templateFunction: generateTicketAssignedToEmployeeEmail,
-  //   subject: "Support ticket has been assigned to you",
-  //   message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to you`,
-  // }).catch((err) => {
-  //   console.error("Background notification failed for generateTicketAssignedToEmployeeEmail:", err);
-  // });
-
+  notifyUsersInBackground({
+    tenantId,
+    ticketData: existingTicket,
+    user_id: existingTicket.assigned_to?.user_id,
+    templateFunction: generateTicketAssignedToEmployeeEmail,
+    subject: "Support ticket has been assigned to you",
+    html: generateTicketAssignedToEmployeeEmail(existingTicket),
+  }).catch((err) => {
+    console.error("Failed to enqueue email to assigned user:", err);
+  });
 
   sendEmailProducer({
     to: existingUser.email,
@@ -367,6 +366,17 @@ export const assignTicketService = async (tenantId, payload) => {
     html: generateTicketAssignedToEmployeeEmail(existingTicket),
   }).catch((err) => {
     console.error("Failed to enqueue email to assigned user:", err);
+  });
+
+  notifyUsersInBackground({
+    tenantId,
+    ticketData: existingTicket,
+    user_id: existingTicket.raised_by?.user_id,
+    templateFunction: generateTicketAssignedToUserEmail,
+    subject: "Your ticket has been assigned to customer care",
+    html: generateTicketAssignedToUserEmail(existingTicket),
+  }).catch((err) => {
+    console.error("Failed to enqueue email to ticket raiser:", err);
   });
 
   sendEmailProducer({
@@ -422,7 +432,7 @@ export const resolveTicketService = async (tenantId, payload) => {
   notifyUsersInBackground({
     tenantId,
     ticketData: existingTicket,
-    user_id: existingTicket.raised_by,
+    user_id: existingTicket.raised_by?.user_id,
     templateFunction: generateTicketResolvedForUserEmail,
     subject: "Support ticket has been resolved",
     message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been resolved`,
@@ -470,7 +480,7 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
 
     // 1️⃣ Send ONE in-app notification to all admins (Broadcast)
     // adminId is passed as null or first admin ID because sendAdminNotification handles broadcasting to the "admins" room
-    const adminNotificationPromise = sendAdminNotification(tenantId, adminUsers[0]._id, {
+    sendAdminNotificationProducer(tenantId, adminUsers[0]._id, {
       title: "New Support Ticket Created",
       message: `Ticket ${ticketData.ticket_id} has been created by ${ticketData.user_email}`,
       type: "ticket",
@@ -515,15 +525,18 @@ const notifyUsersInBackground = async ({
     const { userModelDB } = await getTenantModels(tenantId);
 
     // First get the user who raised the ticket
-    const user = await userModelDB.findOne({ _id: user_id });
+    const user = await userModelDB.findOne({ user_id: user_id });
 
     if (!user) {
       console.log("User not found");
       return;
     }
 
+    console.log("user_id before going into queue", user_id);
+
     // 1️⃣ Send ONE in-app notification to the user who raised the ticket
-    const userNotificationPromise = sendUserNotification(tenantId, user_id, {
+    // sendUserNotification
+    addUserNotificationJob(tenantId, user_id, {
       title: subject,
       message: message,
       type: "ticket",

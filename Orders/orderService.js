@@ -2,10 +2,12 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
+import { sendUserNotification } from "../utils/notificationHelper.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 import { ADMIN_ID } from "../lib/constants.js";
+import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
+import { sendAdminNotificationProducer } from "../lib/producers/sendAdminNotificationProducer.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantId, products) => {
@@ -95,6 +97,8 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
 */
 export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
+
+  console.log("createOrderServices", payload);
 
   const {
     orderModelDB: OrderModelDB,
@@ -246,7 +250,7 @@ export const createOrderServices = async (tenantId, payload) => {
   let order_id = `OD_${Date.now()}_${uuidv4().slice(-6)}`;
 
   const existingUser = await userModelDB.findOne({ user_id: payload.user_id });
-  throwIfTrue(!existingUser, `User not found`);
+  // throwIfTrue(!existingUser, `User not found`);
 
   // Remove unwanted fields from payload
   const {
@@ -276,6 +280,8 @@ export const createOrderServices = async (tenantId, payload) => {
     additional_discount_percentage,
     additional_discount_type,
     order_id,
+    user_id: payload.user_id,
+
     order_status_history: [
       {
         status: "Pending",
@@ -320,19 +326,27 @@ export const createOrderServices = async (tenantId, payload) => {
 
   const transactionReferenceId = `TXN_${order?.order_id}`;
 
-  const paymentTransactionDoc = {
-    order_id: order?.order_id,
-    transaction_reference_id: transactionReferenceId,
-    user_id: order?.user_id,
-    amount: order?.total_amount,
-  };
 
-  const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
 
-  return {
-    ...order,
-    transaction_reference_id: paymentTransaction?.transaction_reference_id,
-  };
+  if (payload.order_type === "Online") {
+
+    const paymentTransactionDoc = {
+      order_id: order?.order_id,
+      transaction_reference_id: transactionReferenceId,
+      user_id: order?.user_id,
+      amount: order?.total_amount,
+    };
+
+    const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
+
+    return {
+      ...order,
+      transaction_reference_id: paymentTransaction?.transaction_reference_id,
+    };
+  }
+
+  return order;
+
 };
 
 // Get all orders for a user
@@ -576,7 +590,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
         // Optional: Notify on status change
         if (["Shipped", "Delivered", "Returned", "Cancelled"].includes(updateProd.status)) {
-          sendUserNotification(tenantId, order.user_id, {
+          addUserNotificationJob(tenantId, order.user_id, {
             title: `Item ${updateProd.status}`,
             message: `${item.product_name} is now ${updateProd.status}`,
             type: "order_update",
@@ -658,7 +672,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
     // Notify admin
     if (order.order_type === "Online") {
-      sendAdminNotification(tenantId, ADMIN_ID, {
+      sendAdminNotificationProducer(tenantId, ADMIN_ID, {
         title: "New Order Received",
         message: `New order from user ${username}. Total: ₹${order.total_amount}`,
         type: "order",
@@ -761,7 +775,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       },
     }).catch((err) => console.error("Background Cancel User Notification error:", err.message));
 
-    sendAdminNotification(tenantId, {
+    sendAdminNotificationProducer(tenantId, {
       title: "Order Cancelled",
       message: `Order cancelled by user/admin. Amount: ₹${updatedOrder.total_amount}`,
       type: "order_cancelled",
@@ -784,7 +798,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
       data: { returnedItems: itemsList },
     }).catch((err) => console.error("Background Return User Notification error:", err.message));
 
-    sendAdminNotification(tenantId, {
+    sendAdminNotificationProducer(tenantId, {
       title: "Items Returned",
       message: `User returned items in order #${updatedOrder._id}: ${itemsList}`,
       type: "order_returned",

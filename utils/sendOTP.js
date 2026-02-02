@@ -1,6 +1,7 @@
 import axios from "axios";
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
+import { sendMobileSMSJob } from "../lib/producers/sendMobileSMSProducer.js";
 
 const DOVE_SOFT_API_URL = process.env.DOVE_SOFT_API_URL;
 const DOVE_SOFT_USER = process.env.DOVE_SOFT_USER;
@@ -10,7 +11,7 @@ const DOVE_SOFT_ENTITYID = process.env.DOVE_SOFT_ENTITYID;
 const DOVE_SOFT_TEMPID = process.env.DOVE_SOFT_TEMPID;
 
 // Function to send SMS using Dove Soft API
-const sendSMS = async (mobileNumber, message) => {
+export const sendSMS = async (mobileNumber, message) => {
   let config = {
     method: "get",
     url: `${DOVE_SOFT_API_URL}&user=${DOVE_SOFT_USER}&key=${DOVE_SOFT_KEY}&mobile=+91${mobileNumber}&message=${message}&senderid=${DOVE_SOFT_SENDERID}&accusage=1&entityid=${DOVE_SOFT_ENTITYID}&tempid=${DOVE_SOFT_TEMPID}`,
@@ -49,6 +50,7 @@ export const sendMobileOTP = async (mobileNumber, otp) => {
   return response;
 };
 
+
 export const sendEmailOTP = async (email, otp) => {
   const message = `Your OTP is ${otp}. Do not share with anyone.`;
   await sendEmail(email, message);
@@ -77,7 +79,8 @@ export const generateAndSendOtp = async (options = {}, otpDb) => {
   });
 
   if (email) await sendEmailOTP(email, otp);
-  if (phone_number) await sendMobileOTP(phone_number, otp);
+  // if (phone_number) await sendMobileOTP(phone_number, otp);
+  if(phone_number) sendMobileSMSJob({ mobileNumber: phone_number, message:  `OTP: ${otp} for user verification - NTARBZ`});
 
   return {
     otp_id: response._id, // 🔥 THIS IS KEY
