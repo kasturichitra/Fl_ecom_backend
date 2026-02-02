@@ -10,6 +10,7 @@ import { transporter } from "../../Config/email.config.js";
  */
 export const sendEmailNotification = async (emailData) => {
   try {
+    console.log("Sending email...", emailData);
     const { to, subject, html, attachments = [] } = emailData;
 
     const mailOptions = {
@@ -101,9 +102,11 @@ export const generateTicketEmailTemplate = (ticketData) => {
 };
 
 export const generateTicketAssignedToEmployeeEmail = (ticketData) => {
+  console.log("Ticket Data in generate email for employee function", ticketData);
   const { ticket_id, message: ticketMessage, user_email, assigned_to, assigned_at, relevant_images = [] } = ticketData;
 
-  const assigned_employee_name = assigned_to.username;
+  const assigned_employee_name = assigned_to;
+  console.log("Assigned employee name", assigned_employee_name);
 
   return `
 <!DOCTYPE html>
@@ -247,11 +250,13 @@ export const generateTicketAssignedToEmployeeEmail = (ticketData) => {
 };
 
 export const generateTicketAssignedToUserEmail = (ticketData) => {
+  console.log("Ticket Data in generate email fdor user function", ticketData);
   const { ticket_id, assigned_to, ticket_url = `${process.env.FRONTEND_URL}/tickets/${ticket_id}` } = ticketData;
 
   console.log("Ticket Data in generate email fdor user function", ticketData);
 
-  const assigned_employee_name = assigned_to.username;
+  const assigned_employee_name = assigned_to;
+  console.log("Assigned employee name", assigned_employee_name);
   return `
 <!DOCTYPE html>
 <html>

@@ -29,10 +29,7 @@ const createTicketSchema = Joi.object({
   ticket_id: Joi.string().trim().optional(),
   order_id: Joi.string().trim().optional(),
 
-  raised_by: Joi.string().trim().hex().length(24).optional().messages({
-    "string.hex": "Raised By must be a valid ObjectId.",
-    "string.length": "Raised By must be 24 characters long.",
-  }),
+  raised_by: Joi.string().trim().optional().messages({}),
 
   status: Joi.string().valid("pending", "assigned", "in_progress", "resolved").optional(),
   priority: Joi.string().valid("low", "medium", "high", "critical").optional(),

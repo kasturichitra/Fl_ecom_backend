@@ -13,6 +13,7 @@ import {
 } from "./utils/sendEmail.js";
 import mongoose from "mongoose";
 import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
+import { sendEmailProducer } from "../lib/producers/sendEmailProducer.js";
 
 /*
     Example JSON 
@@ -32,7 +33,7 @@ import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
 export const createTicketService = async (tenantId, payload, relevantImagesBuffers) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  const { faqModelDB, ticketModelDB } = await getTenantModels(tenantId);
+  const { faqModelDB, ticketModelDB, userModelDB } = await getTenantModels(tenantId);
   const existingFaq = await faqModelDB.findOne({ question_id: payload.faq_question_id });
   throwIfTrue(!existingFaq, "FAQ not found");
 
@@ -47,7 +48,7 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
     existingTicket = await ticketModelDB.findOne({ order_id: payload.order_id, status: "pending" });
     throwIfTrue(
       existingTicket && existingTicket.faq_question_id === payload.faq_question_id,
-      `A Pending ticket already exists for this order for the concern ${payload.faq_question_id}`
+      `A Pending ticket already exists for this order for the concern ${payload.faq_question_id}`,
     );
     throwIfTrue(existingTicket?.is_prohibited, `Raising a ticket for this concern is prohibited`);
   } else {
@@ -58,7 +59,7 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
     });
     throwIfTrue(
       existingTicket,
-      `A Pending ticket already exists for this user for the concern ${payload.faq_question_id}`
+      `A Pending ticket already exists for this user for the concern ${payload.faq_question_id}`,
     );
     throwIfTrue(existingTicket.is_prohibited, `Raising a ticket for this concern is prohibited`);
   }
@@ -71,7 +72,7 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
       uploadImageVariants({
         fileBuffer: buffer,
         basePath: `${tenantId}/Tickets/${ticket_id}/relevant-${index}`,
-      })
+      }),
     );
     payload.relevant_images = await Promise.all(uploadPromises);
   }
@@ -79,17 +80,30 @@ export const createTicketService = async (tenantId, payload, relevantImagesBuffe
   const { isValid, message } = validateTicketCreate(payload);
   throwIfTrue(!isValid, message);
 
+  console.log("Creating ticket with payload", payload);
+
   const createdTicket = await ticketModelDB.create(payload);
+  const adminUsers = await userModelDB.find({ role: "admin", is_active: true });
 
   // Send notifications and emails to admin in background (non-blocking)
-  notifyAdminsInBackground(tenantId, {
-    ticket_id: createdTicket.ticket_id,
-    user_email: payload.user_email,
-    faq_question_id: payload.faq_question_id,
-    message: payload.message,
-    relevant_images: payload.relevant_images || [],
-  }).catch((err) => {
-    console.error("Background notification failed:", err);
+  // notifyAdminsInBackground(tenantId, {
+  //   ticket_id: createdTicket.ticket_id,
+  //   user_email: payload.user_email,
+  //   faq_question_id: payload.faq_question_id,
+  //   message: payload.message,
+  //   relevant_images: payload.relevant_images || [],
+  // }).catch((err) => {
+  //   console.error("Background notification failed:", err);
+  // });
+
+  adminUsers.map((admin) => {
+    sendEmailProducer({
+      to: admin.email,
+      subject: "New Support Ticket Created",
+      html: generateTicketEmailTemplate(createdTicket),
+    }).catch((err) => {
+      console.error("Failed to enqueue email to admin:", err);
+    });
   });
 
   return createdTicket;
@@ -308,6 +322,7 @@ export const getUserTicketForOrderService = async (tenantId, order_id) => {
 export const assignTicketService = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
+
   const { ticketModelDB, userModelDB } = await getTenantModels(tenantId);
 
   const existingTicket = await ticketModelDB.findOne({
@@ -323,7 +338,9 @@ export const assignTicketService = async (tenantId, payload) => {
 
   throwIfTrue(!existingUser, "User not found");
 
-  existingTicket.assigned_to = payload.assigned_to;
+  const assignedUser = await userModelDB.findOne({ user_id: payload.assigned_to });
+
+  existingTicket.assigned_to = assignedUser.username;
   existingTicket.status = "assigned";
   existingTicket.assigned_at = new Date();
 
@@ -332,27 +349,44 @@ export const assignTicketService = async (tenantId, payload) => {
   // 🔥 populate AFTER save
   await existingTicket.populate("assigned_to raised_by");
 
-  notifyUsersInBackground({
-    tenantId,
-    ticketData: existingTicket,
-    user_id: existingTicket.assigned_to,
-    templateFunction: generateTicketAssignedToEmployeeEmail,
+  // notifyUsersInBackground({
+  //   tenantId,
+  //   ticketData: existingTicket,
+  //   user_id: existingTicket.assigned_to,
+  //   templateFunction: generateTicketAssignedToEmployeeEmail,
+  //   subject: "Support ticket has been assigned to you",
+  //   message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to you`,
+  // }).catch((err) => {
+  //   console.error("Background notification failed for generateTicketAssignedToEmployeeEmail:", err);
+  // });
+
+
+  sendEmailProducer({
+    to: existingUser.email,
     subject: "Support ticket has been assigned to you",
-    message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to you`,
+    html: generateTicketAssignedToEmployeeEmail(existingTicket),
   }).catch((err) => {
-    console.error("Background notification failed for generateTicketAssignedToEmployeeEmail:", err);
+    console.error("Failed to enqueue email to assigned user:", err);
   });
 
-  notifyUsersInBackground({
-    tenantId,
-    ticketData: existingTicket,
-    user_id: existingTicket.raised_by,
-    templateFunction: generateTicketAssignedToUserEmail,
+  sendEmailProducer({
+    to: existingTicket.raised_by.email,
     subject: "Your ticket has been assigned to customer care",
-    message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to customer care and we will get back to you soon`,
+    html: generateTicketAssignedToUserEmail(existingTicket),
   }).catch((err) => {
-    console.error("Background notification failed for generateTicketAssignedToUserEmail:", err);
+    console.error("Failed to enqueue email to ticket raiser:", err);
   });
+
+  // notifyUsersInBackground({
+  //   tenantId,
+  //   ticketData: existingTicket,
+  //   user_id: existingTicket.raised_by,
+  //   templateFunction: generateTicketAssignedToUserEmail,
+  //   subject: "Your ticket has been assigned to customer care",
+  //   message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to customer care and we will get back to you soon`,
+  // }).catch((err) => {
+  //   console.error("Background notification failed for generateTicketAssignedToUserEmail:", err);
+  // });
 
   return existingTicket;
 };
@@ -462,7 +496,7 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
     // Wait for everything to complete
     await Promise.all([adminNotificationPromise, ...emailPromises]);
     console.log(
-      `Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`
+      `Successfully notified ${adminUsers.length} admin(s) via email and sent 1 group notification for ticket ${ticketData.ticket_id}`,
     );
   } catch (error) {
     console.error("Error in notifyAdminsInBackground:", error);

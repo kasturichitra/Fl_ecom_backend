@@ -27,7 +27,7 @@ export const createTicketController = async (req, res) => {
 
     const payload = {
       ...data,
-      raised_by: req.user._id.toString(),
+      raised_by: req.user.user_id.toString(),
       user_email: req.user.email,
     };
 
