@@ -12,6 +12,10 @@ const ecomFeatureSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    is_locked: {
+      type: Boolean,
+      // default: false,
+    }, 
   },
   { timestamps: true },
 );

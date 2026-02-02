@@ -1,3 +1,4 @@
+import axios from "axios";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
 
@@ -13,11 +14,13 @@ export const getAllEcomFeaturesService = async (tenantId) => {
     "ecomFeatures": [
       {
         "featureId": "Feature-001", 
-        "is_active": true
+        "is_active": true, 
+        "is_locked": true
       },
       {
         "featureId": "Feature-002", 
-        "is_active": false
+        "is_active": false, 
+        "is_locked": false
       }
     ]
   }
