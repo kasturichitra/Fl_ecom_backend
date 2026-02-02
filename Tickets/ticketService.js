@@ -1,17 +1,17 @@
 import { uploadImageVariants } from "../lib/aws-s3/uploadImageVariants.js";
+import { sendAdminNotificationProducer } from "../lib/producers/sendAdminNotificationProducer.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
-import validateTicketCreate from "./validations/validateTicketCreate.js";
-import throwIfTrue from "../utils/throwIfTrue.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
-import { sendAdminNotification, sendUserNotification } from "../utils/notificationHelper.js";
+import { sendUserNotification } from "../utils/notificationHelper.js";
+import throwIfTrue from "../utils/throwIfTrue.js";
 import {
-  sendEmailNotification,
-  generateTicketEmailTemplate,
-  generateTicketResolvedForUserEmail,
   generateTicketAssignedToEmployeeEmail,
   generateTicketAssignedToUserEmail,
+  generateTicketEmailTemplate,
+  generateTicketResolvedForUserEmail,
+  sendEmailNotification,
 } from "./utils/sendEmail.js";
-import mongoose from "mongoose";
+import validateTicketCreate from "./validations/validateTicketCreate.js";
 import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
 import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
 
@@ -437,7 +437,7 @@ const notifyAdminsInBackground = async (tenantId, ticketData) => {
 
     // 1️⃣ Send ONE in-app notification to all admins (Broadcast)
     // adminId is passed as null or first admin ID because sendAdminNotification handles broadcasting to the "admins" room
-    const adminNotificationPromise = sendAdminNotification(tenantId, adminUsers[0]._id, {
+    sendAdminNotificationProducer(tenantId, adminUsers[0]._id, {
       title: "New Support Ticket Created",
       message: `Ticket ${ticketData.ticket_id} has been created by ${ticketData.user_email}`,
       type: "ticket",
