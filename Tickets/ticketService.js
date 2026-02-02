@@ -13,6 +13,7 @@ import {
 } from "./utils/sendEmail.js";
 import mongoose from "mongoose";
 import { validateTicketUpdate } from "./validations/validateTicketUpdate.js";
+import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
 
 /*
     Example JSON 
@@ -335,7 +336,7 @@ export const assignTicketService = async (tenantId, payload) => {
   notifyUsersInBackground({
     tenantId,
     ticketData: existingTicket,
-    user_id: existingTicket.assigned_to,
+    user_id: existingTicket.assigned_to?.user_id,
     templateFunction: generateTicketAssignedToEmployeeEmail,
     subject: "Support ticket has been assigned to you",
     message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to you`,
@@ -346,7 +347,7 @@ export const assignTicketService = async (tenantId, payload) => {
   notifyUsersInBackground({
     tenantId,
     ticketData: existingTicket,
-    user_id: existingTicket.raised_by,
+    user_id: existingTicket.raised_by?.user_id,
     templateFunction: generateTicketAssignedToUserEmail,
     subject: "Your ticket has been assigned to customer care",
     message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been assigned to customer care and we will get back to you soon`,
@@ -388,7 +389,7 @@ export const resolveTicketService = async (tenantId, payload) => {
   notifyUsersInBackground({
     tenantId,
     ticketData: existingTicket,
-    user_id: existingTicket.raised_by,
+    user_id: existingTicket.raised_by?.user_id,
     templateFunction: generateTicketResolvedForUserEmail,
     subject: "Support ticket has been resolved",
     message: `Ticket ${existingTicket.ticket_id} for ${existingTicket.faq_question_id} has been resolved`,
@@ -481,15 +482,18 @@ const notifyUsersInBackground = async ({
     const { userModelDB } = await getTenantModels(tenantId);
 
     // First get the user who raised the ticket
-    const user = await userModelDB.findOne({ _id: user_id });
+    const user = await userModelDB.findOne({ user_id: user_id });
 
     if (!user) {
       console.log("User not found");
       return;
     }
 
+    console.log('user_id before going into queue', user_id);
+
     // 1️⃣ Send ONE in-app notification to the user who raised the ticket
-    const userNotificationPromise = sendUserNotification(tenantId, user_id, {
+    // sendUserNotification
+     addUserNotificationJob(tenantId, user_id, {
       title: subject,
       message: message,
       type: "ticket",

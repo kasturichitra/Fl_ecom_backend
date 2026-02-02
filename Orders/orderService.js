@@ -6,6 +6,7 @@ import { sendAdminNotification, sendUserNotification } from "../utils/notificati
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 import { ADMIN_ID } from "../lib/constants.js";
+import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
 
 //   Decrease product stock (called after order is saved)
 const updateStockOnOrder = async (tenantId, products) => {
@@ -95,6 +96,8 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
 */
 export const createOrderServices = async (tenantId, payload) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
+
+  console.log("createOrderServices", payload);
 
   const {
     orderModelDB: OrderModelDB,
@@ -246,7 +249,7 @@ export const createOrderServices = async (tenantId, payload) => {
   let order_id = `OD_${Date.now()}_${uuidv4().slice(-6)}`;
 
   const existingUser = await userModelDB.findOne({ user_id: payload.user_id });
-  throwIfTrue(!existingUser, `User not found`);
+  // throwIfTrue(!existingUser, `User not found`);
 
   // Remove unwanted fields from payload
   const {
@@ -276,6 +279,8 @@ export const createOrderServices = async (tenantId, payload) => {
     additional_discount_percentage,
     additional_discount_type,
     order_id,
+    user_id: payload.user_id,
+
     order_status_history: [
       {
         status: "Pending",
@@ -320,19 +325,27 @@ export const createOrderServices = async (tenantId, payload) => {
 
   const transactionReferenceId = `TXN_${order?.order_id}`;
 
-  const paymentTransactionDoc = {
-    order_id: order?.order_id,
-    transaction_reference_id: transactionReferenceId,
-    user_id: order?.user_id,
-    amount: order?.total_amount,
-  };
 
-  const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
 
-  return {
-    ...order,
-    transaction_reference_id: paymentTransaction?.transaction_reference_id,
-  };
+  if (payload.order_type === "Online") {
+
+    const paymentTransactionDoc = {
+      order_id: order?.order_id,
+      transaction_reference_id: transactionReferenceId,
+      user_id: order?.user_id,
+      amount: order?.total_amount,
+    };
+
+    const paymentTransaction = await paymentTransactionsModelDB.create(paymentTransactionDoc);
+
+    return {
+      ...order,
+      transaction_reference_id: paymentTransaction?.transaction_reference_id,
+    };
+  }
+
+  return order;
+
 };
 
 // Get all orders for a user
@@ -576,7 +589,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
         // Optional: Notify on status change
         if (["Shipped", "Delivered", "Returned", "Cancelled"].includes(updateProd.status)) {
-          sendUserNotification(tenantId, order.user_id, {
+          addUserNotificationJob(tenantId, order.user_id, {
             title: `Item ${updateProd.status}`,
             message: `${item.product_name} is now ${updateProd.status}`,
             type: "order_update",

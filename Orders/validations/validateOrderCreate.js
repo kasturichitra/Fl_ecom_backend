@@ -336,7 +336,7 @@ export const orderValidationSchema = Joi.object({
 
   user_id: Joi.when("order_type", {
     is: "Online",
-    then: Joi.string().required(),
+    then: Joi.string().optional,
     otherwise: Joi.forbidden(),
   }).messages({
     "string.base": "User ID must be a string.",
