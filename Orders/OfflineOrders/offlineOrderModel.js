@@ -57,9 +57,9 @@ const offlineOrderSchema = new mongoose.Schema(
 
 offlineOrderSchema.index({ order_id: 1 });
 
-const offlineOrderModel = async (tenantId) => {
+const OfflineOrderModel = async (tenantId) => {
   const db = await getTenanteDB(tenantId);
   return db.models.OfflineOrders || db.model("OfflineOrders", offlineOrderSchema);
 };
 
-export default offlineOrderModel;
+export default OfflineOrderModel;
