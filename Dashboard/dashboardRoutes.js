@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  getAllDeadStockController,
   getAllLowStockProductsController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
@@ -103,6 +104,16 @@ router.get(
     keyPrefix: "get-low-stock-products",
   }),
   getAllLowStockProductsController,
+);
+
+router.get(
+  "/inventory/deadstock",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-dead-stock-products",
+  }),
+  getAllDeadStockController,
 );
 
 export default router;

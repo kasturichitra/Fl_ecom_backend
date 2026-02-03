@@ -1,5 +1,6 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
+  getAllDeadStockService,
   getAllLowStockProductsService,
   getOrdersByOrderType,
   getOrdersByPaymentMethod,
@@ -98,8 +99,6 @@ export const getOrdersByOrderTypeController = async (req, res) => {
   }
 };
 
-
-
 export const getTotalCountsController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
@@ -109,13 +108,23 @@ export const getTotalCountsController = async (req, res) => {
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching total counts:", error));
   }
-}
+};
 
 export const getAllLowStockProductsController = async (req, res) => {
   try {
     const tenantId = req.headers["x-tenant-id"];
     const response = await getAllLowStockProductsService(tenantId, req.query);
     res.status(200).json(successResponse("stock products fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getAllDeadStockController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await getAllDeadStockService(tenantId, req.query);
+    res.status(200).json(successResponse("Dead stock products fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
