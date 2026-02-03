@@ -982,7 +982,7 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
   ]);
 
   return {
-    products,
+    data: products,
     totalCount,
     lowStockCount,
     outOfStockCount,
@@ -1005,7 +1005,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
     industry_unique_id,
     brand_unique_id,
     page = 1,
-    limit = 60,
+    limit = 10,
     search,
     year,
     from,
@@ -1015,7 +1015,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   const numericLimit = Number(limit);
   const skip = (Number(page) - 1) * numericLimit;
 
-  /* ---------------- DEAD STOCK DATE LOGIC ---------------- */
+  /* ---------------- DEAD STOCK DATE ---------------- */
   let deadFromDate;
 
   if (from && to) {
@@ -1024,33 +1024,37 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
     deadFromDate = new Date(`${year}-01-01T00:00:00.000Z`);
   } else {
     deadFromDate = new Date();
-    deadFromDate.setDate(deadFromDate.getDate() - 30); // default 30 days
+    deadFromDate.setDate(deadFromDate.getDate() - 30);
   }
 
   /* ---------------- PRODUCT FILTERS ---------------- */
-  const productMatch = {
-    stock_quantity: { $gt: 0 },
-  };
+  const productMatch = { stock_quantity: { $gt: 0 } };
 
-  if (category_unique_id) productMatch.category_unique_id = category_unique_id;
+  if (category_unique_id)
+    productMatch.category_unique_id = category_unique_id;
 
-  if (industry_unique_id) productMatch.industry_unique_id = industry_unique_id;
+  if (industry_unique_id)
+    productMatch.industry_unique_id = industry_unique_id;
 
-  if (brand_unique_id) productMatch.brand_unique_id = brand_unique_id;
+  if (brand_unique_id)
+    productMatch.brand_unique_id = brand_unique_id;
 
   if (search?.trim()) {
     const regex = new RegExp(search.trim(), "i");
-    productMatch.$or = [{ product_name: regex }, { product_unique_id: regex }];
+    productMatch.$or = [
+      { product_name: regex },
+      { product_unique_id: regex },
+    ];
   }
 
-  /* ---------------- AGGREGATION PIPELINE ---------------- */
-  const pipeline = [
+  /* ---------------- BASE PIPELINE (NO PAGINATION) ---------------- */
+  const basePipeline = [
     { $match: productMatch },
 
-    /* ---------- ONLINE ORDERS ---------- */
+    /* ONLINE ORDERS */
     {
       $lookup: {
-        from: "orders", // ⚠️ ensure exact collection name
+        from: "orders",
         let: { pid: "$product_unique_id" },
         pipeline: [
           { $unwind: "$order_products" },
@@ -1072,10 +1076,10 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
       },
     },
 
-    /* ---------- OFFLINE ORDERS ---------- */
+    /* OFFLINE ORDERS */
     {
       $lookup: {
-        from: "offlineorders", // ⚠️ check case sensitivity
+        from: "offlineorders",
         let: { pid: "$product_unique_id" },
         pipeline: [
           { $unwind: "$order_products" },
@@ -1097,7 +1101,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
       },
     },
 
-    /* ---------- MERGE SALES ---------- */
+    /* MERGE SALES */
     {
       $addFields: {
         allSales: {
@@ -1106,7 +1110,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
       },
     },
 
-    /* ---------- SALES SUMMARY ---------- */
+    /* SALES SUMMARY */
     {
       $addFields: {
         lastSoldAt: { $max: "$allSales.soldAt" },
@@ -1114,48 +1118,66 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
       },
     },
 
-    /* ---------- DEAD STOCK CONDITION (FIXED) ---------- */
+    /* DEAD STOCK CONDITION */
     {
       $match: {
         $or: [
-          { lastSoldAt: null }, // 👈 NEVER SOLD
-          { lastSoldAt: { $lt: deadFromDate } }, // 👈 SOLD LONG AGO
+          { lastSoldAt: null },
+          { lastSoldAt: { $lt: deadFromDate } },
         ],
       },
     },
-
-    /* ---------- FINAL RESPONSE ---------- */
-    {
-      $project: {
-        product_unique_id: 1,
-        product_name: 1,
-        category_unique_id: 1,
-        industry_unique_id: 1,
-        brand_unique_id: 1,
-        stock_quantity: 1,
-        lastSoldAt: 1,
-        totalSoldQty: { $ifNull: ["$totalSoldQty", 0] },
-        deadStockValue: {
-          $multiply: ["$stock_quantity", "$final_price"],
-        },
-      },
-    },
-
-    { $sort: { lastSoldAt: 1 } },
-    { $skip: skip },
-    { $limit: numericLimit },
   ];
 
-  console.log("Dead Stock Pipeline:", JSON.stringify(pipeline, null, 2));
+  /* ---------------- FACET FOR PAGINATION ---------------- */
+  const pipeline = [
+    ...basePipeline,
+    {
+      $facet: {
+        data: [
+          {
+            $project: {
+              product_unique_id: 1,
+              product_name: 1,
+              category_unique_id: 1,
+              industry_unique_id: 1,
+              brand_unique_id: 1,
+              stock_quantity: 1,
+              lastSoldAt: 1,
+              totalSoldQty: { $ifNull: ["$totalSoldQty", 0] },
+              deadStockValue: {
+                $multiply: ["$stock_quantity", "$final_price"],
+              },
+            },
+          },
+          { $sort: { lastSoldAt: 1 } },
+          { $skip: skip },
+          { $limit: numericLimit },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
 
   /* ---------------- EXECUTE ---------------- */
-  const data = await productModelDB.aggregate(pipeline);
+  const result = await productModelDB.aggregate(pipeline);
 
+  const data = result[0]?.data || [];
+  const totalCount = result[0]?.totalCount[0]?.count || 0;
 
   return {
-    page: Number(page),
-    limit: numericLimit,
-    totalCount: data.length,
     data,
+    pagination: {
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalCount / numericLimit),
+      totalCount,
+      limit: numericLimit,
+    },
   };
 };
+
+
+
+export const getFastMovingProductsService = async (tenantId, filters) => {
+  
+}
