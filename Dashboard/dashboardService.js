@@ -1,5 +1,6 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
+import { buildSortObject } from "../utils/buildSortObject.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -884,5 +885,113 @@ export const getTotalCountsService = async (tenantId) => {
     notificationCounts: notificationStats[0] || { total: 0, unread: 0 },
     saleTrendCounts: saleTrendStats[0] || activeInactiveDefault,
     businessCounts: businessStats[0] || businessDefault,
+  };
+};
+
+export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+
+  const { productModelDB } = await getTenantModels(tenantId);
+
+  const {
+    threshold, // Optional: override product's low_stock_threshold
+    category_unique_id,
+    industry_unique_id,
+    brand_unique_id,
+    page = 1,
+    limit = 10,
+    sort,
+    search,
+    year,
+    from,
+    to,
+  } = filters;
+
+  const numericLimit = Number(limit);
+  const skip = (Number(page) - 1) * numericLimit;
+
+  /** ---------------- Base Filters ---------------- */
+  const baseQuery = {};
+
+  if (category_unique_id) baseQuery.category_unique_id = category_unique_id;
+  if (industry_unique_id) baseQuery.industry_unique_id = industry_unique_id;
+  if (brand_unique_id) baseQuery.brand_unique_id = brand_unique_id;
+
+  // Date filters - prioritize from/to over year
+  if (from && to) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    baseQuery.createdAt = { $gte: fromDate, $lte: toDate };
+  } else if (year) {
+    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    baseQuery.createdAt = { $gte: startDate, $lte: endDate };
+  }
+
+  if (search?.trim()) {
+    const searchRegex = { $regex: search.trim(), $options: "i" };
+    baseQuery.$or = [{ product_name: searchRegex }, { product_unique_id: searchRegex }];
+  }
+
+  /** ---------------- Low Stock Query ---------------- */
+  const lowStockQuery = {
+    ...baseQuery,
+    // Use custom threshold OR compare stock_quantity with product's own low_stock_threshold
+    ...(threshold 
+      ? { stock_quantity: { $lte: Number(threshold) } }
+      : { $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] } }
+    ),
+  };
+
+  const sortObj = buildSortObject(sort);
+
+  /** ---------------- Parallel Queries ---------------- */
+  const numericThreshold = threshold ? Number(threshold) : undefined;
+
+  const [products, totalCount, lowStockCount, outOfStockCount, healthyStockCount] = await Promise.all([
+    productModelDB.find(lowStockQuery).sort(sortObj).skip(skip).limit(numericLimit).lean(),
+
+    productModelDB.countDocuments(lowStockQuery),
+
+    // Low stock count (using same logic as main query)
+    numericThreshold !== undefined
+      ? productModelDB.countDocuments({
+          ...baseQuery,
+          stock_quantity: { $lte: numericThreshold },
+        })
+      : productModelDB.countDocuments({
+          ...baseQuery,
+          $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
+
+    // Out of stock (exactly 0)
+    productModelDB.countDocuments({
+      ...baseQuery,
+      stock_quantity: 0,
+    }),
+
+    // Healthy stock
+    numericThreshold !== undefined
+      ? productModelDB.countDocuments({
+          ...baseQuery,
+          stock_quantity: { $gt: numericThreshold },
+        })
+      : productModelDB.countDocuments({
+          ...baseQuery,
+          $expr: { $gt: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
+  ]);
+
+  return {
+    products,
+    totalCount,
+    lowStockCount,
+    outOfStockCount,
+    healthyStockCount,
+    pagination: {
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalCount / numericLimit),
+      limit: numericLimit,
+    },
   };
 };
