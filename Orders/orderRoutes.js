@@ -6,12 +6,13 @@ import {
   getOrderProductController,
   getOrderSingleProductController,
   updateOrderStatusController,
+  createOfflineOrderController,
 } from "./orderController.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
 
-const route = express.Router();
+const router = express.Router();
 
-route.post(
+router.post(
   "/",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -21,7 +22,17 @@ route.post(
   createOrderController,
 );
 
-route.get(
+router.post(
+  "/offline",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 25,
+    keyPrefix: "create-offline-order",
+  }),
+  createOfflineOrderController
+);
+
+router.get(
   "/orderProduct",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -31,7 +42,7 @@ route.get(
   getOrderSingleProductController,
 );
 
-route.get(
+router.get(
   "/search",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -41,7 +52,7 @@ route.get(
   getAllOrdersController,
 );
 
-route.get(
+router.get(
   "/:id",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -51,7 +62,7 @@ route.get(
   getOrderProductController,
 );
 
-route.put(
+router.put(
   "/:id",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -61,7 +72,7 @@ route.put(
   updateOrderController,
 );
 
-route.patch(
+router.patch(
   "/:id/status",
   rateLimiter({
     windowSizeInSeconds: 60, // 1 minute
@@ -71,4 +82,4 @@ route.patch(
   updateOrderStatusController,
 );
 
-export default route;
+export default router;
