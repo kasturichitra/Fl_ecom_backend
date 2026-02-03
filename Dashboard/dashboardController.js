@@ -129,3 +129,13 @@ export const getAllDeadStockController = async (req, res) => {
     res.status(500).json(errorResponse(error.message, error));
   }
 };
+
+export const getFastMovingProductsController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await getFastMovingProductsService(tenantId, req.query);
+    res.status(200).json(successResponse("Fast moving products fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
