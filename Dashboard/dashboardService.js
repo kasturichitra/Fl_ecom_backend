@@ -937,10 +937,9 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
   const lowStockQuery = {
     ...baseQuery,
     // Use custom threshold OR compare stock_quantity with product's own low_stock_threshold
-    ...(threshold 
+    ...(threshold
       ? { stock_quantity: { $lte: Number(threshold) } }
-      : { $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] } }
-    ),
+      : { $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] } }),
   };
 
   const sortObj = buildSortObject(sort);
@@ -993,5 +992,170 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
       totalPages: Math.ceil(totalCount / numericLimit),
       limit: numericLimit,
     },
+  };
+};
+
+export const getAllDeadStockService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+
+  const { productModelDB } = await getTenantModels(tenantId);
+
+  const {
+    category_unique_id,
+    industry_unique_id,
+    brand_unique_id,
+    page = 1,
+    limit = 60,
+    search,
+    year,
+    from,
+    to,
+  } = filters;
+
+  const numericLimit = Number(limit);
+  const skip = (Number(page) - 1) * numericLimit;
+
+  /* ---------------- DEAD STOCK DATE LOGIC ---------------- */
+  let deadFromDate;
+
+  if (from && to) {
+    deadFromDate = new Date(from);
+  } else if (year) {
+    deadFromDate = new Date(`${year}-01-01T00:00:00.000Z`);
+  } else {
+    deadFromDate = new Date();
+    deadFromDate.setDate(deadFromDate.getDate() - 30); // default 30 days
+  }
+
+  /* ---------------- PRODUCT FILTERS ---------------- */
+  const productMatch = {
+    stock_quantity: { $gt: 0 },
+  };
+
+  if (category_unique_id) productMatch.category_unique_id = category_unique_id;
+
+  if (industry_unique_id) productMatch.industry_unique_id = industry_unique_id;
+
+  if (brand_unique_id) productMatch.brand_unique_id = brand_unique_id;
+
+  if (search?.trim()) {
+    const regex = new RegExp(search.trim(), "i");
+    productMatch.$or = [{ product_name: regex }, { product_unique_id: regex }];
+  }
+
+  /* ---------------- AGGREGATION PIPELINE ---------------- */
+  const pipeline = [
+    { $match: productMatch },
+
+    /* ---------- ONLINE ORDERS ---------- */
+    {
+      $lookup: {
+        from: "orders", // ⚠️ ensure exact collection name
+        let: { pid: "$product_unique_id" },
+        pipeline: [
+          { $unwind: "$order_products" },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$order_products.product_unique_id", "$$pid"],
+              },
+            },
+          },
+          {
+            $project: {
+              soldAt: "$createdAt",
+              qty: "$order_products.quantity",
+            },
+          },
+        ],
+        as: "onlineSales",
+      },
+    },
+
+    /* ---------- OFFLINE ORDERS ---------- */
+    {
+      $lookup: {
+        from: "offlineorders", // ⚠️ check case sensitivity
+        let: { pid: "$product_unique_id" },
+        pipeline: [
+          { $unwind: "$order_products" },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$order_products.product_unique_id", "$$pid"],
+              },
+            },
+          },
+          {
+            $project: {
+              soldAt: "$createdAt",
+              qty: "$order_products.quantity",
+            },
+          },
+        ],
+        as: "offlineSales",
+      },
+    },
+
+    /* ---------- MERGE SALES ---------- */
+    {
+      $addFields: {
+        allSales: {
+          $concatArrays: ["$onlineSales", "$offlineSales"],
+        },
+      },
+    },
+
+    /* ---------- SALES SUMMARY ---------- */
+    {
+      $addFields: {
+        lastSoldAt: { $max: "$allSales.soldAt" },
+        totalSoldQty: { $sum: "$allSales.qty" },
+      },
+    },
+
+    /* ---------- DEAD STOCK CONDITION (FIXED) ---------- */
+    {
+      $match: {
+        $or: [
+          { lastSoldAt: null }, // 👈 NEVER SOLD
+          { lastSoldAt: { $lt: deadFromDate } }, // 👈 SOLD LONG AGO
+        ],
+      },
+    },
+
+    /* ---------- FINAL RESPONSE ---------- */
+    {
+      $project: {
+        product_unique_id: 1,
+        product_name: 1,
+        category_unique_id: 1,
+        industry_unique_id: 1,
+        brand_unique_id: 1,
+        stock_quantity: 1,
+        lastSoldAt: 1,
+        totalSoldQty: { $ifNull: ["$totalSoldQty", 0] },
+        deadStockValue: {
+          $multiply: ["$stock_quantity", "$final_price"],
+        },
+      },
+    },
+
+    { $sort: { lastSoldAt: 1 } },
+    { $skip: skip },
+    { $limit: numericLimit },
+  ];
+
+  console.log("Dead Stock Pipeline:", JSON.stringify(pipeline, null, 2));
+
+  /* ---------------- EXECUTE ---------------- */
+  const data = await productModelDB.aggregate(pipeline);
+
+
+  return {
+    page: Number(page),
+    limit: numericLimit,
+    totalCount: data.length,
+    data,
   };
 };
