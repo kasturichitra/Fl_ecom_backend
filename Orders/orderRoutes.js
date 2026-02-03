@@ -6,7 +6,6 @@ import {
   getOrderProductController,
   getOrderSingleProductController,
   updateOrderStatusController,
-  createOfflineOrderController,
 } from "./orderController.js";
 import rateLimiter from "../lib/redis/rateLimiter.js";
 
@@ -20,16 +19,6 @@ router.post(
     keyPrefix: "create-order",
   }),
   createOrderController,
-);
-
-router.post(
-  "/offline",
-  rateLimiter({
-    windowSizeInSeconds: 60, // 1 minute
-    maxRequests: 25,
-    keyPrefix: "create-offline-order",
-  }),
-  createOfflineOrderController
 );
 
 router.get(

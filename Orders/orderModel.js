@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { getTenanteDB } from "../Config/tenantDB.js";
 
+// This schema will be used only for online orders i.e. orders made from ecom application
+
 export const addressSchema = new mongoose.Schema({
   first_name: {
     type: String,
@@ -196,11 +198,11 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    order_type: {
-      type: String,
-      enum: ["Online", "Offline"],
-      required: true,
-    },
+    // order_type: {
+    //   type: String,
+    //   enum: ["Online", "Offline"],
+    //   required: true,
+    // },
     payment_status: {
       type: String,
       enum: ["Pending", "Successful", "Failed", "Refunded"],

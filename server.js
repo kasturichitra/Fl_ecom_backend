@@ -14,6 +14,7 @@ import categoryRoutes from "./Category/categoryRoutes.js";
 import productRoutes from "./Products/productRoutes.js";
 import productsReviewsRoute from "./Products/ProductsReviews/productReviewRoutes.js";
 import orderRoute from "./Orders/orderRoutes.js";
+import offlineOrderRoutes from "./Orders/OfflineOrders/offlineOrderRoutes.js";
 // import ticketRoute from "./Tickets/ticketRoutes.js";
 import wishlistRoute from "./Wishlist/wishlistRoute.js";
 import bannerRoutes from "./Banners/bannersRoutes.js";
@@ -149,6 +150,7 @@ app.use(
   // verifyToken,
   orderRoute,
 );
+app.use("/orders/offline", offlineOrderRoutes);
 // app.use("/ticket",verifyToken, ticketRoute);
 app.use("/wishlists", verifyToken, wishlistRoute);
 app.use("/banners", bannerRoutes);

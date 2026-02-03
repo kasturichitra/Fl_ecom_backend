@@ -162,10 +162,9 @@ export const orderValidationSchema = Joi.object({
   // REMOVED Payment fields from here as they are now in PaymentTransaction model
   // payment_status, payment_method, transaction_id are handled separately or by Payment validations
 
-  order_create_date: Joi.date().required().messages({
+  order_create_date: Joi.date().optional().messages({
     "date.base": "Order create date must be a valid date.",
-    "any.required": "Order create date is required.",
-  }),
+  }).allow(null),
 
   order_cancel_date: Joi.date().allow(null).messages({
     "date.base": "Order cancel date must be a valid date.",
@@ -336,7 +335,7 @@ export const orderValidationSchema = Joi.object({
 
   user_id: Joi.when("order_type", {
     is: "Online",
-    then: Joi.string().optional,
+    then: Joi.string().optional().allow(null, ""),
     otherwise: Joi.forbidden(),
   }).messages({
     "string.base": "User ID must be a string.",

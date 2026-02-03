@@ -7,7 +7,6 @@ import {
   getOrderProductService,
   getOrderSingleProductService,
   updateOrderStatusService,
-  createOfflineOrderService,
 } from "./orderService.js";
 
 export const createOrderController = async (req, res) => {
@@ -23,20 +22,6 @@ export const createOrderController = async (req, res) => {
     res.status(500).json(errorResponse(err.message, err));
   }
 };
-
-export const createOfflineOrderController = async (req, res) => {
-  try {
-    const tenantId = req.headers["x-tenant-id"];
-
-    const data = req.body;
-
-    const order = await createOfflineOrderService(tenantId, data);
-
-    res.status(201).json(successResponse("Order created successfully", { data: order }));
-  } catch (error) {
-    res.status(500).json(errorResponse(error.message, error));
-  }
-}
 
 // get all user orders
 export const getAllUserOrdersController = async (req, res) => {
