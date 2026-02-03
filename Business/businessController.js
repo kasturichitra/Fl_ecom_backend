@@ -12,7 +12,8 @@ import { validateBusinessDetails } from "./businessValidation.js";
 
 export const gstinVerifyController = async (req, res) => {
   try {
-    const response = await gstinVerifyService(req.body);
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await gstinVerifyService(tenantId, req.body);
     res.status(200).json(successResponse("Gstin Verify Success", response));
   } catch (error) {
     res.status(500).json(errorResponse(error.message));
@@ -45,7 +46,7 @@ export const getBusinessDetailsController = async (req, res) => {
     res.status(200).json(
       successResponse("Business details fetched successfully", {
         data: response,
-      })
+      }),
     );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -68,7 +69,7 @@ export const getAllBusinessDetailsController = async (req, res) => {
     res.status(200).json(
       successResponse("Business details fetched successfully", {
         data: response,
-      })
+      }),
     );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -83,7 +84,7 @@ export const getByBusinessIdController = async (req, res) => {
     res.status(200).json(
       successResponse("Business details fetched successfully", {
         data: response,
-      })
+      }),
     );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
@@ -98,7 +99,7 @@ export const assignBusinessDetailsController = async (req, res) => {
     res.status(200).json(
       successResponse("Business details updated successfully", {
         data: response,
-      })
+      }),
     );
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));

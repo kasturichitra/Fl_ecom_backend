@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  getAllLowStockProductsController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
   getOrdersByStatusController,
@@ -21,7 +22,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-top-brands-by-category",
   }),
-  getTopBrandsByCategory
+  getTopBrandsByCategory,
 );
 
 router.get(
@@ -31,7 +32,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-top-products-by-category",
   }),
-  getTopProductsByCategory
+  getTopProductsByCategory,
 );
 
 router.get(
@@ -41,7 +42,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-orders-by-status",
   }),
-  getOrdersByStatusController
+  getOrdersByStatusController,
 );
 
 router.get(
@@ -51,7 +52,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-orders-by-payment-method",
   }),
-  getOrdersByPaymentMethodController
+  getOrdersByPaymentMethodController,
 );
 
 router.get(
@@ -61,7 +62,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-orders-by-order-type",
   }),
-  getOrdersByOrderTypeController
+  getOrdersByOrderTypeController,
 );
 
 router.get(
@@ -71,7 +72,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-orders-trend",
   }),
-  getOrdersTrendController
+  getOrdersTrendController,
 );
 
 router.get(
@@ -81,7 +82,7 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-users-trend",
   }),
-  getUsersTrendController
+  getUsersTrendController,
 );
 
 router.get(
@@ -91,7 +92,17 @@ router.get(
     maxRequests: 60,
     keyPrefix: "get-total-counts",
   }),
-  getTotalCountsController
+  getTotalCountsController,
+);
+
+router.get(
+  "/inventory/ProductsStock",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-low-stock-products",
+  }),
+  getAllLowStockProductsController,
 );
 
 export default router;

@@ -1,5 +1,6 @@
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
+  getAllLowStockProductsService,
   getOrdersByOrderType,
   getOrdersByPaymentMethod,
   getOrdersByStatus,
@@ -109,3 +110,13 @@ export const getTotalCountsController = async (req, res) => {
     res.status(500).json(errorResponse("Error fetching total counts:", error));
   }
 }
+
+export const getAllLowStockProductsController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await getAllLowStockProductsService(tenantId, req.query);
+    res.status(200).json(successResponse("stock products fetched successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};

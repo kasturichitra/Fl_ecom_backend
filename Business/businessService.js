@@ -16,20 +16,38 @@ import {
 import { sendEmailProducer } from "../lib/producers/sendEmailProducer.js";
 import { send } from "process";
 
-export const gstinVerifyService = async (payload) => {
+export const gstinVerifyService = async (tenantId, payload) => {
   throwIfTrue(!payload.gst_in_number, "Gstin Number Required");
   throwIfTrue(!payload.business_name, "Business Name Required");
-  console.log("gstinVerifyUrl", gstinVerifyUrl);
+  throwIfTrue(!tenantId, "Tenant ID is Required");
 
   try {
-    const { data } = await axios.post(`${gstinVerifyUrl}/kyc/api/v1/inhouse/business/Gstinverify`, {
-      gstinNumber: payload.gst_in_number,
-    });
-    const isNameMatching = data.data.companyName.toLowerCase().trim() === payload.business_name.toLowerCase().trim();
+    const { businessModelDB, contactInfoModelDB } = await getTenantModels(tenantId);
 
-    throwIfTrue(!isNameMatching, "Business name does not match GSTIN name");
+    const business = await businessModelDB.findOne({ gst_in_number: payload.gst_in_number });
+    const contactInfo = await contactInfoModelDB.findOne({ gst_in_number: payload.gst_in_number });
 
-    return data;
+    console.log("Existing Business:", business);
+    console.log("Existing Contact Info:", contactInfo);
+
+    if (!business || !contactInfo) {
+      console.log("Calling GSTIN Verification API");
+      const { data } = await axios.post(`${gstinVerifyUrl}/kyc/api/v1/inhouse/business/Gstinverify`, {
+        gstinNumber: payload.gst_in_number,
+      });
+      console.log("GSTIN Verification API Response:", data);
+
+      throwIfTrue(!data || data.status !== "success", "GSTIN Verification Failed");
+      const isNameMatching = data.data.companyName.toLowerCase().trim() === payload.business_name.toLowerCase().trim();
+
+      throwIfTrue(!isNameMatching, "Business name does not match GSTIN name");
+
+      return data;
+    } else {
+      const existingData = business.toObject() || contactInfo.toObject();
+      existingData.is_existing = true;
+      return existingData;
+    }
   } catch (error) {
     throwIfTrue(true, `External API error: ${error}`);
   }
