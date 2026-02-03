@@ -67,7 +67,7 @@ export const addressSchema = new mongoose.Schema({
   },
 });
 
-const orderProductSchema = new mongoose.Schema({
+export const orderProductSchema = new mongoose.Schema({
   product_unique_id: {
     type: String,
     required: true,
@@ -164,7 +164,7 @@ const orderProductSchema = new mongoose.Schema({
 });
 
 // Order Status History Schema
-const orderStatusHistorySchema = new mongoose.Schema({
+export const orderStatusHistorySchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["Pending", "Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled", "Returned", "Refunded"],
