@@ -5,6 +5,7 @@ import throwIfTrue from "../../utils/throwIfTrue.js";
 import { updateStockOnOrder } from "../utils/updateStockOnOrder.js";
 import { verifyOrderProducts } from "../utils/verifyOrderProducts.js";
 import { validateOrderCreate } from "../validations/validateOrderCreate.js";
+import { buildSortObject } from "../../utils/buildSortObject.js";
 
 /*
   Example JSON
@@ -225,4 +226,72 @@ export const createOfflineOrderService = async (tenantId, payload) => {
   await updateStockOnOrder(tenantId, order.order_products);
 
   return order;
+};
+
+// Search orders
+export const getAllOfflineOrdersService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+
+  let { searchTerm, from, to, page = 1, limit = 10, sort } = filters;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  const skip = (page - 1) * limit;
+
+  const query = {};
+
+  // if (order_status) query.order_status = order_status;
+  if (from && to) {
+    query.createdAt = {
+      $gte: new Date(from),
+      $lte: new Date(to),
+    };
+  }
+
+  if (searchTerm)
+    query.$or = [
+      { customer_name: { $regex: searchTerm, $options: "i" } },
+      { mobile_number: { $regex: searchTerm, $options: "i" } },
+      { order_id: { $regex: searchTerm, $options: "i" } },
+      { "order_products.product_name": { $regex: searchTerm, $options: "i" } },
+      { "order_products.product_unique_id": { $regex: searchTerm, $options: "i" } },
+    ];
+
+  const sortObj = buildSortObject(sort);
+
+  // const orderModelDB = await OrdersModel(tenantId);
+  const { offlineOrderModelDB } = await getTenantModels(tenantId);
+
+  /* -------------------------------------------------------------
+     🔥 OPTIMIZED QUERY with $facet (Single DB Call)
+  -------------------------------------------------------------- */
+  const pipeline = [
+    { $match: query },
+    {
+      $addFields: {
+        order_status: { $arrayElemAt: ["$order_status_history.status", -1] },
+      },
+    },
+    // Filter by order_status if provided
+    { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: "count" }],
+      },
+    },
+  ];
+  console.log("pipeline is===>", pipeline);
+  const result = await offlineOrderModelDB.aggregate(pipeline);
+  const orders = result[0].data;
+  const totalCount = result[0].totalCount[0]?.count || 0;
+
+  return {
+    totalCount,
+    page,
+    limit,
+    totalPages: Math.ceil(totalCount / limit),
+    data: orders,
+  };
 };
