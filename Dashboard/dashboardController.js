@@ -2,6 +2,7 @@ import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   getAllDeadStockService,
   getAllLowStockProductsService,
+  getFastMovingProductsService,
   getOrdersByOrderType,
   getOrdersByPaymentMethod,
   getOrdersByStatus,

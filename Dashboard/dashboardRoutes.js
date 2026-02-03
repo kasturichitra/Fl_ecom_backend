@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   getAllDeadStockController,
   getAllLowStockProductsController,
+  getFastMovingProductsController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
   getOrdersByStatusController,
@@ -114,6 +115,16 @@ router.get(
     keyPrefix: "get-dead-stock-products",
   }),
   getAllDeadStockController,
+);
+
+router.get(
+  "/inventory/fastmoving",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-fast-moving-products",
+  }),
+  getFastMovingProductsController,
 );
 
 export default router;
