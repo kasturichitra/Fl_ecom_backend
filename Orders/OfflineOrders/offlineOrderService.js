@@ -295,3 +295,25 @@ export const getAllOfflineOrdersService = async (tenantId, filters = {}) => {
     data: orders,
   };
 };
+
+export const getOfflineOrderByIdService = async (tenantId, orderId) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!orderId, "Valid Order ID is required");
+
+  const { offlineOrderModelDB } = await getTenantModels(tenantId);
+
+  const order = await offlineOrderModelDB.aggregate([
+    { $match: { order_id: orderId } },
+    {
+      $lookup: {
+        from: "products",
+        localField: "order_products.product_unique_id",
+        foreignField: "product_unique_id",
+        as: "order_products",
+      },
+    },
+    { $limit: 1 },
+  ]);
+
+  return order; 
+};

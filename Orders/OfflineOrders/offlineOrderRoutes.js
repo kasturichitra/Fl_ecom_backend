@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { createOfflineOrderController, getAllOfflineOrdersController } from "./offlineOrderController.js";
+import { createOfflineOrderController, getAllOfflineOrdersController, getOfflineOrderByIdController } from "./offlineOrderController.js";
 
 const router = Router();
 
 router.post("/", createOfflineOrderController);
-router.get("/all", getAllOfflineOrdersController);
+router.get("/", getAllOfflineOrdersController);
+router.get("/:id", getOfflineOrderByIdController)
 
 export default router;

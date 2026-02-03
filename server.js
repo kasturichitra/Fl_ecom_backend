@@ -150,7 +150,7 @@ app.use(
   // verifyToken,
   orderRoute,
 );
-app.use("/orders/offline", offlineOrderRoutes);
+app.use("/offline-orders", offlineOrderRoutes);
 // app.use("/ticket",verifyToken, ticketRoute);
 app.use("/wishlists", verifyToken, wishlistRoute);
 app.use("/banners", bannerRoutes);

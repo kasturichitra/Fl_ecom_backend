@@ -778,6 +778,7 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   return updatedOrder;
 };
 
+// Get Order by id with populate on products
 export const getOrderProductService = async (tenantId, orderId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
   throwIfTrue(!orderId, "Valid Order ID is required");

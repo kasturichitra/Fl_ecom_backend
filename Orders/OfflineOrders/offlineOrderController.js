@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "../../utils/responseHandler.js";
-import { createOfflineOrderService, getAllOfflineOrdersService } from "./offlineOrderService.js";
+import { createOfflineOrderService, getAllOfflineOrdersService, getOfflineOrderByIdService } from "./offlineOrderService.js";
 
 export const createOfflineOrderController = async (req, res) => {
   try {
@@ -24,6 +24,19 @@ export const getAllOfflineOrdersController = async (req, res) => {
     const orders = await getAllOfflineOrdersService(tenantId, filters);
 
     res.status(200).json(successResponse("Orders fetched successfully", { data: orders }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+export const getOfflineOrderByIdController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const { id } = req.params;
+
+    const order = await getOfflineOrderByIdService(tenantId, id);
+
+    res.status(200).json(successResponse("Order fetched successfully", { data: order }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
