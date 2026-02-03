@@ -8,28 +8,8 @@ import { validateOrderCreate } from "./validations/validateOrderCreate.js";
 import { ADMIN_ID } from "../lib/constants.js";
 import { addUserNotificationJob } from "../lib/producers/userNotificationProducer.js";
 import { sendAdminNotificationProducer } from "../lib/producers/sendAdminNotificationProducer.js";
-
-//   Decrease product stock (called after order is saved)
-const updateStockOnOrder = async (tenantId, products) => {
-  // const Product = await ProductModel(tenantId);
-  const { productModelDB: Product } = await getTenantModels(tenantId);
-
-  const bulkOps = products.map((item) => ({
-    updateOne: {
-      filter: { product_unique_id: item.product_unique_id },
-      update: { $inc: { stock_quantity: -item.quantity } },
-    },
-  }));
-
-  if (bulkOps.length) await Product.bulkWrite(bulkOps);
-};
-
-const verifyOrderProducts = async (tenantId, products) => {
-  // const Product = await ProductModel(tenantId);
-  const { productModelDB: Product } = await getTenantModels(tenantId);
-  const result = await Product.find({ product_unique_id: { $in: products.map((p) => p.product_unique_id) } });
-  throwIfTrue(result.length !== products.length, `Some Products are not found`);
-};
+import { updateStockOnOrder } from "./utils/updateStockOnOrder.js";
+import { verifyOrderProducts } from "./utils/verifyOrderProducts.js";
 
 const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   // const CartDB = await CartModel(tenantId);
