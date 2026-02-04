@@ -194,77 +194,74 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { from, to, payment_status, payment_method, cash_on_delivery, order_status } = filters;
+  let { from, to, payment_status, order_status } = filters;
 
-  const { orderModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, offlineOrderModelDB } =
+    await getTenantModels(tenantId);
 
-  // Build query
-  const baseQuery = {};
+  // --------------------
+  // COMMON DATE FILTER
+  // --------------------
+  const dateFilter = {};
+  if (from) dateFilter.$gte = new Date(from);
+  if (to) dateFilter.$lte = new Date(to);
 
-  if (payment_status) baseQuery.payment_status = payment_status;
-  if (payment_method) baseQuery.payment_method = payment_method;
-  if (order_status) baseQuery.order_status = order_status;
+  // --------------------
+  // ONLINE ORDER QUERY
+  // --------------------
+  const onlineMatch = {};
+  if (payment_status) onlineMatch.payment_status = payment_status;
+  if (order_status) onlineMatch.order_status = order_status;
+  if (from || to) onlineMatch.createdAt = dateFilter;
 
-  if (cash_on_delivery === "true") {
-    baseQuery.cash_on_delivery = true;
-  } else if (cash_on_delivery === "false") {
-    baseQuery.cash_on_delivery = false;
-  }
+  // --------------------
+  // OFFLINE ORDER QUERY
+  // --------------------
+  const offlineMatch = {};
+  if (from || to) offlineMatch.createdAt = dateFilter;
 
-  if (from) {
-    baseQuery.createdAt = {
-      $gte: new Date(from),
-    };
-  }
-
-  if (to) {
-    baseQuery.createdAt = {
-      $lte: new Date(to),
-    };
-  }
-
-  if (from && to) {
-    baseQuery.createdAt = {
-      $gte: new Date(from),
-      $lte: new Date(to),
-    };
-  }
-
-  // Available order types
-  const orderTypeList = ["Online", "Offline"];
-
-  // Setup dashboard response
-  const orderTypeResult = {};
-  orderTypeList.forEach((type) => {
-    orderTypeResult[type.toLowerCase()] = {
-      count: 0,
-      value: 0,
-    };
-  });
-
-  // Aggregate by order_type
-  const stats = await orderModelDB.aggregate([
-    { $match: baseQuery },
+  // --------------------
+  // AGGREGATIONS
+  // --------------------
+  const [onlineStats] = await orderModelDB.aggregate([
+    { $match: onlineMatch },
     {
       $group: {
-        _id: "$order_type",
+        _id: null,
         count: { $sum: 1 },
-        value: { $sum: "$total_amount" }, // change if needed
-      },
-    },
+        value: { $sum: "$total_amount" }
+      }
+    }
   ]);
 
-  // Fill output
-  stats.forEach((item) => {
-    const key = item._id?.toLowerCase();
-    if (orderTypeResult[key]) {
-      orderTypeResult[key].count = item.count;
-      orderTypeResult[key].value = item.value;
+  const [offlineStats] = await offlineOrderModelDB.aggregate([
+    { $match: offlineMatch },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        value: { $sum: "$total_amount" }
+      }
     }
-  });
+  ]);
 
-  return { data: orderTypeResult };
+  // --------------------
+  // FINAL RESPONSE
+  // --------------------
+  return {
+    data: {
+      online: {
+        count: onlineStats?.count || 0,
+        value: onlineStats?.value || 0
+      },
+      offline: {
+        count: offlineStats?.count || 0,
+        value: offlineStats?.value || 0
+      }
+    }
+  };
 };
+
 
 export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
