@@ -196,8 +196,7 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
 
   let { from, to, payment_status, order_status } = filters;
 
-  const { orderModelDB, offlineOrderModelDB } =
-    await getTenantModels(tenantId);
+  const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
   // --------------------
   // COMMON DATE FILTER
@@ -229,9 +228,9 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
       $group: {
         _id: null,
         count: { $sum: 1 },
-        value: { $sum: "$total_amount" }
-      }
-    }
+        value: { $sum: "$total_amount" },
+      },
+    },
   ]);
 
   const [offlineStats] = await offlineOrderModelDB.aggregate([
@@ -240,9 +239,9 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
       $group: {
         _id: null,
         count: { $sum: 1 },
-        value: { $sum: "$total_amount" }
-      }
-    }
+        value: { $sum: "$total_amount" },
+      },
+    },
   ]);
 
   // --------------------
@@ -252,16 +251,15 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
     data: {
       online: {
         count: onlineStats?.count || 0,
-        value: onlineStats?.value || 0
+        value: onlineStats?.value || 0,
       },
       offline: {
         count: offlineStats?.count || 0,
-        value: offlineStats?.value || 0
-      }
-    }
+        value: offlineStats?.value || 0,
+      },
+    },
   };
 };
-
 
 export const getOrdersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -1160,20 +1158,12 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   };
 };
 
-
 export const getFastMovingProductsService = async (tenantId, filters) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
   const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  const {
-    page = 1,
-    limit = 10,
-    from,
-    to,
-    year,
-    searchTerm
-  } = filters;
+  const { page = 1, limit = 10, from, to, year, searchTerm } = filters;
 
   const numericLimit = Number(limit);
   const skip = (Number(page) - 1) * numericLimit;
@@ -1199,10 +1189,7 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // Build aggregation pipeline
   // -------------------------
   const buildPipeline = () => {
-    const pipeline = [
-      { $match: matchQuery },
-      { $unwind: "$order_products" },
-    ];
+    const pipeline = [{ $match: matchQuery }, { $unwind: "$order_products" }];
 
     // ✅ search filter AFTER unwind
     if (searchTerm && searchTerm.trim()) {
@@ -1270,17 +1257,12 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Sort by fast moving
   // -------------------------
-  combinedResults.sort(
-    (a, b) => b.total_sold_quantity - a.total_sold_quantity
-  );
+  combinedResults.sort((a, b) => b.total_sold_quantity - a.total_sold_quantity);
 
   // -------------------------
   // Pagination
   // -------------------------
-  const paginatedResults = combinedResults.slice(
-    skip,
-    skip + numericLimit
-  );
+  const paginatedResults = combinedResults.slice(skip, skip + numericLimit);
 
   const totalCount = combinedResults.length;
 
@@ -1292,7 +1274,6 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
     totalPages: Math.ceil(totalCount / numericLimit),
   };
 };
-
 
 // export const getFastMovingProductsService = async (tenantId, filters) => {
 //   throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -1314,8 +1295,6 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
 //     const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
 //     matchQuery.createdAt = { $gte: startDate, $lte: endDate };
 //   }
-
-
 
 //   // Aggregate online orders
 //   const pipeline = [
@@ -1360,3 +1339,47 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
 //     totalPages: Math.ceil(totalCount / numericLimit),
 //   };
 // };
+
+//offline orders aggregations
+
+export const getAllofflinePamentTransactionService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+
+  const { offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
+  const { from, to, page = 1, limit = 10 } = filters;
+
+  const numericLimit = Number(limit);
+  const skip = (Number(page) - 1) * numericLimit;
+
+  const matchQuery = {};
+  if (from || to) {
+    matchQuery.createdAt = {};
+    if (from) matchQuery.createdAt.$gte = new Date(from);
+    if (to) matchQuery.createdAt.$lte = new Date(to);
+  }
+  const existingMethods = await offlineOrderTransactionsModelDB.distinct("payment_method");
+  const pipeline = [
+    ...(Object.keys(matchQuery).length > 0 ? [{ $match: matchQuery }] : []),
+    { $group: {
+        _id: "$payment_method",
+        count: { $sum: 1 },
+        total_amount: { $sum: "$amount" },
+      },
+    },
+  ];
+  const aggregationResult = await offlineOrderTransactionsModelDB.aggregate(pipeline);
+
+  const allMethods = existingMethods.map((method) => ({
+    payment_method: method,
+    count: 0,
+    value: 0,
+  }));
+  aggregationResult.forEach((result) => {
+    const method = allMethods.find((m) => m.payment_method === result._id);
+    if (method) {
+      method.count = result.count;
+      method.value = result.total_amount;
+    }
+  });
+  return allMethods;
+};

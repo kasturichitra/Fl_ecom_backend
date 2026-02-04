@@ -2,6 +2,7 @@ import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import {
   getAllDeadStockService,
   getAllLowStockProductsService,
+  getAllofflinePamentTransactionService,
   getFastMovingProductsService,
   getOrdersByOrderType,
   getOrdersByPaymentMethod,
@@ -138,5 +139,20 @@ export const getFastMovingProductsController = async (req, res) => {
     res.status(200).json(successResponse("Fast moving products fetched successfully", { data: response }));
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
+  }
+};
+
+
+// offline order aggregations 
+export const getAllofflinePamentTransactionController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getAllofflinePamentTransactionService(tenantID, filters);
+
+    res.status(200).json(successResponse("Offline orders by payment method fetched successfully", data));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching offline orders by payment method:", error));
   }
 };

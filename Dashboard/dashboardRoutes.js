@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   getAllDeadStockController,
   getAllLowStockProductsController,
+  getAllofflinePamentTransactionController,
   getFastMovingProductsController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
@@ -125,6 +126,16 @@ router.get(
     keyPrefix: "get-fast-moving-products",
   }),
   getFastMovingProductsController,
+);
+
+router.get(
+  "/offline-orders-by-payment-method",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-offline-orders-by-payment-method",
+  }),
+  getAllofflinePamentTransactionController,
 );
 
 export default router;
