@@ -6,9 +6,14 @@ const transactionSchema = Joi.object({
     "any.required": "Payment method is required.",
   }),
 
-  transaction_id: Joi.string().trim().required().messages({
-    "string.base": "Transaction ID must be a string.",
-    "any.required": "Transaction ID is required.",
+  transaction_id: Joi.when("payment_method", {
+    is: "CASH",
+    then: Joi.string().trim().allow(null, "").optional(),
+    otherwise: Joi.string().trim().required().messages({
+      "string.base": "Transaction ID must be a string for digital payments.",
+      "string.empty": "Transaction ID cannot be empty for digital payments.",
+      "any.required": "Transaction ID is required for digital payments.",
+    }),
   }),
 
   amount: Joi.number().min(0).required().messages({
