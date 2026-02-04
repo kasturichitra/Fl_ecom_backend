@@ -42,7 +42,21 @@ import { buildSortObject } from "../../utils/buildSortObject.js";
     "country": "India",
     "address_type": "Home",
     "save_addres": true 
-  }
+  }, 
+  "transactions": [
+    {
+      "transaction_id": "TXN123456789",
+      "payment_method": "UPI",
+      "amount": 500, 
+      "order_id": "OD_1736666666666_..."
+    }, 
+    {
+      "transaction_id": "TXN123456789",
+      "payment_method": "UPI",
+      "amount": 500, 
+      "order_id": "OD_1736666666666_..."
+    }
+  ]
   "additional_discount_percentage": 10, 
   "additional_discount_amount": 100,
   "additional_discount_type": "percentage"
@@ -53,10 +67,10 @@ export const createOfflineOrderService = async (tenantId, payload) => {
 
   console.log("Payload coming into create offline order service ===>", payload);
 
-  const { offlineOrderModelDB, productModelDB } = await getTenantModels(tenantId);
+  const { offlineOrderModelDB, productModelDB, offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
 
   // Calculate Order Totals from Products
-  const { order_products = [] } = payload;
+  const { order_products = [], transactions = [] } = payload;
 
   // Step 1: Calculate total values for EACH product
   // For each product, multiply unit values by quantity
@@ -223,9 +237,22 @@ export const createOfflineOrderService = async (tenantId, payload) => {
   // Create order
   const order = await offlineOrderModelDB.create(restOfOrderDoc);
 
+  const totalTransactionAmount = transactions?.reduce((sum, item) => sum + item.amount, 0) || 0;
+  throwIfTrue(totalTransactionAmount !== order.total_amount, "Transaction amount mismatch");
+
+  const transactionsPayload = transactions?.map((item) => ({
+    ...item,
+    order_id: order.order_id,
+  }));
+
+  const createdTransactions = await offlineOrderTransactionsModelDB.insertMany(transactionsPayload);
+
   await updateStockOnOrder(tenantId, order.order_products);
 
-  return order;
+  return {
+    ...order,
+    transactions: createdTransactions,
+  };
 };
 
 // Search orders
@@ -302,10 +329,7 @@ export const getOfflineOrderByIdService = async (tenantId, orderId) => {
 
   const { offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  const order = await offlineOrderModelDB.aggregate([
-    { $match: { order_id: orderId } },
-    { $limit: 1 },
-  ]);
+  const order = await offlineOrderModelDB.aggregate([{ $match: { order_id: orderId } }, { $limit: 1 }]);
 
-  return order; 
+  return order;
 };
