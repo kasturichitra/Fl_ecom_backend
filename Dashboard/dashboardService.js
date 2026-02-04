@@ -891,7 +891,7 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
   const { productModelDB } = await getTenantModels(tenantId);
 
   const {
-    threshold, // Optional: override product's low_stock_threshold
+    threshold = 10, // Optional: override product's low_stock_threshold
     category_unique_id,
     industry_unique_id,
     brand_unique_id,
