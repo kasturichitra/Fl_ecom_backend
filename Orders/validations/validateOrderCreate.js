@@ -1,5 +1,29 @@
 import Joi from "joi";
 
+const transactionSchema = Joi.object({
+  payment_method: Joi.string().trim().required().messages({
+    "string.base": "Payment method must be a string.",
+    "any.required": "Payment method is required.",
+  }),
+
+  transaction_id: Joi.string().trim().required().messages({
+    "string.base": "Transaction ID must be a string.",
+    "any.required": "Transaction ID is required.",
+  }),
+
+  amount: Joi.number().min(0).required().messages({
+    "number.base": "Amount must be a number.",
+    "number.min": "Amount cannot be negative.",
+    "any.required": "Amount is required.",
+  }),
+
+  // Since order id will be created in backend
+  // order_id: Joi.string().trim().required().messages({
+  //   "string.base": "Order ID must be a string.",
+  //   "any.required": "Order ID is required.",
+  // }),
+});
+
 const addressSchema = Joi.object({
   house_number: Joi.string().trim().required().messages({
     "string.base": "House number must be a string.",
@@ -162,9 +186,12 @@ export const orderValidationSchema = Joi.object({
   // REMOVED Payment fields from here as they are now in PaymentTransaction model
   // payment_status, payment_method, transaction_id are handled separately or by Payment validations
 
-  order_create_date: Joi.date().optional().messages({
-    "date.base": "Order create date must be a valid date.",
-  }).allow(null),
+  order_create_date: Joi.date()
+    .optional()
+    .messages({
+      "date.base": "Order create date must be a valid date.",
+    })
+    .allow(null),
 
   order_cancel_date: Joi.date().allow(null).messages({
     "date.base": "Order cancel date must be a valid date.",
@@ -303,6 +330,15 @@ export const orderValidationSchema = Joi.object({
       "string.base": "Offline address must be a string.",
     }),
     otherwise: Joi.forbidden(),
+  }),
+
+  transactions: Joi.when("order_type", {
+    is: "Offline",
+    then: Joi.array().items(transactionSchema).min(1).required().messages({
+      "array.base": "Transactions must be an array.",
+      "array.min": "At least one transaction is required.",
+      "any.required": "Transactions are required for offline orders.",
+    }),
   }),
 
   shipping_charges: Joi.when("order_type", {
