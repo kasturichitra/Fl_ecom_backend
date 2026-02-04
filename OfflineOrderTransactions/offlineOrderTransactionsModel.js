@@ -25,6 +25,8 @@ const offlineOrderTransactionsSchema = new mongoose.Schema(
   },
 );
 
+offlineOrderTransactionsSchema.index({ payment_method: 1 });
+
 const OfflineOrderTransactionsModel = async (tenantId) => {
   const db = await getTenanteDB(tenantId);
   return db.models.OfflineOrderTransactions || db.model("Offline_Order_Transactions", offlineOrderTransactionsSchema);

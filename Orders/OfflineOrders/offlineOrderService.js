@@ -329,7 +329,18 @@ export const getOfflineOrderByIdService = async (tenantId, orderId) => {
 
   const { offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  const order = await offlineOrderModelDB.aggregate([{ $match: { order_id: orderId } }, { $limit: 1 }]);
+  const order = await offlineOrderModelDB.aggregate([
+    { $match: { order_id: orderId } },
+    {
+      $lookup: {
+        from: "offline_order_transactions",
+        localField: "order_id",
+        foreignField: "order_id",
+        as: "transactions",
+      },
+    },
+    { $limit: 1 },
+  ]);
 
   return order;
 };
