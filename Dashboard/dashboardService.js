@@ -1160,59 +1160,128 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   };
 };
 
+
 export const getFastMovingProductsService = async (tenantId, filters) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
-  const { orderModelDB, productModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  const { page = 1, limit = 10, from, to, year } = filters;
+  const {
+    page = 1,
+    limit = 10,
+    from,
+    to,
+    year,
+    searchTerm
+  } = filters;
+
   const numericLimit = Number(limit);
   const skip = (Number(page) - 1) * numericLimit;
+
+  // -------------------------
+  // Build date match query
+  // -------------------------
   const matchQuery = {};
 
-  // Date filters - prioritize from/to over year
   if (from && to) {
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    matchQuery.createdAt = { $gte: fromDate, $lte: toDate };
+    matchQuery.createdAt = {
+      $gte: new Date(from),
+      $lte: new Date(to),
+    };
   } else if (year) {
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
-    matchQuery.createdAt = { $gte: startDate, $lte: endDate };
+    matchQuery.createdAt = {
+      $gte: new Date(`${year}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${year}-12-31T23:59:59.999Z`),
+    };
   }
-  // Aggregate online orders
-  const pipeline = [
-    { $match: matchQuery },
-    { $unwind: "$order_products" },
-    {
+
+  // -------------------------
+  // Build aggregation pipeline
+  // -------------------------
+  const buildPipeline = () => {
+    const pipeline = [
+      { $match: matchQuery },
+      { $unwind: "$order_products" },
+    ];
+
+    // ✅ search filter AFTER unwind
+    if (searchTerm && searchTerm.trim()) {
+      const safeSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      pipeline.push({
+        $match: {
+          $or: [
+            {
+              "order_products.product_name": {
+                $regex: safeSearch,
+                $options: "i",
+              },
+            },
+            {
+              "order_products.product_unique_id": {
+                $regex: safeSearch,
+                $options: "i",
+              },
+            },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
       $group: {
         _id: "$order_products.product_unique_id",
         product_name: { $first: "$order_products.product_name" },
         total_sold_quantity: { $sum: "$order_products.quantity" },
         total_revenue: { $sum: "$order_products.total_final_price" },
       },
-    },
-  ];
+    });
 
+    return pipeline;
+  };
+
+  const pipeline = buildPipeline();
+
+  // -------------------------
+  // Run both aggregations
+  // -------------------------
   const [onlineResults, offlineResults] = await Promise.all([
     orderModelDB.aggregate(pipeline),
     offlineOrderModelDB.aggregate(pipeline),
   ]);
-  // Combine online and offline results
-  const combinedResultsMap = new Map();
+
+  // -------------------------
+  // Combine online + offline
+  // -------------------------
+  const combinedMap = new Map();
+
   [...onlineResults, ...offlineResults].forEach((item) => {
-    if (combinedResultsMap.has(item._id)) {
-      const existing = combinedResultsMap.get(item._id);
+    if (combinedMap.has(item._id)) {
+      const existing = combinedMap.get(item._id);
       existing.total_sold_quantity += item.total_sold_quantity;
       existing.total_revenue += item.total_revenue;
     } else {
-      combinedResultsMap.set(item._id, { ...item });
+      combinedMap.set(item._id, { ...item });
     }
   });
-  const combinedResults = Array.from(combinedResultsMap.values());
 
-  const sortedResults = combinedResults.sort((a, b) => b.total_sold_quantity - a.total_sold_quantity);
-  const paginatedResults = sortedResults.slice(skip, skip + numericLimit);
+  const combinedResults = Array.from(combinedMap.values());
+
+  // -------------------------
+  // Sort by fast moving
+  // -------------------------
+  combinedResults.sort(
+    (a, b) => b.total_sold_quantity - a.total_sold_quantity
+  );
+
+  // -------------------------
+  // Pagination
+  // -------------------------
+  const paginatedResults = combinedResults.slice(
+    skip,
+    skip + numericLimit
+  );
+
   const totalCount = combinedResults.length;
 
   return {
@@ -1223,3 +1292,71 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
     totalPages: Math.ceil(totalCount / numericLimit),
   };
 };
+
+
+// export const getFastMovingProductsService = async (tenantId, filters) => {
+//   throwIfTrue(!tenantId, "Tenant ID is Required");
+
+//   const { orderModelDB, productModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
+
+//   const { page = 1, limit = 10, from, to, year, searchTerm } = filters;
+//   const numericLimit = Number(limit);
+//   const skip = (Number(page) - 1) * numericLimit;
+//   const matchQuery = {};
+
+//   // Date filters - prioritize from/to over year
+//   if (from && to) {
+//     const fromDate = new Date(from);
+//     const toDate = new Date(to);
+//     matchQuery.createdAt = { $gte: fromDate, $lte: toDate };
+//   } else if (year) {
+//     const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+//     const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+//     matchQuery.createdAt = { $gte: startDate, $lte: endDate };
+//   }
+
+
+
+//   // Aggregate online orders
+//   const pipeline = [
+//     { $match: matchQuery },
+//     { $unwind: "$order_products" },
+//     {
+//       $group: {
+//         _id: "$order_products.product_unique_id",
+//         product_name: { $first: "$order_products.product_name" },
+//         total_sold_quantity: { $sum: "$order_products.quantity" },
+//         total_revenue: { $sum: "$order_products.total_final_price" },
+//       },
+//     },
+//   ];
+
+//   const [onlineResults, offlineResults] = await Promise.all([
+//     orderModelDB.aggregate(pipeline),
+//     offlineOrderModelDB.aggregate(pipeline),
+//   ]);
+//   // Combine online and offline results
+//   const combinedResultsMap = new Map();
+//   [...onlineResults, ...offlineResults].forEach((item) => {
+//     if (combinedResultsMap.has(item._id)) {
+//       const existing = combinedResultsMap.get(item._id);
+//       existing.total_sold_quantity += item.total_sold_quantity;
+//       existing.total_revenue += item.total_revenue;
+//     } else {
+//       combinedResultsMap.set(item._id, { ...item });
+//     }
+//   });
+//   const combinedResults = Array.from(combinedResultsMap.values());
+
+//   const sortedResults = combinedResults.sort((a, b) => b.total_sold_quantity - a.total_sold_quantity);
+//   const paginatedResults = sortedResults.slice(skip, skip + numericLimit);
+//   const totalCount = combinedResults.length;
+
+//   return {
+//     data: paginatedResults,
+//     totalCount,
+//     page: Number(page),
+//     limit: numericLimit,
+//     totalPages: Math.ceil(totalCount / numericLimit),
+//   };
+// };
