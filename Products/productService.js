@@ -485,29 +485,59 @@ export const updateProductService = async (
   return response;
 };
 
+// export const updateProductStockService = async (tenantId, updateData) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+//   throwIfTrue(!updateData.product_unique_id, "Product unique ID is required");
+//   throwIfTrue(updateData.stock_quantity === undefined, "Stock quantity is required");
+
+//   const { productModelDB } = await getTenantModels(tenantId);
+
+//   const existingProduct = await productModelDB.findOne({ product_unique_id: updateData.product_unique_id }).lean();
+//   throwIfTrue(!existingProduct, "Product not found");
+
+//   const response = await productModelDB.findOneAndUpdate(
+//     { product_unique_id: updateData.product_unique_id },
+//     { $set: { stock_quantity: updateData.stock_quantity } },
+//     {
+//       new: true,
+//       runValidators: true,
+//     },
+//   );
+
+//   return response;
+// };
+
+//This function will delete products based on products uniqe ID
 export const updateProductStockService = async (tenantId, updateData) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
-  throwIfTrue(!updateData.product_unique_id, "Product unique ID is required");
-  throwIfTrue(updateData.stock_quantity === undefined, "Stock quantity is required");
+  throwIfTrue(!Array.isArray(updateData) || updateData.length === 0, "Update data must be a non-empty array");
 
   const { productModelDB } = await getTenantModels(tenantId);
 
-  const existingProduct = await productModelDB.findOne({ product_unique_id: updateData.product_unique_id }).lean();
-  throwIfTrue(!existingProduct, "Product not found");
+  // Validate each item
+  updateData.forEach((item, index) => {
+    throwIfTrue(!item.product_unique_id, `Product unique ID is required at index ${index}`);
+    throwIfTrue(item.stock_quantity === undefined, `Stock quantity is required at index ${index}`);
+  });
 
-  const response = await productModelDB.findOneAndUpdate(
-    { product_unique_id: updateData.product_unique_id },
-    { $set: { stock_quantity: updateData.stock_quantity } },
-    {
-      new: true,
-      runValidators: true,
+  const bulkOperations = updateData.map((item) => ({
+    updateOne: {
+      filter: { product_unique_id: item.product_unique_id },
+      update: { $set: { stock_quantity: item.stock_quantity } },
+      upsert: false,
     },
-  );
+  }));
 
-  return response;
+  const result = await productModelDB.bulkWrite(bulkOperations, {
+    ordered: false, // continues even if one update fails
+  });
+
+  return {
+    matchedCount: result.matchedCount,
+    modifiedCount: result.modifiedCount,
+  };
 };
 
-//This function will delete products based on products uniqe ID
 export const deleteProductService = async (tenantId, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
