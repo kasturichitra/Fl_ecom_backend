@@ -10,6 +10,7 @@ import {
   getAllProductsService,
   getProductByUniqueIdService,
   updateProductService,
+  updateProductStockService,
 } from "./productService.js";
 import { errorResponse, successResponse } from "../utils/responseHandler.js";
 import throwIfTrue from "../utils/throwIfTrue.js";
@@ -107,6 +108,16 @@ export const updateProductController = async (req, res) => {
   }
 };
 
+// Update product stock only
+export const updateProductStockController = async (req, res) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"];
+    const response = await updateProductStockService(tenantId, req.body);
+    res.status(200).json(successResponse("Product stock updated successfully", { data: response }));
+  } catch (error) {
+    res.status(500).json(errorResponse(error.message, error));
+  }
+};
 export const deleteProductController = async (req, res) => {
   try {
     const { id } = req.params; // products_unique_ID
@@ -249,4 +260,4 @@ export const deleteProductImageFromS3Controller = async (req, res) => {
   } catch (error) {
     res.status(500).json(errorResponse(error.message, error));
   }
-}
+};

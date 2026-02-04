@@ -13,6 +13,7 @@ import {
   getAllProductsController,
   getProductByIdController,
   updateProductController,
+  updateProductStockController,
 } from "./productController.js";
 import verifyPermission from "../utils/verifyPermission.js";
 import verifyToken from "../utils/verifyToken.js";
@@ -74,6 +75,17 @@ router.put(
     keyPrefix: "update-product",
   }),
   updateProductController,
+);
+
+router.put(
+  "/update/stock",
+  verifyToken,
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 15,
+    keyPrefix: "update-product-stock",
+  }),
+  updateProductStockController,
 );
 
 router.delete(

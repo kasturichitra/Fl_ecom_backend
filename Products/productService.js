@@ -485,6 +485,28 @@ export const updateProductService = async (
   return response;
 };
 
+export const updateProductStockService = async (tenantId, updateData) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+  throwIfTrue(!updateData.product_unique_id, "Product unique ID is required");
+  throwIfTrue(updateData.stock_quantity === undefined, "Stock quantity is required");
+
+  const { productModelDB } = await getTenantModels(tenantId);
+
+  const existingProduct = await productModelDB.findOne({ product_unique_id: updateData.product_unique_id }).lean();
+  throwIfTrue(!existingProduct, "Product not found");
+
+  const response = await productModelDB.findOneAndUpdate(
+    { product_unique_id: updateData.product_unique_id },
+    { $set: { stock_quantity: updateData.stock_quantity } },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  return response;
+};
+
 //This function will delete products based on products uniqe ID
 export const deleteProductService = async (tenantId, product_unique_id) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -763,7 +785,11 @@ export const createBulkProductsService = async (tenantId, category_unique_id, fi
         }
       }
       // -------------------------------
-      const product_unique_id = await generateProductUniqueId(productModelDB,brandModelDB, existingBrand.brand_unique_id);
+      const product_unique_id = await generateProductUniqueId(
+        productModelDB,
+        brandModelDB,
+        existingBrand.brand_unique_id,
+      );
       valid[i].product_unique_id = product_unique_id;
       valid[i].industry_unique_id = existingCategory.industry_unique_id;
       valid[i].category_unique_id = existingCategory.category_unique_id;
