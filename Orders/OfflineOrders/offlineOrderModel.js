@@ -9,14 +9,19 @@ const offlineOrderSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Customer details for offline orders
-    customer_name: {
+    // // Customer details for offline orders
+    // customer_name: {
+    //   type: String,
+    //   trim: true,
+    // },
+    // mobile_number: {
+    //   type: String,
+    //   trim: true,
+    // },
+
+    customer_id: {
       type: String,
-      trim: true,
-    },
-    mobile_number: {
-      type: String,
-      trim: true,
+      required: true,
     },
 
     order_products: [
@@ -42,10 +47,10 @@ const offlineOrderSchema = new mongoose.Schema(
       // default: "percentage",
     },
 
-    offline_address: {
-      type: String,
-      trim: true,
-    },
+    // offline_address: {
+    //   type: String,
+    //   trim: true,
+    // },
     base_price: { type: Number, required: true, min: 0 },
     gross_price: { type: Number, required: true, min: 0 },
     tax_value: { type: Number, default: 0 },
