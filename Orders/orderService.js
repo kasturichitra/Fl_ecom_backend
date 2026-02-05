@@ -30,7 +30,6 @@ const clearProductsFromCartAfterOrder = async (tenantId, user_id, products) => {
   Example JSON
   {
   "user_id": "67531b...", 
-  "order_type": "Online", 
   "order_id": "OD_1736666666666_...", 
   "payment_method": "UPI", 
   "payment_status": "Paid", 
@@ -302,7 +301,6 @@ export const createOrderServices = async (tenantId, payload) => {
 
   const transactionReferenceId = `TXN_${order?.order_id}`;
 
-  // if (payload.order_type === "Online") {
   const paymentTransactionDoc = {
     order_id: order?.order_id,
     transaction_reference_id: transactionReferenceId,
@@ -337,7 +335,6 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
     from,
     to,
     payment_status,
-    order_type,
     cash_on_delivery,
     payment_method,
     order_status,
@@ -365,7 +362,6 @@ export const getAllOrdersService = async (tenantId, filters = {}) => {
   }
 
   if (user_id) query.user_id = user_id;
-  if (order_type) query.order_type = order_type;
   if (payment_method) query.payment_method = payment_method;
   if (cash_on_delivery) query.cash_on_delivery = cash_on_delivery;
   if (searchTerm)
@@ -640,7 +636,6 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     }
 
     // Notify admin
-    if (order.order_type === "Online") {
       sendAdminNotificationProducer(tenantId, ADMIN_ID, {
         title: "New Order Received",
         message: `New order from user ${username}. Total: ₹${order.total_amount}`,
@@ -656,7 +651,6 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
           amount: order.total_amount,
         },
       }).catch((err) => console.error("Background Admin Notification error:", err.message));
-    }
 
     // If we need to clone the logic for "Refunded" -> "Cancelled"
     if (updateData?.payment_status === "Refunded") {

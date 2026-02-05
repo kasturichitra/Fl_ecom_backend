@@ -6,6 +6,7 @@ import {
   getAllofflinePamentTransactionController,
   getAllTopOrderUsersByAmountController,
   getFastMovingProductsController,
+  getOfflineOrdersTrendController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
   getOrdersByStatusController,
@@ -78,6 +79,16 @@ router.get(
   }),
   getOrdersTrendController,
 );
+
+// router.get(
+//   "/offline-orders/trend",
+//   rateLimiter({
+//     windowSizeInSeconds: 60, // 1 minute
+//     maxRequests: 60,
+//     keyPrefix: "get-offline-orders-trend",
+//   }),
+//   getOfflineOrdersTrendController,
+// );
 
 router.get(
   "/users/trend",

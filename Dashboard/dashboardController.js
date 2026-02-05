@@ -4,6 +4,7 @@ import {
   getAllLowStockProductsService,
   getAllofflinePamentTransactionService,
   getFastMovingProductsService,
+  // getOfflineOrdersTrendService,
   getOrdersByOrderType,
   getOrdersByPaymentMethod,
   getOrdersByStatus,
@@ -47,6 +48,19 @@ export const getOrdersTrendController = async (req, res) => {
     res.status(200).json(successResponse("Orders trend fetched successfully", { data }));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching orders trend:", error));
+  }
+};
+
+export const getOfflineOrdersTrendController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getOfflineOrdersTrendService(tenantID, filters);
+
+    res.status(200).json(successResponse("Offline orders trend fetched successfully", { data }));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching offline orders trend:", error));
   }
 };
 
