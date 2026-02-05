@@ -38,6 +38,7 @@ import ecomFeaturesRoutes from "./EcomFeatures/ecomFeatureRoutes.js";
 import themeRoutes from "./ThemeConfig/themeRoute.js";
 import paymentTransactionRoute from './PaymentTransactions/PaymentTransactionRoute.js';
 import offlineOrderTransactionsRoutes from "./OfflineOrderTransactions/offlineOrderTransactionRoutes.js"; 
+import offlineCustomerRoutes from "./OfflineCustomere/OfflineCustomerRoute.js";
 
 // Cron Jobs
 import "./CronJobs/reviewsCronSchedule.js";
@@ -183,6 +184,7 @@ app.use("/ecom-features", ecomFeaturesRoutes);
 app.use("/theme", themeRoutes);
 app.use("/paymentTransactions", paymentTransactionRoute);
 app.use("/offline-order-transactions", offlineOrderTransactionsRoutes); 
+app.use("/offline-customers", offlineCustomerRoutes);
 
 app.use("/", userRoutes);
 

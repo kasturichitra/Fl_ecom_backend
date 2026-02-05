@@ -23,12 +23,11 @@ const offlineCustomereSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-offlineCustomereSchema.index({ customer_name: 1 });
 offlineCustomereSchema.index({ mobile_number: 1 });
 
 const OfflineCustomerModel = async (tenantId) => {
-  const tenantDB = await getTenanteDB(tenantId);
-  return tenantDB.model("OfflineCustomers", offlineCustomereSchema);
+  const db = await getTenanteDB(tenantId);
+  return db.models.OfflineCustomers || db.model("OfflineCustomers", offlineCustomereSchema);
 };
 
 export default OfflineCustomerModel;
