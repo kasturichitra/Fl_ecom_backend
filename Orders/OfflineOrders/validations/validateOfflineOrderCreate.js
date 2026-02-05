@@ -162,7 +162,7 @@ export const offlineOrderValidationSchema = Joi.object({
     "number.base": "Additional discount amount must be a number.",
     "number.min": "Additional discount amount cannot be negative.",
   }),
-  additional_discount_type: Joi.string().valid("percentage", "amount").optional().messages({
+  additional_discount_type: Joi.string().valid("percentage", "amount").optional().allow(null).messages({
     "string.base": "Additional discount type must be a string.",
     "any.only": "Additional discount type must be percentage or amount.",
   }),
