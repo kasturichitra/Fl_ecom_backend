@@ -4,6 +4,7 @@ import {
   getAllDeadStockController,
   getAllLowStockProductsController,
   getAllofflinePamentTransactionController,
+  getAllTopOrderUsersByAmountController,
   getFastMovingProductsController,
   getOrdersByOrderTypeController,
   getOrdersByPaymentMethodController,
@@ -136,6 +137,15 @@ router.get(
     keyPrefix: "get-offline-orders-by-payment-method",
   }),
   getAllofflinePamentTransactionController,
+);
+
+router.get("/top-users-by-orders",
+  rateLimiter({
+    windowSizeInSeconds: 60, // 1 minute
+    maxRequests: 60,
+    keyPrefix: "get-top-users-by-orders",
+  }),
+  getAllTopOrderUsersByAmountController
 );
 
 export default router;

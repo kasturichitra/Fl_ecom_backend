@@ -9,6 +9,7 @@ import {
   getOrdersByStatus,
   getOrdersTrendService,
   getTopBrandsByCategoryService,
+  getTopOrderUsersByAmountService,
   getTopProductsByCategoryService,
   getTotalCountsService,
   getUsersTrendService,
@@ -142,8 +143,7 @@ export const getFastMovingProductsController = async (req, res) => {
   }
 };
 
-
-// offline order aggregations 
+// offline order aggregations
 export const getAllofflinePamentTransactionController = async (req, res) => {
   try {
     const tenantID = req.headers["x-tenant-id"];
@@ -154,5 +154,18 @@ export const getAllofflinePamentTransactionController = async (req, res) => {
     res.status(200).json(successResponse("Offline orders by payment method fetched successfully", data));
   } catch (error) {
     res.status(500).json(errorResponse("Error fetching offline orders by payment method:", error));
+  }
+};
+
+export const getAllTopOrderUsersByAmountController = async (req, res) => {
+  try {
+    const tenantID = req.headers["x-tenant-id"];
+    const filters = req.query;
+
+    const data = await getTopOrderUsersByAmountService(tenantID, filters);
+
+    res.status(200).json(successResponse("Top order users fetched successfully", data));
+  } catch (error) {
+    res.status(500).json(errorResponse("Error fetching top order users:", error));
   }
 };
