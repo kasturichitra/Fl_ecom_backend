@@ -326,7 +326,6 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   const aggregationResultOnline = await orderModelDB.aggregate(pipeline);
   const aggregationResultOffline = await offlineOrderModelDB.aggregate(pipeline);
 
-
   // Initialize all 12 months with default values
   const allMonthsForOnline = Array.from({ length: 12 }, (_, i) => ({
     month: i + 1,
@@ -365,7 +364,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 
   const allMonths = {
     online: allMonthsForOnline,
-    offline: allMonthsOffline
+    offline: allMonthsOffline,
   };
 
   return allMonths;
@@ -400,7 +399,6 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 
 //   // pipeLine
 
-
 //   const pipeline = [
 //     ...(Object.keys(matchCriteria).length > 0 ? [{ $match: matchCriteria }] : []),
 //     {
@@ -423,7 +421,6 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 //     }
 //   ]
 
-
 //   const aggregationResult = await offlineOrderModelDB.aggregate(pipeline);
 
 //   const allMonths = Array.from({ length: 12 }, (_, i) => ({
@@ -431,7 +428,6 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
 //     count: 0,
 //     value: 0,
 //   }));
-
 
 //   aggregationResult.forEach((item) => {
 //     const monthIndex = item.month - 1;
@@ -581,13 +577,13 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [
-                          { $toString: "$category_unique_id" }, // convert DB value → string
-                          "$$selectedCategory", // already string
-                        ],
-                      },
-                    ]
+                        {
+                          $eq: [
+                            { $toString: "$category_unique_id" }, // convert DB value → string
+                            "$$selectedCategory", // already string
+                          ],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -684,10 +680,10 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
-                      },
-                    ]
+                        {
+                          $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -992,19 +988,22 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
 
   const { productModelDB } = await getTenantModels(tenantId);
 
-  const {
+  let {
     threshold = 10, // Optional: override product's low_stock_threshold
     category_unique_id,
     industry_unique_id,
     brand_unique_id,
-    page = 1,
-    limit = 10,
+    page,
+    limit,
     sort,
     search,
     year,
     from,
     to,
   } = filters;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
 
   const numericLimit = Number(limit);
   const skip = (Number(page) - 1) * numericLimit;
@@ -1054,13 +1053,13 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
     // Low stock count (using same logic as main query)
     numericThreshold !== undefined
       ? productModelDB.countDocuments({
-        ...baseQuery,
-        stock_quantity: { $lte: numericThreshold },
-      })
+          ...baseQuery,
+          stock_quantity: { $lte: numericThreshold },
+        })
       : productModelDB.countDocuments({
-        ...baseQuery,
-        $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] },
-      }),
+          ...baseQuery,
+          $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
 
     // Out of stock (exactly 0)
     productModelDB.countDocuments({
@@ -1071,13 +1070,13 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
     // Healthy stock
     numericThreshold !== undefined
       ? productModelDB.countDocuments({
-        ...baseQuery,
-        stock_quantity: { $gt: numericThreshold },
-      })
+          ...baseQuery,
+          stock_quantity: { $gt: numericThreshold },
+        })
       : productModelDB.countDocuments({
-        ...baseQuery,
-        $expr: { $gt: ["$stock_quantity", "$low_stock_threshold"] },
-      }),
+          ...baseQuery,
+          $expr: { $gt: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
   ]);
 
   return {

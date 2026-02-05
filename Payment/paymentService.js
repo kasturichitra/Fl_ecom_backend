@@ -123,10 +123,10 @@ export const getPaymentDocumentsService = async (tenantId) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
   const projectId = process.env.PROJECT_ID || "ecommerce_app";
-  const endpoint = `${projectId}/${tenantId}`;
+  const endpoint = `projectId=${projectId}&tenantId=${tenantId}`;
 
   try {
-    const response = await axios.get(`${process.env.PAYMENT_REGISTRATION_URL}/${endpoint}`);
+    const response = await axios.get(`${process.env.PAYMENT_REGISTRATION_URL}?${endpoint}`);
 
     return response?.data?.data;
   } catch (error) {
@@ -196,9 +196,9 @@ export const initiatePaymentOrderService = async (tenantId, payload) => {
   const { userModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   let {
-    gateway = "CASHFREE",
-    gatewayCode = "CA103",
-    keyId = "8a8fc592f455",
+    gateway = "PAYU",
+    gatewayCode = "PA102",
+    keyId = "8d9b30890011",
     flow = "FIXED_AMOUNT",
     amount,
     paymentMethod,
