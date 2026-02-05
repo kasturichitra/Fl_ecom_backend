@@ -1003,6 +1003,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
     year,
     from,
     to,
+    sort,
   } = filters;
 
   const numericLimit = Number(limit);
@@ -1114,6 +1115,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   ];
 
   /* ---------------- FACET FOR PAGINATION ---------------- */
+   const sortObj = buildSortObject(sort);
   const pipeline = [
     ...basePipeline,
     {
@@ -1134,7 +1136,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
               },
             },
           },
-          { $sort: { lastSoldAt: 1 } },
+          { $sort: sortObj },
           { $skip: skip },
           { $limit: numericLimit },
         ],
@@ -1144,6 +1146,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   ];
 
   /* ---------------- EXECUTE ---------------- */
+ 
   const result = await productModelDB.aggregate(pipeline);
 
   const data = result[0]?.data || [];
