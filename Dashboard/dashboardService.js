@@ -1235,6 +1235,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
               stock_quantity: 1,
               lastSoldAt: 1,
               totalSoldQty: { $ifNull: ["$totalSoldQty", 0] },
+              product_price: { $ifNull: ["$final_price", 0] },
               deadStockValue: {
                 $multiply: ["$stock_quantity", "$final_price"],
               },
@@ -1270,7 +1271,7 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
 
   const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  let { page, limit, from, to, year, searchTerm, sort = "createdAt:desc" } = filters;
+  let { page, limit, from, to, year, searchTerm, sort = "total_revenue:desc" } = filters;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
@@ -1332,7 +1333,7 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
       $group: {
         _id: "$order_products.product_unique_id",
         product_name: { $first: "$order_products.product_name" },
-        product_price: { $first: "$order_products.base_price" },
+        product_price: { $first: "$order_products.unit_final_price" },
         total_sold_quantity: { $sum: "$order_products.quantity" },
         total_revenue: { $sum: "$order_products.total_final_price" },
       },

@@ -148,14 +148,10 @@ const orderUpdateSchema = Joi.object({
   shipping_charges: Joi.number().min(0),
 
   currency: Joi.string(),
-  offline_address: Joi.string().optional(),
-
   // New optional fields for updates
   status_note: Joi.string().optional().allow(null, ""),
   updated_by: Joi.string().optional().allow(null, ""),
   updated_name: Joi.string().optional().allow(null, ""),
-  customer_name: Joi.string().optional().allow(null, ""),
-  mobile_number: Joi.string().optional().allow(null, ""),
 });
 
 export function validateOrderUpdate(data) {

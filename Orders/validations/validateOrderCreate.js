@@ -1,33 +1,6 @@
 import Joi from "joi";
 
-const transactionSchema = Joi.object({
-  payment_method: Joi.string().trim().required().messages({
-    "string.base": "Payment method must be a string.",
-    "any.required": "Payment method is required.",
-  }),
-
-  transaction_id: Joi.when("payment_method", {
-    is: "CASH",
-    then: Joi.string().trim().allow(null, "").optional(),
-    otherwise: Joi.string().trim().required().messages({
-      "string.base": "Transaction ID must be a string for digital payments.",
-      "string.empty": "Transaction ID cannot be empty for digital payments.",
-      "any.required": "Transaction ID is required for digital payments.",
-    }),
-  }),
-
-  amount: Joi.number().min(0).required().messages({
-    "number.base": "Amount must be a number.",
-    "number.min": "Amount cannot be negative.",
-    "any.required": "Amount is required.",
-  }),
-
-  // Since order id will be created in backend
-  // order_id: Joi.string().trim().required().messages({
-  //   "string.base": "Order ID must be a string.",
-  //   "any.required": "Order ID is required.",
-  // }),
-});
+// transactionSchema removed as it was only for Offline orders
 
 const addressSchema = Joi.object({
   house_number: Joi.string().trim().required().messages({
@@ -177,10 +150,7 @@ const orderProductSchema = Joi.object({
 });
 
 export const orderValidationSchema = Joi.object({
-  order_type: Joi.string().valid("Online", "Offline").required().messages({
-    "any.only": "Order type must be Online or Offline.",
-    "any.required": "Order type is required.",
-  }),
+  // order_type: Joi.string().valid("Online").optional(),
   order_id: Joi.string().trim().allow(null, "").messages({
     "string.base": "Order ID must be a string.",
   }),
@@ -291,98 +261,36 @@ export const orderValidationSchema = Joi.object({
   }),
 
   // ----------------------------------------------------
-  // 🔥 Conditional Fields
+  // 🔥 Online Order Fields
   // ----------------------------------------------------
 
-  // 🧍‍♂ Offline: Required
-  customer_name: Joi.string()
-    .trim()
-    .when("order_type", {
-      is: "Offline",
-      then: Joi.required(),
-      otherwise: Joi.optional().allow(null, ""),
-    })
-    .messages({
-      "string.base": "Customer name must be a string.",
-      "any.required": "Customer name is required for offline orders.",
-    }),
-
-  mobile_number: Joi.string()
-    .trim()
-    .when("order_type", {
-      is: "Offline",
-      then: Joi.required(),
-      otherwise: Joi.optional().allow(null, ""),
-    })
-    .messages({
-      "string.base": "Mobile number must be a string.",
-      "any.required": "Mobile number is required for offline orders.",
-    }),
-
-  // 📦 Online: Required
-  address: Joi.when("order_type", {
-    is: "Online",
-    then: addressSchema.required().messages({
-      "any.required": "Address is required for online orders.",
-      // "any.unknown": "Address is not allowed for offline orders.",
-    }),
-    otherwise: Joi.forbidden(),
+  // Address is always required for online orders
+  address: addressSchema.required().messages({
+    "any.required": "Address is required for online orders.",
   }),
 
-  offline_address: Joi.when("order_type", {
-    is: "Offline",
-    then: Joi.string().trim().optional().allow("", null).messages({
-      "string.base": "Offline address must be a string.",
-    }),
-    otherwise: Joi.forbidden(),
-  }),
-
-  transactions: Joi.when("order_type", {
-    is: "Offline",
-    then: Joi.array().items(transactionSchema).min(1).required().messages({
-      "array.base": "Transactions must be an array.",
-      "array.min": "At least one transaction is required.",
-      "any.required": "Transactions are required for offline orders.",
-    }),
-  }),
-
-  shipping_charges: Joi.when("order_type", {
-    is: "Online",
-    then: Joi.number().min(0).required().messages({
-      "number.base": "Shipping charges must be a number.",
-      "number.min": "Shipping charges cannot be negative.",
-      "any.required": "Shipping charges are required for online orders.",
-    }),
-
-    otherwise: Joi.number().valid(0).default(0).messages({
-      "number.base": "Shipping charges must be a number.",
-      "any.only": "Shipping charges must be 0 for offline orders.",
-    }),
-  }),
-
-  cash_on_delivery: Joi.when("order_type", {
-    is: "Online",
-    then: Joi.boolean().required().messages({
-      "boolean.base": "Cash on delivery must be a boolean.",
-      "any.required": "Cash on delivery is required for online orders.",
-    }),
-
-    // In case of offline deliveries, cash on delivery is always true
-    otherwise: Joi.boolean().default(true).messages({
-      "boolean.base": "Cash on delivery must be a boolean.",
-      "any.only": "Cash on delivery must be true for offline orders.",
-    }),
-  }),
-
-  user_id: Joi.when("order_type", {
-    is: "Online",
-    then: Joi.string().optional().allow(null, ""),
-    otherwise: Joi.forbidden(),
-  }).messages({
+  // User ID is usually required/optional for online but strictly string
+  user_id: Joi.string().trim().optional().allow(null, "").messages({
     "string.base": "User ID must be a string.",
-    "any.required": "User ID is required for online orders.",
-    "any.unknown": "User ID is not allowed for offline orders.",
   }),
+
+  // Shipping charges always required and non-negative
+  shipping_charges: Joi.number().min(0).required().messages({
+    "number.base": "Shipping charges must be a number.",
+    "number.min": "Shipping charges cannot be negative.",
+    "any.required": "Shipping charges are required.",
+  }),
+
+  // Cash on delivery always boolean and required
+  cash_on_delivery: Joi.boolean().required().messages({
+    "boolean.base": "Cash on delivery must be a boolean.",
+    "any.required": "Cash on delivery is required.",
+  }),
+
+  // Fields NOT allowed or irrelevant for Online orders can be explicitly forbidden if desired,
+  // or simply omitted so Joi ignores or strips them (depending on config).
+  // Here we simply don't include offline_address, customer_name, mobile_number, transactions.
+  // If strict mode is needed, we would use .unknown(false) on the object.
 });
 
 export function validateOrderCreate(data) {
