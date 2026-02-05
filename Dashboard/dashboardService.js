@@ -1433,8 +1433,6 @@ export const getAllofflinePamentTransactionService = async (tenantId, filters = 
   return allMethods;
 };
 
-
-
 // top order users by amount spent
 export const getTopOrderUsersByAmountService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is Required");
@@ -1444,14 +1442,16 @@ export const getTopOrderUsersByAmountService = async (tenantId, filters = {}) =>
   const page = parseInt(filters.page) || 1;
   const limit = parseInt(filters.limit) || 10;
   const skip = (page - 1) * limit;
-  
-  const matchQuery = {};
+
+  const matchQuery = {
+    payment_status: "Successful",
+  };
   if (from || to) {
     matchQuery.createdAt = {};
     if (from) matchQuery.createdAt.$gte = new Date(from);
     if (to) matchQuery.createdAt.$lte = new Date(to);
   }
-  
+
   const pipeline = [
     {
       $match: matchQuery,
@@ -1505,17 +1505,17 @@ export const getTopOrderUsersByAmountService = async (tenantId, filters = {}) =>
       },
     },
   ];
-  
+
   const result = await orderModelDB.aggregate(pipeline);
-  
+
   const total = result[0]?.metadata[0]?.total || 0;
   const data = result[0]?.data || [];
-  
+
   return {
-    data: data,
     page: page,
     limit: limit,
     total: total,
     totalPages: Math.ceil(total / limit),
+    data: data,
   };
 };
