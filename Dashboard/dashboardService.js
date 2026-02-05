@@ -347,6 +347,10 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
   return allMonths;
 };
 
+export const getOfflineOrdersTrendService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is required");
+}
+
 export const getUsersTrendService = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
