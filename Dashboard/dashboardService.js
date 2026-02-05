@@ -1,6 +1,7 @@
 import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
+import { getDateRangeInDays } from "../utils/getDateRangeInDays.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -1115,7 +1116,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   ];
 
   /* ---------------- FACET FOR PAGINATION ---------------- */
-   const sortObj = buildSortObject(sort);
+  const sortObj = buildSortObject(sort);
   const pipeline = [
     ...basePipeline,
     {
@@ -1146,7 +1147,7 @@ export const getAllDeadStockService = async (tenantId, filters = {}) => {
   ];
 
   /* ---------------- EXECUTE ---------------- */
- 
+
   const result = await productModelDB.aggregate(pipeline);
 
   const data = result[0]?.data || [];
@@ -1166,10 +1167,12 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
 
   const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
-  const { page = 1, limit = 10, from, to, year, searchTerm } = filters;
+  let { page, limit, from, to, year, searchTerm, sort = "createdAt:desc" } = filters;
 
-  const numericLimit = Number(limit);
-  const skip = (Number(page) - 1) * numericLimit;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  const skip = (page - 1) * limit;
 
   // -------------------------
   // Build date match query
@@ -1188,10 +1191,14 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
     };
   }
 
+  const daysDifference = getDateRangeInDays({ from, to, year });
+
+  const sortObj = buildSortObject(sort);
+
   // -------------------------
   // Build aggregation pipeline
   // -------------------------
-  const buildPipeline = () => {
+  const buildBasePipeline = () => {
     const pipeline = [{ $match: matchQuery }, { $unwind: "$order_products" }];
 
     // ✅ search filter AFTER unwind
@@ -1222,59 +1229,93 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
       $group: {
         _id: "$order_products.product_unique_id",
         product_name: { $first: "$order_products.product_name" },
+        product_price: { $first: "$order_products.base_price" },
         total_sold_quantity: { $sum: "$order_products.quantity" },
         total_revenue: { $sum: "$order_products.total_final_price" },
       },
     });
 
+    // Add average sales per day
+    pipeline.push({
+      $addFields: {
+        avg_sales_per_day: {
+          $divide: ["$total_sold_quantity", daysDifference],
+        },
+      },
+    });
+
+    // Apply sorting here so that it is applied on grouped fields
+    pipeline.push({ $sort: sortObj });
+
     return pipeline;
   };
 
-  const pipeline = buildPipeline();
+  const basePipeline = buildBasePipeline();
 
-  // -------------------------
-  // Run both aggregations
-  // -------------------------
-  const [onlineResults, offlineResults] = await Promise.all([
-    orderModelDB.aggregate(pipeline),
-    offlineOrderModelDB.aggregate(pipeline),
-  ]);
+  const finalPipeline = [
+    ...basePipeline,
 
-  // -------------------------
-  // Combine online + offline
-  // -------------------------
-  const combinedMap = new Map();
+    // Merge offline orders
+    {
+      $unionWith: {
+        coll: offlineOrderModelDB.collection.name,
+        pipeline: basePipeline,
+      },
+    },
 
-  [...onlineResults, ...offlineResults].forEach((item) => {
-    if (combinedMap.has(item._id)) {
-      const existing = combinedMap.get(item._id);
-      existing.total_sold_quantity += item.total_sold_quantity;
-      existing.total_revenue += item.total_revenue;
-    } else {
-      combinedMap.set(item._id, { ...item });
-    }
-  });
+    // Merge product totals from both sources
+    {
+      $group: {
+        _id: "$_id",
+        product_name: { $first: "$product_name" },
+        product_price: { $first: "$product_price" },
+        total_sold_quantity: { $sum: "$total_sold_quantity" },
+        total_revenue: { $sum: "$total_revenue" },
+      },
+    },
 
-  const combinedResults = Array.from(combinedMap.values());
+    // Compute averages AFTER merging
+    {
+      $addFields: {
+        avg_sales_per_day: {
+          $divide: ["$total_sold_quantity", daysDifference],
+        },
+      },
+    },
 
-  // -------------------------
-  // Sort by fast moving
-  // -------------------------
-  combinedResults.sort((a, b) => b.total_sold_quantity - a.total_sold_quantity);
+    // Global sorting
+    { $sort: sortObj },
 
-  // -------------------------
-  // Pagination
-  // -------------------------
-  const paginatedResults = combinedResults.slice(skip, skip + numericLimit);
+    // Pagination LAST
+    { $skip: skip },
+    { $limit: limit },
+  ];
 
-  const totalCount = combinedResults.length;
+  const countPipeline = [
+    ...basePipeline,
+    {
+      $unionWith: {
+        coll: offlineOrderModelDB.collection.name,
+        pipeline: basePipeline,
+      },
+    },
+    {
+      $group: { _id: "$_id" },
+    },
+    { $count: "total" },
+  ];
+
+  const countResult = await orderModelDB.aggregate(countPipeline);
+  const totalCount = countResult[0]?.total || 0;
+
+  const results = await orderModelDB.aggregate(finalPipeline);
 
   return {
-    data: paginatedResults,
     totalCount,
-    page: Number(page),
-    limit: numericLimit,
-    totalPages: Math.ceil(totalCount / numericLimit),
+    page,
+    limit,
+    totalPages: Math.ceil(totalCount / limit),
+    data: results,
   };
 };
 
@@ -1363,7 +1404,8 @@ export const getAllofflinePamentTransactionService = async (tenantId, filters = 
   const existingMethods = await offlineOrderTransactionsModelDB.distinct("payment_method");
   const pipeline = [
     ...(Object.keys(matchQuery).length > 0 ? [{ $match: matchQuery }] : []),
-    { $group: {
+    {
+      $group: {
         _id: "$payment_method",
         count: { $sum: 1 },
         total_amount: { $sum: "$amount" },
