@@ -6,6 +6,8 @@ import { updateStockOnOrder } from "../utils/updateStockOnOrder.js";
 import { verifyOrderProducts } from "../utils/verifyOrderProducts.js";
 import { validateOrderCreate } from "../validations/validateOrderCreate.js";
 import { buildSortObject } from "../../utils/buildSortObject.js";
+import { validateOfflineOrderCreate } from "./validations/validateOfflineOrderCreate.js";
+import { generateCustomerId } from "../../OfflineCustomere/Utils/generateCustomerId.js";
 
 /*
   Example JSON
@@ -67,7 +69,8 @@ export const createOfflineOrderService = async (tenantId, payload) => {
 
   console.log("Payload coming into create offline order service ===>", payload);
 
-  const { offlineOrderModelDB, productModelDB, offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
+  const { offlineOrderModelDB, productModelDB, offlineOrderTransactionsModelDB, offlineCustomerModelDB } =
+    await getTenantModels(tenantId);
 
   // Calculate Order Totals from Products
   const { order_products = [], transactions = [] } = payload;
@@ -214,28 +217,50 @@ export const createOfflineOrderService = async (tenantId, payload) => {
     additional_discount_type,
     order_id,
 
-    order_status_history: [
-      {
-        status: "Delivered",
-        updated_at: new Date(),
-        updated_by: payload.user_id || "system",
-        updated_name: "System",
-        note: "Order created",
-      },
-    ],
+    // order_status_history: [
+    //   {
+    //     status: "Delivered",
+    //     updated_at: new Date(),
+    //     updated_by: payload.user_id || "system",
+    //     updated_name: "System",
+    //     note: "Order created",
+    //   },
+    // ],
   };
-  console.log("orderDoc=====>", orderDoc);
-
   // Verify order products exist
   await verifyOrderProducts(tenantId, order_products);
 
+  if (payload.mobile_number && payload.customer_name && payload.offline_address) {
+    // Check if customer already exists
+    let existingCustomer = await offlineCustomerModelDB.findOne({
+      mobile_number: payload.mobile_number,
+    });
+
+    if (!existingCustomer) {
+      // Create new customer if not exists
+      const newCustomer = await offlineCustomerModelDB.create({
+        customer_id: generateCustomerId(),
+        customer_name: payload.customer_name,
+        mobile_number: payload.mobile_number,
+        offline_address: payload.offline_address,
+      });
+      orderDoc.customer_id = newCustomer.customer_id;
+    }
+
+    // Update order with customer details
+    orderDoc.customer_id = existingCustomer.customer_id;
+  }
+
+  const { mobile_number, customer_name, offline_address, order_type, ...restOrderDoc } = orderDoc;
+  // orderDoc = restOrderDoc;
+
   // Schema validation
-  const { isValid, message } = validateOrderCreate(orderDoc);
+  const { isValid, message } = validateOfflineOrderCreate(restOrderDoc);
   throwIfTrue(!isValid, message);
 
-  const { order_type, ...restOfOrderDoc } = orderDoc;
+  // const { order_type, ...restOfOrderDoc } = orderDoc;
   // Create order
-  const order = await offlineOrderModelDB.create(restOfOrderDoc);
+  const order = await offlineOrderModelDB.create(restOrderDoc);
 
   const totalTransactionAmount = transactions?.reduce((sum, item) => sum + item.amount, 0) || 0;
   throwIfTrue(totalTransactionAmount !== order.total_amount, "Transaction amount mismatch");
