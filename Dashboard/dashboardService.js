@@ -1392,8 +1392,8 @@ export const getAllofflinePamentTransactionService = async (tenantId, filters = 
   const { offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
   const { from, to, page = 1, limit = 10 } = filters;
 
-  const numericLimit = Number(limit);
-  const skip = (Number(page) - 1) * numericLimit;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
 
   const matchQuery = {};
   if (from || to) {
@@ -1427,4 +1427,91 @@ export const getAllofflinePamentTransactionService = async (tenantId, filters = 
     }
   });
   return allMethods;
+};
+
+
+
+// top order users by amount spent
+export const getTopOrderUsersByAmountService = async (tenantId, filters = {}) => {
+  throwIfTrue(!tenantId, "Tenant ID is Required");
+  const { orderModelDB, userModelDB } = await getTenantModels(tenantId);
+  const { from, to, sort } = filters;
+
+  const page = parseInt(filters.page) || 1;
+  const limit = parseInt(filters.limit) || 10;
+  const skip = (page - 1) * limit;
+  
+  const matchQuery = {};
+  if (from || to) {
+    matchQuery.createdAt = {};
+    if (from) matchQuery.createdAt.$gte = new Date(from);
+    if (to) matchQuery.createdAt.$lte = new Date(to);
+  }
+  
+  const pipeline = [
+    {
+      $match: matchQuery,
+    },
+    {
+      $unwind: "$order_products",
+    },
+    {
+      $group: {
+        _id: "$user_id",
+        order_count: { $addToSet: "$order_id" },
+        total_spent_amount: { $sum: "$order_products.total_final_price" },
+      },
+    },
+    {
+      $addFields: {
+        order_count: { $size: "$order_count" },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "user_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: false,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        user_id: "$_id",
+        username: "$user.username",
+        email: "$user.email",
+        order_count: 1,
+        total_spent_amount: 1,
+      },
+    },
+    {
+      $sort: buildSortObject(sort) || { total_spent_amount: -1 },
+    },
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
+  ];
+  
+  const result = await orderModelDB.aggregate(pipeline);
+  
+  const total = result[0]?.metadata[0]?.total || 0;
+  const data = result[0]?.data || [];
+  
+  return {
+    data: data,
+    page: page,
+    limit: limit,
+    total: total,
+    totalPages: Math.ceil(total / limit),
+  };
 };
