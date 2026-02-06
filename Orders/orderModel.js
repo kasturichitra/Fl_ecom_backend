@@ -177,7 +177,7 @@ export const orderStatusHistorySchema = new mongoose.Schema({
     default: Date.now,
   },
   updated_by: {
-    type: String, 
+    type: String,
   },
   updated_name: {
     type: String,
@@ -205,7 +205,7 @@ const orderSchema = new mongoose.Schema(
     // },
     payment_status: {
       type: String,
-      enum: ["Pending", "Successful", "Failed", "Refunded"],
+      enum: ["Pending", "Processing", "Successful", "Failed", "Refunded"],
       default: "Pending",
     },
     transaction_id: {

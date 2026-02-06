@@ -195,7 +195,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { from, to, payment_status, order_status } = filters;
+  let { from, to, order_status } = filters;
 
   const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantId);
 
@@ -209,8 +209,11 @@ export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   // --------------------
   // ONLINE ORDER QUERY
   // --------------------
-  const onlineMatch = {};
-  if (payment_status) onlineMatch.payment_status = payment_status;
+  const onlineMatch = {
+    payment_status: "Successful",
+  };
+
+  // if (payment_status) onlineMatch.payment_status = payment_status;
   if (order_status) onlineMatch.order_status = order_status;
   if (from || to) onlineMatch.createdAt = dateFilter;
 
