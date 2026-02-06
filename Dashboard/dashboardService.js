@@ -456,11 +456,13 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
   let { period, year, from, to } = filters;
 
-  const { userModelDB } = await getTenantModels(tenantId);
+  const { userModelDB, offlineCustomerModelDB } = await getTenantModels(tenantId);
 
   let matchCriteria = {
     role: "user",
   };
+
+  let matchCriteriaOffline = {};
 
   // Add year filter if provided
   if (year) {
@@ -469,15 +471,22 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
       $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
       $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
     };
+    matchCriteriaOffline.createdAt = {
+      $gte: new Date(`${yearInt}-01-01T00:00:00.000Z`),
+      $lte: new Date(`${yearInt}-12-31T23:59:59.999Z`),
+    };
   }
   // Add date range filters if provided (only if year is not specified)
   else if (from || to) {
     matchCriteria.createdAt = {};
+    matchCriteriaOffline.createdAt = {};
     if (from) {
       matchCriteria.createdAt.$gte = new Date(from);
+      matchCriteriaOffline.createdAt.$gte = new Date(from);
     }
     if (to) {
       matchCriteria.createdAt.$lte = new Date(to);
+      matchCriteriaOffline.createdAt.$lte = new Date(to);
     }
   }
 
@@ -510,23 +519,91 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-  const aggregationResult = await userModelDB.aggregate(pipeline);
 
-  const allMonths = Array.from({ length: 12 }, (_, index) => ({
-    month: index + 1,
-    count: 0,
-    // value: 0,
-  }));
+  const pipelineOffline = [
+    ...(Object.keys(matchCriteriaOffline).length > 0 ? [{ $match: matchCriteriaOffline }] : []),
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        count: { $sum: 1 },
+        // value: { $sum: "$total_amount" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        count: 1,
+        // value: 1,
+      },
+    },
+    {
+      $sort: { month: 1 },
+    }
+  ]
 
-  aggregationResult.forEach((result) => {
+  const aggregationResultOnline = await userModelDB.aggregate(pipeline);
+
+  const aggregationResultOffline = await offlineCustomerModelDB.aggregate(pipelineOffline);
+
+  // const aggregationResult = [...aggregationResultOnline, ...aggregationResultOffline];
+
+
+ const allMonthsOnline = Array.from({ length:12}, (_, index) => ({
+   month: index + 1,
+   count: 0,
+  //  value: 0,
+ }))
+
+ const allMonthsOffline = Array.from({ length:12}, (_, index) => ({
+   month: index + 1,
+   count: 0,
+  //  value: 0,
+ }))
+
+  // const allMonths = Array.from({ length: 12 }, (_, index) => ({
+  //   month: index + 1,
+  //   count: 0,
+  //   // value: 0,
+  // }));
+
+  // aggregationResult.forEach((result) => {
+  //   const monthIndex = result.month - 1;
+  //   if (monthIndex >= 0 && monthIndex < 12) {
+  //     allMonths[monthIndex] = {
+  //       month: result.month,
+  //       count: result.count,
+  //     };
+  //   }
+  // });
+
+
+  aggregationResultOnline.forEach((result) => {
     const monthIndex = result.month - 1;
-    if (monthIndex >= 0 && monthIndex < 12) {
-      allMonths[monthIndex] = {
+    if(monthIndex >=0 && monthIndex <12){
+      allMonthsOnline[monthIndex] = {
         month: result.month,
         count: result.count,
-      };
+        // value: result.value,
+      }
     }
-  });
+  })
+
+  aggregationResultOffline.forEach((result) => {
+    const monthIndex = result.month - 1;  
+    if(monthIndex >=0 && monthIndex <12){
+      allMonthsOffline[monthIndex] = {
+        month: result.month,
+        count: result.count,
+        // value: result.value,
+      }
+    }
+  })
+
+  const allMonths = {
+    onlineUsers : allMonthsOnline,
+    offlineUsers : allMonthsOffline
+  }
 
   return allMonths;
 };
