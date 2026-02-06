@@ -93,7 +93,9 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
 
   // Apply filters
-  const baseQuery = {};
+  const baseQuery = {
+    payment_status: "Successful",
+  };
 
   if (order_status) baseQuery.order_status = order_status;
   if (order_type) baseQuery.order_type = order_type;
