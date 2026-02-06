@@ -1306,28 +1306,17 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Build aggregation pipeline
   // -------------------------
-  const buildBasePipeline = () => {
+  const buildBasePipeline = (sourceType) => {
     const pipeline = [{ $match: matchQuery }, { $unwind: "$order_products" }];
 
-    // ✅ search filter AFTER unwind
     if (searchTerm && searchTerm.trim()) {
       const safeSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
       pipeline.push({
         $match: {
           $or: [
-            {
-              "order_products.product_name": {
-                $regex: safeSearch,
-                $options: "i",
-              },
-            },
-            {
-              "order_products.product_unique_id": {
-                $regex: safeSearch,
-                $options: "i",
-              },
-            },
+            { "order_products.product_name": { $regex: safeSearch, $options: "i" } },
+            { "order_products.product_unique_id": { $regex: safeSearch, $options: "i" } },
           ],
         },
       });
@@ -1338,51 +1327,90 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
         _id: "$order_products.product_unique_id",
         product_name: { $first: "$order_products.product_name" },
         product_price: { $first: "$order_products.unit_final_price" },
-        total_sold_quantity: { $sum: "$order_products.quantity" },
-        total_revenue: { $sum: "$order_products.total_final_price" },
+        sold_quantity: { $sum: "$order_products.quantity" },
+        revenue: { $sum: "$order_products.total_final_price" },
       },
     });
 
-    // Add average sales per day
+    // 👇 Tag source here
     pipeline.push({
       $addFields: {
-        avg_sales_per_day: {
-          $divide: ["$total_sold_quantity", daysDifference],
-        },
+        source: sourceType,
       },
     });
-
-    // Apply sorting here so that it is applied on grouped fields
-    pipeline.push({ $sort: sortObj });
 
     return pipeline;
   };
 
-  const basePipeline = buildBasePipeline();
+  // -------------------------
+  // Build Separate Pipelines for Online and Offline
+  // -------------------------
+
+  // const basePipeline = buildBasePipeline();
+  const onlinePipeline = buildBasePipeline("online");
+  const offlinePipeline = buildBasePipeline("offline");
 
   const finalPipeline = [
-    ...basePipeline,
+    ...onlinePipeline,
 
-    // Merge offline orders
     {
       $unionWith: {
         coll: offlineOrderModelDB.collection.name,
-        pipeline: basePipeline,
+        pipeline: offlinePipeline,
       },
     },
 
-    // Merge product totals from both sources
     {
       $group: {
         _id: "$_id",
         product_name: { $first: "$product_name" },
         product_price: { $first: "$product_price" },
-        total_sold_quantity: { $sum: "$total_sold_quantity" },
-        total_revenue: { $sum: "$total_revenue" },
+
+        // ONLINE
+        online_sold_quantity: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "online"] }, "$sold_quantity", 0],
+          },
+        },
+        online_revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "online"] }, "$revenue", 0],
+          },
+        },
+
+        // OFFLINE
+        offline_sold_quantity: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "offline"] }, "$sold_quantity", 0],
+          },
+        },
+        offline_revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "offline"] }, "$revenue", 0],
+          },
+        },
       },
     },
 
-    // Compute averages AFTER merging
+    {
+      $addFields: {
+        online_avg_sales_per_day: {
+          $divide: ["$online_sold_quantity", daysDifference],
+        },
+        offline_avg_sales_per_day: {
+          $divide: ["$offline_sold_quantity", daysDifference],
+        },
+
+        total_sold_quantity: {
+          $add: ["$online_sold_quantity", "$offline_sold_quantity"],
+        },
+        total_revenue: {
+          $add: ["$online_revenue", "$offline_revenue"],
+        },
+      },
+    },
+
+    // Add avg sales per day bcoz u can't access total sold quantity in the same addFields object
     {
       $addFields: {
         avg_sales_per_day: {
@@ -1391,20 +1419,24 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
       },
     },
 
-    // Global sorting
-    { $sort: sortObj },
-
-    // Pagination LAST
-    { $skip: skip },
-    { $limit: limit },
+    // Implement sorting and pagination here
+    {
+      $sort: sortObj,
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: limit,
+    },
   ];
 
   const countPipeline = [
-    ...basePipeline,
+    ...onlinePipeline,
     {
       $unionWith: {
         coll: offlineOrderModelDB.collection.name,
-        pipeline: basePipeline,
+        pipeline: offlinePipeline,
       },
     },
     {
