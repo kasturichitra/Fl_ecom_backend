@@ -636,21 +636,21 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
     }
 
     // Notify admin
-      sendAdminNotificationProducer(tenantId, ADMIN_ID, {
-        title: "New Order Received",
-        message: `New order from user ${username}. Total: ₹${order.total_amount}`,
-        type: "order",
-        relatedId: order.order_id,
-        relatedModel: "Order",
-        senderModel: "user",
-        sender: username,
-        link: `/order-products-detailes/${order.order_id}`,
-        data: {
-          orderId: order.order_id,
-          userId: order.user_id,
-          amount: order.total_amount,
-        },
-      }).catch((err) => console.error("Background Admin Notification error:", err.message));
+    sendAdminNotificationProducer(tenantId, ADMIN_ID, {
+      title: "New Order Received",
+      message: `New order from user ${username}. Total: ₹${order.total_amount}`,
+      type: "order",
+      relatedId: order.order_id,
+      relatedModel: "Order",
+      senderModel: "user",
+      sender: username,
+      link: `/order-products-detailes/${order.order_id}`,
+      data: {
+        orderId: order.order_id,
+        userId: order.user_id,
+        amount: order.total_amount,
+      },
+    }).catch((err) => console.error("Background Admin Notification error:", err.message));
 
     // If we need to clone the logic for "Refunded" -> "Cancelled"
     if (updateData?.payment_status === "Refunded") {
@@ -661,7 +661,6 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
   }
 
   if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "failed") {
-    const { paymentTransactionsModelDB } = await getTenantModels(tenantId);
     if (updateData?.transaction_id) {
       // Push to order's payment_transactions array
       order.transaction_id = updateData?.transaction_id;
@@ -676,6 +675,25 @@ export const updateOrderService = async (tenantId, orderID, updateData) => {
 
       // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
       order.payment_status = "Failed";
+    }
+  }
+
+  // Safe Side: let's store even payment status processing as order status
+  if (updateData?.payment_status && updateData?.payment_status?.toLowerCase() === "processing") {
+    if (updateData?.transaction_id) {
+      // Push to order's payment_transactions array
+      order.transaction_id = updateData?.transaction_id;
+
+      // Add to order status history
+      order.order_status_history.push({
+        status: "Processing",
+        updated_at: new Date(),
+        updated_by: updateData.updated_by || "system",
+        note: "Payment processing",
+      });
+
+      // Also update the order's payment status for quick access if needed, though we rely on transactions mostly
+      order.payment_status = "Processing";
     }
   }
 
