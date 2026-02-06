@@ -88,23 +88,13 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
 export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { from, to, order_status, order_type, cash_on_delivery } = filters;
+  let { from, to } = filters;
 
-  const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
+  const { orderModelDB, paymentTransactionsModelDB, offlineOrderTransactionsModelDB } =
+    await getTenantModels(tenantId);
 
   // Apply filters
-  const baseQuery = {
-    payment_status: "Successful",
-  };
-
-  if (order_status) baseQuery.order_status = order_status;
-  if (order_type) baseQuery.order_type = order_type;
-
-  if (cash_on_delivery === "true") {
-    baseQuery.cash_on_delivery = true;
-  } else if (cash_on_delivery === "false") {
-    baseQuery.cash_on_delivery = false;
-  }
+  const baseQuery = {};
 
   if (from) {
     baseQuery.createdAt = {
@@ -127,9 +117,14 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   // Fetch unique payment methods from transactions
   const uniqueMethods = await paymentTransactionsModelDB.distinct("payment_method");
+  const uniqueOfflineMethods = await offlineOrderTransactionsModelDB.distinct("payment_method");
 
   // Initialize result object with unique methods found in DB
   const paymentMethodResult = {
+    // unknown: { count: 0, value: 0 },
+  };
+
+  const offlinePaymentMethodResult = {
     // unknown: { count: 0, value: 0 },
   };
 
@@ -137,6 +132,13 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     if (method) {
       const key = method;
       paymentMethodResult[key] = { count: 0, value: 0 };
+    }
+  });
+
+  uniqueOfflineMethods.forEach((method) => {
+    if (method) {
+      const key = method;
+      offlinePaymentMethodResult[key] = { count: 0, value: 0 };
     }
   });
 
@@ -154,7 +156,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
         computed_status: { $ifNull: ["$order_status", "$last_history.status"] },
       },
     },
-    ...(order_status ? [{ $match: { computed_status: order_status } }] : []),
+    // ...(order_status ? [{ $match: { computed_status: order_status } }] : []),
     // Join with transactions using order_id (more reliable than transaction_id)
     {
       $lookup: {
@@ -178,6 +180,17 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     },
   ]);
 
+  const offlineStats = await offlineOrderTransactionsModelDB.aggregate([
+    { $match: baseQuery },
+    {
+      $group: {
+        _id: { $ifNull: ["$payment_method", "Unknown"] },
+        count: { $sum: 1 },
+        value: { $sum: "$amount" },
+      },
+    },
+  ]);
+
   // Map DB results
   stats.forEach((item) => {
     // const key = item._id?.toLowerCase().replace(/ /g, "_");
@@ -191,9 +204,25 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     }
   });
 
-  return { data: paymentMethodResult };
-};
+  offlineStats.forEach((item) => {
+    // const key = item._id?.toLowerCase().replace(/ /g, "_");
+    const key = item._id;
+    if (key) {
+      if (!offlinePaymentMethodResult[key]) {
+        offlinePaymentMethodResult[key] = { count: 0, value: 0 };
+      }
+      offlinePaymentMethodResult[key].count = item.count;
+      offlinePaymentMethodResult[key].value = item.value;
+    }
+  });
 
+  return {
+    data: {
+      onlinePayment: paymentMethodResult,
+      offlinePayment: offlinePaymentMethodResult,
+    },
+  };
+};
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
