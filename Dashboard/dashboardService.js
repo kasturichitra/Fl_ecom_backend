@@ -2,6 +2,7 @@ import throwIfTrue from "../utils/throwIfTrue.js";
 import { getTenantModels } from "../lib/tenantModelsCache.js";
 import { buildSortObject } from "../utils/buildSortObject.js";
 import { getDateRangeInDays } from "../utils/getDateRangeInDays.js";
+import { isValidDateString } from "../utils/isValidDateString.js";
 
 export const getOrdersByStatus = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
@@ -232,11 +233,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   const { from, to } = filters;
 
-  const {
-    orderModelDB,
-    paymentTransactionsModelDB,
-    offlineOrderTransactionsModelDB,
-  } = await getTenantModels(tenantId);
+  const { orderModelDB, paymentTransactionsModelDB, offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
 
   /* -------------------- DATE FILTER -------------------- */
   const baseQuery = {};
@@ -269,10 +266,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     {
       $addFields: {
         payment_method: {
-          $ifNull: [
-            { $arrayElemAt: ["$transaction_details.payment_method", 0] },
-            "Unknown",
-          ],
+          $ifNull: [{ $arrayElemAt: ["$transaction_details.payment_method", 0] }, "Unknown"],
         },
       },
     },
@@ -439,7 +433,7 @@ export const getOrdersTrendService = async (tenantId, filters = {}) => {
     // Group by month
     {
       $group: {
-        _id: { $month: "$createdAt", },
+        _id: { $month: "$createdAt" },
         count: { $sum: 1 },
         value: { $sum: "$total_amount" },
       },
@@ -719,13 +713,13 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     month: index + 1,
     count: 0,
     //  value: 0,
-  }))
+  }));
 
   const allMonthsOffline = Array.from({ length: 12 }, (_, index) => ({
     month: index + 1,
     count: 0,
     //  value: 0,
-  }))
+  }));
 
   // const allMonths = Array.from({ length: 12 }, (_, index) => ({
   //   month: index + 1,
@@ -767,43 +761,46 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
   const allMonths = {
     onlineUsers: allMonthsOnline,
-    offlineUsers: allMonthsOffline
-  }
+    offlineUsers: allMonthsOffline,
+  };
 
   return allMonths;
 };
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
-  const { orderModelDB } = await getTenantModels(tenantID);
+  const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantID);
   const { category_unique_id, from, to } = filters;
 
   // normalize the ID – prevent "" or " "
   const categoryId = category_unique_id?.trim?.() || "";
 
-  const matchQuery = {};
+  // const matchQuery = {};
 
-  if (from || to) {
-    matchQuery.createdAt = {};
-    if (from) matchQuery.createdAt.$gte = new Date(from);
-    if (to) matchQuery.createdAt.$lte = new Date(to);
-  }
+  // if (from || to) {
+  //   matchQuery.createdAt = {};
+  //   if (from) matchQuery.createdAt.$gte = new Date(from);
+  //   if (to) matchQuery.createdAt.$lte = new Date(to);
+  // }
 
-  const pipeline = [
-    ...(Object.keys(matchQuery).length > 0 ? [{ $match: matchQuery }] : []),
-    // 1. Only Delivered Orders
-    // TODO: Later add the delivered only filter to ensure only delivered orders are considered
-    // {
-    //   $match: {
-    //     order_status: "Delivered",
-    //   },
-    // },
+  const offlineOrderMatchQuery = {};
 
-    // 2. Unwind order products
-    {
-      $unwind: "$order_products",
-    },
+  if (from && isValidDateString(from)) offlineOrderMatchQuery.createdAt = { $gte: new Date(from) };
+  if (to && isValidDateString(to))
+    offlineOrderMatchQuery.createdAt = {
+      ...offlineOrderMatchQuery.createdAt,
+      $lte: new Date(to),
+    };
 
-    // 3. Lookup Products
+  const onlineOrderMatchQuery = {
+    ...offlineOrderMatchQuery,
+    payment_status: "Successful",
+  };
+
+  const buildBrandPipeline = (matchQuery, sourceType) => [
+    { $match: matchQuery },
+
+    { $unwind: "$order_products" },
+
     {
       $lookup: {
         from: "products",
@@ -816,21 +813,14 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
             $match: {
               $expr: {
                 $and: [
-                  // Match products based on product_unique_id
-                  {
-                    $eq: ["$product_unique_id", "$$productUniqueId"],
-                  },
+                  { $eq: ["$product_unique_id", "$$productUniqueId"] },
 
-                  // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [
-                          { $toString: "$category_unique_id" }, // convert DB value → string
-                          "$$selectedCategory", // already string
-                        ],
-                      },
-                    ]
+                        {
+                          $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -838,9 +828,7 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
           },
           {
             $project: {
-              category_unique_id: 1,
               brand_unique_id: 1,
-              category_name: 1,
               brand_name: 1,
             },
           },
@@ -849,37 +837,100 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
       },
     },
 
-    // 4. Unwind productDetails
-    {
-      $unwind: "$productDetails",
-    },
+    { $unwind: "$productDetails" },
 
-    // 5. Group by brand only (not by category)
+    // group per brand per source
     {
       $group: {
         _id: "$productDetails.brand_unique_id",
         brand_name: { $first: "$productDetails.brand_name" },
-        count: { $sum: "$order_products.quantity" },
+        quantity: { $sum: "$order_products.quantity" },
+        revenue: { $sum: "$order_products.total_final_price" },
       },
     },
 
-    // 6. Sort by count DESC
-    { $sort: { count: -1 } },
-
-    // 7. Limit to top 5 brands
-    { $limit: 5 },
-
-    // 8. Project to final format
+    // tag source
     {
-      $project: {
-        _id: 0,
-        brand_name: 1,
-        count: 1,
+      $addFields: {
+        source: sourceType,
+      },
+    },
+
+    // Sort based on revenue
+    {
+      $sort: {
+        revenue: -1,
+      },
+    },
+
+    // Allow only top 10 brands per source
+    {
+      $limit: 10,
+    },
+  ];
+
+  const onlineOrderPipeline = buildBrandPipeline(onlineOrderMatchQuery, "online");
+  const offlineOrderPipeline = buildBrandPipeline(offlineOrderMatchQuery, "offline");
+
+  const finalPipeline = [
+    ...onlineOrderPipeline,
+
+    // Union with offline orders
+    {
+      $unionWith: {
+        coll: offlineOrderModelDB.collection.name,
+        pipeline: offlineOrderPipeline,
+      },
+    },
+
+    // Group by brand
+    {
+      $group: {
+        _id: "$_id",
+        brand_name: { $first: "$brand_name" },
+
+        online_count: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "online"] }, "$quantity", 0],
+          },
+        },
+
+        online_revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "online"] }, "$revenue", 0],
+          },
+        },
+
+        offline_count: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "offline"] }, "$quantity", 0],
+          },
+        },
+
+        offline_revenue: {
+          $sum: {
+            $cond: [{ $eq: ["$source", "offline"] }, "$revenue", 0],
+          },
+        },
+      },
+    },
+
+    // Add totals to get total count
+    {
+      $addFields: {
+        total_count: {
+          $add: ["$online_count", "$offline_count"],
+        },
+        total_revenue: {
+          $add: ["$online_revenue", "$offline_revenue"],
+        },
       },
     },
   ];
 
-  const brands = await orderModelDB.aggregate(pipeline);
+  const brands = await orderModelDB.aggregate(finalPipeline);
+
+  // const brands = await orderModelDB.aggregate(pipeline);
 
   return { brands };
 };
@@ -927,10 +978,10 @@ export const getTopProductsByCategoryService = async (tenantID, filters = {}) =>
                   // Only filter category when user selected one
                   ...(categoryId !== ""
                     ? [
-                      {
-                        $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
-                      },
-                    ]
+                        {
+                          $eq: [{ $toString: "$category_unique_id" }, "$$selectedCategory"],
+                        },
+                      ]
                     : []),
                 ],
               },
@@ -1300,13 +1351,13 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
     // Low stock count (using same logic as main query)
     numericThreshold !== undefined
       ? productModelDB.countDocuments({
-        ...baseQuery,
-        stock_quantity: { $lte: numericThreshold },
-      })
+          ...baseQuery,
+          stock_quantity: { $lte: numericThreshold },
+        })
       : productModelDB.countDocuments({
-        ...baseQuery,
-        $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] },
-      }),
+          ...baseQuery,
+          $expr: { $lte: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
 
     // Out of stock (exactly 0)
     productModelDB.countDocuments({
@@ -1317,13 +1368,13 @@ export const getAllLowStockProductsService = async (tenantId, filters = {}) => {
     // Healthy stock
     numericThreshold !== undefined
       ? productModelDB.countDocuments({
-        ...baseQuery,
-        stock_quantity: { $gt: numericThreshold },
-      })
+          ...baseQuery,
+          stock_quantity: { $gt: numericThreshold },
+        })
       : productModelDB.countDocuments({
-        ...baseQuery,
-        $expr: { $gt: ["$stock_quantity", "$low_stock_threshold"] },
-      }),
+          ...baseQuery,
+          $expr: { $gt: ["$stock_quantity", "$low_stock_threshold"] },
+        }),
   ]);
 
   return {
