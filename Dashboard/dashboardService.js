@@ -90,8 +90,7 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   let { from, to } = filters;
 
-  const { orderModelDB, paymentTransactionsModelDB, offlineOrderTransactionsModelDB } =
-    await getTenantModels(tenantId);
+  const { orderModelDB, paymentTransactionsModelDB, offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
 
   // Apply filters
   const baseQuery = {};
@@ -548,7 +547,6 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-
   const pipelineOffline = [
     ...(Object.keys(matchCriteriaOffline).length > 0 ? [{ $match: matchCriteriaOffline }] : []),
     {
@@ -568,8 +566,8 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
     {
       $sort: { month: 1 },
-    }
-  ]
+    },
+  ];
 
   const aggregationResultOnline = await userModelDB.aggregate(pipeline);
 
@@ -577,18 +575,17 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
   // const aggregationResult = [...aggregationResultOnline, ...aggregationResultOffline];
 
+  const allMonthsOnline = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    count: 0,
+    //  value: 0,
+  }));
 
- const allMonthsOnline = Array.from({ length:12}, (_, index) => ({
-   month: index + 1,
-   count: 0,
-  //  value: 0,
- }))
-
- const allMonthsOffline = Array.from({ length:12}, (_, index) => ({
-   month: index + 1,
-   count: 0,
-  //  value: 0,
- }))
+  const allMonthsOffline = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    count: 0,
+    //  value: 0,
+  }));
 
   // const allMonths = Array.from({ length: 12 }, (_, index) => ({
   //   month: index + 1,
@@ -606,33 +603,32 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
   //   }
   // });
 
-
   aggregationResultOnline.forEach((result) => {
     const monthIndex = result.month - 1;
-    if(monthIndex >=0 && monthIndex <12){
+    if (monthIndex >= 0 && monthIndex < 12) {
       allMonthsOnline[monthIndex] = {
         month: result.month,
         count: result.count,
         // value: result.value,
-      }
+      };
     }
-  })
+  });
 
   aggregationResultOffline.forEach((result) => {
-    const monthIndex = result.month - 1;  
-    if(monthIndex >=0 && monthIndex <12){
+    const monthIndex = result.month - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
       allMonthsOffline[monthIndex] = {
         month: result.month,
         count: result.count,
         // value: result.value,
-      }
+      };
     }
-  })
+  });
 
   const allMonths = {
-    onlineUsers : allMonthsOnline,
-    offlineUsers : allMonthsOffline
-  }
+    onlineUsers: allMonthsOnline,
+    offlineUsers: allMonthsOffline,
+  };
 
   return allMonths;
 };
@@ -1391,19 +1387,24 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Build date match query
   // -------------------------
-  const matchQuery = {};
+  const offlineOrderMatchQuery = {};
 
   if (from && to) {
-    matchQuery.createdAt = {
+    offlineOrderMatchQuery.createdAt = {
       $gte: new Date(from),
       $lte: new Date(to),
     };
   } else if (year) {
-    matchQuery.createdAt = {
+    offlineOrderMatchQuery.createdAt = {
       $gte: new Date(`${year}-01-01T00:00:00.000Z`),
       $lte: new Date(`${year}-12-31T23:59:59.999Z`),
     };
   }
+
+  const onlineOrderMatchQuery = {
+    ...offlineOrderMatchQuery,
+    payment_status: "Successful",
+  };
 
   const daysDifference = getDateRangeInDays({ from, to, year });
 
@@ -1412,7 +1413,7 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Build aggregation pipeline
   // -------------------------
-  const buildBasePipeline = (sourceType) => {
+  const buildBasePipeline = (sourceType, matchQuery) => {
     const pipeline = [{ $match: matchQuery }, { $unwind: "$order_products" }];
 
     if (searchTerm && searchTerm.trim()) {
@@ -1453,8 +1454,8 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
 
   // const basePipeline = buildBasePipeline();
-  const onlinePipeline = buildBasePipeline("online");
-  const offlinePipeline = buildBasePipeline("offline");
+  const onlinePipeline = buildBasePipeline("online", onlineOrderMatchQuery);
+  const offlinePipeline = buildBasePipeline("offline", offlineOrderMatchQuery);
 
   const finalPipeline = [
     ...onlinePipeline,
