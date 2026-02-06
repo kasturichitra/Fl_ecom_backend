@@ -327,7 +327,6 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   };
 };
 
-
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -778,7 +777,7 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
 
 export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
   const { orderModelDB, offlineOrderModelDB } = await getTenantModels(tenantID);
-  const { category_unique_id, from, to } = filters;
+  const { category_unique_id, from, to, sort = "total_revenue:desc" } = filters;
 
   // normalize the ID – prevent "" or " "
   const categoryId = category_unique_id?.trim?.() || "";
@@ -804,6 +803,8 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
     ...offlineOrderMatchQuery,
     payment_status: "Successful",
   };
+
+  const sortObj = buildSortObject(sort);
 
   const buildBrandPipeline = (matchQuery, sourceType) => [
     { $match: matchQuery },
@@ -864,18 +865,6 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
         source: sourceType,
       },
     },
-
-    // Sort based on revenue
-    {
-      $sort: {
-        revenue: -1,
-      },
-    },
-
-    // Allow only top 10 brands per source
-    {
-      $limit: 10,
-    },
   ];
 
   const onlineOrderPipeline = buildBrandPipeline(onlineOrderMatchQuery, "online");
@@ -934,6 +923,16 @@ export const getTopBrandsByCategoryService = async (tenantID, filters = {}) => {
           $add: ["$online_revenue", "$offline_revenue"],
         },
       },
+    },
+
+    // Sort based on revenue
+    {
+      $sort: sortObj,
+    },
+
+    // Allow only top 10 brands per source
+    {
+      $limit: 10,
     },
   ];
 
