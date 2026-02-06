@@ -85,6 +85,148 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
   return dashboardResult;
 };
 
+// export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
+//   throwIfTrue(!tenantId, "Tenant ID is required");
+
+//   const { from, to } = filters;
+
+//   const {
+//     orderModelDB,
+//     paymentTransactionsModelDB,
+//     offlineOrderTransactionsModelDB,
+//   } = await getTenantModels(tenantId);
+
+//   /* -------------------- DATE FILTER -------------------- */
+//   const baseQuery = {};
+
+//   if (from || to) {
+//     baseQuery.createdAt = {};
+//     if (from) baseQuery.createdAt.$gte = new Date(from);
+//     if (to) baseQuery.createdAt.$lte = new Date(to);
+//   }
+
+//   /* -------------------- HELPERS -------------------- */
+//   const initMonths = () =>
+//     Array.from({ length: 12 }, (_, i) => ({
+//       month: i + 1,
+//       count: 0,
+//       value: 0,
+//     }));
+
+//   const paymentMethodResult = {};
+//   const offlinePaymentMethodResult = {};
+
+//   /* -------------------- ONLINE AGGREGATION -------------------- */
+//   const stats = await orderModelDB.aggregate([
+//     { $match: baseQuery },
+
+//     {
+//       $lookup: {
+//         from: "paymenttransactions",
+//         localField: "order_id",
+//         foreignField: "order_id",
+//         as: "transaction_details",
+//       },
+//     },
+
+//     {
+//       $addFields: {
+//         payment_method: {
+//           $ifNull: [
+//             { $arrayElemAt: ["$transaction_details.payment_method", 0] },
+//             "Unknown",
+//           ],
+//         },
+//         month: { $month: "$createdAt" },
+//       },
+//     },
+
+//     {
+//       $group: {
+//         _id: {
+//           payment_method: "$payment_method",
+//           month: "$month",
+//         },
+//         count: { $sum: 1 },
+//         value: { $sum: "$total_amount" },
+//       },
+//     },
+//   ]);
+
+//   /* -------------------- OFFLINE AGGREGATION -------------------- */
+//   const offlineStats = await offlineOrderTransactionsModelDB.aggregate([
+//     { $match: baseQuery },
+
+//     {
+//       $addFields: {
+//         payment_method: { $ifNull: ["$payment_method", "Unknown"] },
+//         month: { $month: "$createdAt" },
+//       },
+//     },
+
+//     {
+//       $group: {
+//         _id: {
+//           payment_method: "$payment_method",
+//           month: "$month",
+//         },
+//         count: { $sum: 1 },
+//         value: { $sum: "$amount" },
+//       },
+//     },
+//   ]);
+
+//   /* -------------------- MAP ONLINE DATA -------------------- */
+//   stats.forEach(({ _id, count, value }) => {
+//     const { payment_method, month } = _id;
+
+//     if (!paymentMethodResult[payment_method]) {
+//       paymentMethodResult[payment_method] = {
+//         total: { count: 0, value: 0 },
+//         months: initMonths(),
+//       };
+//     }
+
+//     paymentMethodResult[payment_method].months[month - 1] = {
+//       month,
+//       count,
+//       value,
+//     };
+
+//     paymentMethodResult[payment_method].total.count += count;
+//     paymentMethodResult[payment_method].total.value += value;
+//   });
+
+//   /* -------------------- MAP OFFLINE DATA -------------------- */
+//   offlineStats.forEach(({ _id, count, value }) => {
+//     const { payment_method, month } = _id;
+
+//     if (!offlinePaymentMethodResult[payment_method]) {
+//       offlinePaymentMethodResult[payment_method] = {
+//         total: { count: 0, value: 0 },
+//         months: initMonths(),
+//       };
+//     }
+
+//     offlinePaymentMethodResult[payment_method].months[month - 1] = {
+//       month,
+//       count,
+//       value,
+//     };
+
+//     offlinePaymentMethodResult[payment_method].total.count += count;
+//     offlinePaymentMethodResult[payment_method].total.value += value;
+//   });
+
+//   /* -------------------- RESPONSE -------------------- */
+//   return {
+//     data: {
+//       onlinePayment: paymentMethodResult,
+//       offlinePayment: offlinePaymentMethodResult,
+//     },
+//   };
+// };
+
 export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
@@ -105,16 +247,11 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     if (to) baseQuery.createdAt.$lte = new Date(to);
   }
 
-  /* -------------------- HELPERS -------------------- */
-  const initMonths = () =>
-    Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      count: 0,
-      value: 0,
-    }));
-
   const paymentMethodResult = {};
   const offlinePaymentMethodResult = {};
+
+  const onlineTotal = { count: 0, value: 0 };
+  const offlineTotal = { count: 0, value: 0 };
 
   /* -------------------- ONLINE AGGREGATION -------------------- */
   const stats = await orderModelDB.aggregate([
@@ -137,16 +274,12 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
             "Unknown",
           ],
         },
-        month: { $month: "$createdAt" },
       },
     },
 
     {
       $group: {
-        _id: {
-          payment_method: "$payment_method",
-          month: "$month",
-        },
+        _id: "$payment_method",
         count: { $sum: 1 },
         value: { $sum: "$total_amount" },
       },
@@ -158,18 +291,8 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
     { $match: baseQuery },
 
     {
-      $addFields: {
-        payment_method: { $ifNull: ["$payment_method", "Unknown"] },
-        month: { $month: "$createdAt" },
-      },
-    },
-
-    {
       $group: {
-        _id: {
-          payment_method: "$payment_method",
-          month: "$month",
-        },
+        _id: { $ifNull: ["$payment_method", "Unknown"] },
         count: { $sum: 1 },
         value: { $sum: "$amount" },
       },
@@ -178,55 +301,30 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
 
   /* -------------------- MAP ONLINE DATA -------------------- */
   stats.forEach(({ _id, count, value }) => {
-    const { payment_method, month } = _id;
+    paymentMethodResult[_id] = { count, value };
 
-    if (!paymentMethodResult[payment_method]) {
-      paymentMethodResult[payment_method] = {
-        total: { count: 0, value: 0 },
-        months: initMonths(),
-      };
-    }
-
-    paymentMethodResult[payment_method].months[month - 1] = {
-      month,
-      count,
-      value,
-    };
-
-    paymentMethodResult[payment_method].total.count += count;
-    paymentMethodResult[payment_method].total.value += value;
+    onlineTotal.count += count;
+    onlineTotal.value += value;
   });
 
   /* -------------------- MAP OFFLINE DATA -------------------- */
   offlineStats.forEach(({ _id, count, value }) => {
-    const { payment_method, month } = _id;
+    offlinePaymentMethodResult[_id] = { count, value };
 
-    if (!offlinePaymentMethodResult[payment_method]) {
-      offlinePaymentMethodResult[payment_method] = {
-        total: { count: 0, value: 0 },
-        months: initMonths(),
-      };
-    }
-
-    offlinePaymentMethodResult[payment_method].months[month - 1] = {
-      month,
-      count,
-      value,
-    };
-
-    offlinePaymentMethodResult[payment_method].total.count += count;
-    offlinePaymentMethodResult[payment_method].total.value += value;
+    offlineTotal.count += count;
+    offlineTotal.value += value;
   });
 
   /* -------------------- RESPONSE -------------------- */
   return {
     data: {
-      onlinePayment: paymentMethodResult,
-      offlinePayment: offlinePaymentMethodResult,
+      onlineTotal,
+      offlineTotal,
+      online: paymentMethodResult,
+      offline: offlinePaymentMethodResult,
     },
   };
 };
-
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
