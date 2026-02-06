@@ -88,74 +88,38 @@ export const getOrdersByStatus = async (tenantId, filters = {}) => {
 export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
   throwIfTrue(!tenantId, "Tenant ID is required");
 
-  let { from, to, order_status, order_type, cash_on_delivery } = filters;
+  const { from, to } = filters;
 
-  const { orderModelDB, paymentTransactionsModelDB } = await getTenantModels(tenantId);
+  const {
+    orderModelDB,
+    paymentTransactionsModelDB,
+    offlineOrderTransactionsModelDB,
+  } = await getTenantModels(tenantId);
 
-  // Apply filters
-  const baseQuery = {
-    payment_status: "Successful",
-  };
+  /* -------------------- DATE FILTER -------------------- */
+  const baseQuery = {};
 
-  if (order_status) baseQuery.order_status = order_status;
-  if (order_type) baseQuery.order_type = order_type;
-
-  if (cash_on_delivery === "true") {
-    baseQuery.cash_on_delivery = true;
-  } else if (cash_on_delivery === "false") {
-    baseQuery.cash_on_delivery = false;
+  if (from || to) {
+    baseQuery.createdAt = {};
+    if (from) baseQuery.createdAt.$gte = new Date(from);
+    if (to) baseQuery.createdAt.$lte = new Date(to);
   }
 
-  if (from) {
-    baseQuery.createdAt = {
-      $gte: new Date(from),
-    };
-  }
+  /* -------------------- HELPERS -------------------- */
+  const initMonths = () =>
+    Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      count: 0,
+      value: 0,
+    }));
 
-  if (to) {
-    baseQuery.createdAt = {
-      $lte: new Date(to),
-    };
-  }
+  const paymentMethodResult = {};
+  const offlinePaymentMethodResult = {};
 
-  if (from && to) {
-    baseQuery.createdAt = {
-      $gte: new Date(from),
-      $lte: new Date(to),
-    };
-  }
-
-  // Fetch unique payment methods from transactions
-  const uniqueMethods = await paymentTransactionsModelDB.distinct("payment_method");
-
-  // Initialize result object with unique methods found in DB
-  const paymentMethodResult = {
-    // unknown: { count: 0, value: 0 },
-  };
-
-  uniqueMethods.forEach((method) => {
-    if (method) {
-      const key = method;
-      paymentMethodResult[key] = { count: 0, value: 0 };
-    }
-  });
-
-  // AGGREGATE BY PAYMENT METHOD
+  /* -------------------- ONLINE AGGREGATION -------------------- */
   const stats = await orderModelDB.aggregate([
     { $match: baseQuery },
-    // Handle status filtering robustly for legacy orders
-    {
-      $addFields: {
-        last_history: { $arrayElemAt: ["$order_status_history", -1] },
-      },
-    },
-    {
-      $addFields: {
-        computed_status: { $ifNull: ["$order_status", "$last_history.status"] },
-      },
-    },
-    ...(order_status ? [{ $match: { computed_status: order_status } }] : []),
-    // Join with transactions using order_id (more reliable than transaction_id)
+
     {
       $lookup: {
         from: "paymenttransactions",
@@ -164,34 +128,103 @@ export const getOrdersByPaymentMethod = async (tenantId, filters = {}) => {
         as: "transaction_details",
       },
     },
+
     {
       $addFields: {
-        payment_method_val: { $arrayElemAt: ["$transaction_details.payment_method", 0] },
+        payment_method: {
+          $ifNull: [
+            { $arrayElemAt: ["$transaction_details.payment_method", 0] },
+            "Unknown",
+          ],
+        },
+        month: { $month: "$createdAt" },
       },
     },
+
     {
       $group: {
-        _id: { $ifNull: ["$payment_method_val", "Unknown"] },
+        _id: {
+          payment_method: "$payment_method",
+          month: "$month",
+        },
         count: { $sum: 1 },
         value: { $sum: "$total_amount" },
       },
     },
   ]);
 
-  // Map DB results
-  stats.forEach((item) => {
-    // const key = item._id?.toLowerCase().replace(/ /g, "_");
-    const key = item._id;
-    if (key) {
-      if (!paymentMethodResult[key]) {
-        paymentMethodResult[key] = { count: 0, value: 0 };
-      }
-      paymentMethodResult[key].count = item.count;
-      paymentMethodResult[key].value = item.value;
+  /* -------------------- OFFLINE AGGREGATION -------------------- */
+  const offlineStats = await offlineOrderTransactionsModelDB.aggregate([
+    { $match: baseQuery },
+
+    {
+      $addFields: {
+        payment_method: { $ifNull: ["$payment_method", "Unknown"] },
+        month: { $month: "$createdAt" },
+      },
+    },
+
+    {
+      $group: {
+        _id: {
+          payment_method: "$payment_method",
+          month: "$month",
+        },
+        count: { $sum: 1 },
+        value: { $sum: "$amount" },
+      },
+    },
+  ]);
+
+  /* -------------------- MAP ONLINE DATA -------------------- */
+  stats.forEach(({ _id, count, value }) => {
+    const { payment_method, month } = _id;
+
+    if (!paymentMethodResult[payment_method]) {
+      paymentMethodResult[payment_method] = {
+        total: { count: 0, value: 0 },
+        months: initMonths(),
+      };
     }
+
+    paymentMethodResult[payment_method].months[month - 1] = {
+      month,
+      count,
+      value,
+    };
+
+    paymentMethodResult[payment_method].total.count += count;
+    paymentMethodResult[payment_method].total.value += value;
   });
 
-  return { data: paymentMethodResult };
+  /* -------------------- MAP OFFLINE DATA -------------------- */
+  offlineStats.forEach(({ _id, count, value }) => {
+    const { payment_method, month } = _id;
+
+    if (!offlinePaymentMethodResult[payment_method]) {
+      offlinePaymentMethodResult[payment_method] = {
+        total: { count: 0, value: 0 },
+        months: initMonths(),
+      };
+    }
+
+    offlinePaymentMethodResult[payment_method].months[month - 1] = {
+      month,
+      count,
+      value,
+    };
+
+    offlinePaymentMethodResult[payment_method].total.count += count;
+    offlinePaymentMethodResult[payment_method].total.value += value;
+  });
+
+  /* -------------------- RESPONSE -------------------- */
+  return {
+    data: {
+      onlinePayment: paymentMethodResult,
+      offlinePayment: offlinePaymentMethodResult,
+    },
+  };
 };
 
 export const getOrdersByOrderType = async (tenantId, filters = {}) => {
@@ -550,7 +583,6 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
   ];
 
-
   const pipelineOffline = [
     ...(Object.keys(matchCriteriaOffline).length > 0 ? [{ $match: matchCriteriaOffline }] : []),
     {
@@ -570,15 +602,20 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
     },
     {
       $sort: { month: 1 },
-    }
-  ]
+    },
+  ];
 
   const aggregationResultOnline = await userModelDB.aggregate(pipeline);
 
   const aggregationResultOffline = await offlineCustomerModelDB.aggregate(pipelineOffline);
 
-  // const aggregationResult = [...aggregationResultOnline, ...aggregationResultOffline];
+  // // const aggregationResult = [...aggregationResultOnline, ...aggregationResultOffline];
 
+  // const allMonthsOnline = Array.from({ length: 12 }, (_, index) => ({
+  //   month: index + 1,
+  //   count: 0,
+  //   //  value: 0,
+  // }));
 
   const allMonthsOnline = Array.from({ length: 12 }, (_, index) => ({
     month: index + 1,
@@ -608,7 +645,6 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
   //   }
   // });
 
-
   aggregationResultOnline.forEach((result) => {
     const monthIndex = result.month - 1;
     if (monthIndex >= 0 && monthIndex < 12) {
@@ -616,9 +652,9 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
         month: result.month,
         count: result.count,
         // value: result.value,
-      }
+      };
     }
-  })
+  });
 
   aggregationResultOffline.forEach((result) => {
     const monthIndex = result.month - 1;
@@ -627,9 +663,9 @@ export const getUsersTrendService = async (tenantId, filters = {}) => {
         month: result.month,
         count: result.count,
         // value: result.value,
-      }
+      };
     }
-  })
+  });
 
   const allMonths = {
     onlineUsers: allMonthsOnline,
@@ -1393,19 +1429,24 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Build date match query
   // -------------------------
-  const matchQuery = {};
+  const offlineOrderMatchQuery = {};
 
   if (from && to) {
-    matchQuery.createdAt = {
+    offlineOrderMatchQuery.createdAt = {
       $gte: new Date(from),
       $lte: new Date(to),
     };
   } else if (year) {
-    matchQuery.createdAt = {
+    offlineOrderMatchQuery.createdAt = {
       $gte: new Date(`${year}-01-01T00:00:00.000Z`),
       $lte: new Date(`${year}-12-31T23:59:59.999Z`),
     };
   }
+
+  const onlineOrderMatchQuery = {
+    ...offlineOrderMatchQuery,
+    payment_status: "Successful",
+  };
 
   const daysDifference = getDateRangeInDays({ from, to, year });
 
@@ -1414,7 +1455,7 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
   // Build aggregation pipeline
   // -------------------------
-  const buildBasePipeline = (sourceType) => {
+  const buildBasePipeline = (sourceType, matchQuery) => {
     const pipeline = [{ $match: matchQuery }, { $unwind: "$order_products" }];
 
     if (searchTerm && searchTerm.trim()) {
@@ -1455,8 +1496,8 @@ export const getFastMovingProductsService = async (tenantId, filters) => {
   // -------------------------
 
   // const basePipeline = buildBasePipeline();
-  const onlinePipeline = buildBasePipeline("online");
-  const offlinePipeline = buildBasePipeline("offline");
+  const onlinePipeline = buildBasePipeline("online", onlineOrderMatchQuery);
+  const offlinePipeline = buildBasePipeline("offline", offlineOrderMatchQuery);
 
   const finalPipeline = [
     ...onlinePipeline,
