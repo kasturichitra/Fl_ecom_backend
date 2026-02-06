@@ -1493,7 +1493,7 @@ export const getAllofflinePamentTransactionService = async (tenantId, filters = 
   throwIfTrue(!tenantId, "Tenant ID is Required");
 
   const { offlineOrderTransactionsModelDB } = await getTenantModels(tenantId);
-  const { from, to, page = 1, limit = 10 } = filters;
+  let { from, to, page, limit } = filters;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
